@@ -6,5 +6,6 @@ library(here)
 
 load_dot_env(here::here(".env"))
 
-data_dir <- file.path(Sys.getenv("BRAIN_DRAIN_ROOT"), "Data")
-out_dir  <- file.path(Sys.getenv("BRAIN_DRAIN_ROOT"), "Outputs")
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")

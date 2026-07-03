@@ -170,7 +170,7 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/06/institutional_characteristics.csv,/p/BRAIN_DRAIN/Data/intermediate/institutional_characteristics.csv,569517,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/06/inst_names.csv,/p/BRAIN_DRAIN/Data/intermediate/inst_names.csv,609782,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/06/intercensal.csv,/p/BRAIN_DRAIN/Data/intermediate/intercensal.csv,422700,intermediate,medium,per-stage pipeline intermediate
-/p/BRAIN_DRAIN/Data/06/ipeds_finance_troubleshoot.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/ipeds_finance_troubleshoot.xlsx,54966,raw/ipeds,low,likely IPEDS finance troubleshooting workbook -- confirm
+/p/BRAIN_DRAIN/Data/06/ipeds_finance_troubleshoot.xlsx,/p/BRAIN_DRAIN/Data/intermediate/ipeds_finance_troubleshoot.xlsx,54966,intermediate,high,a more extensive user modification of IPEDS finance data (confirmed by user)
 /p/BRAIN_DRAIN/Data/06/local_differences.csv,/p/BRAIN_DRAIN/Data/intermediate/local_differences.csv,25514,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/06/local_differences_unfilt.csv,/p/BRAIN_DRAIN/Data/intermediate/local_differences_unfilt.csv,49953,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/06/microdata_sample.csv,/p/BRAIN_DRAIN/Data/intermediate/microdata_sample__06.csv,171259082,intermediate,COLLISION-RESOLVED,"merged/matched panel, model input || was a basename collision with 2 other file(s); disambiguated with a __06 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
@@ -284,7 +284,7 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/ELSI_csv_export_6390435784786712152626.csv,/p/BRAIN_DRAIN/Data/raw/nces/ELSI_csv_export_6390435784786712152626.csv,15111154,raw/nces,high,NCES ELSI export
 /p/BRAIN_DRAIN/Data/ELSI_csv_export_639044261135902865330.csv,/p/BRAIN_DRAIN/Data/raw/nces/ELSI_csv_export_639044261135902865330.csv,2617101,raw/nces,high,NCES ELSI export
 /p/BRAIN_DRAIN/Data/ELSI_csv_export_6390455368533882136542.csv,/p/BRAIN_DRAIN/Data/raw/nces/ELSI_csv_export_6390455368533882136542.csv,18653457,raw/nces,high,NCES ELSI export
-/p/BRAIN_DRAIN/Data/finance_raw.csv,/p/BRAIN_DRAIN/Data/raw/ipeds/finance_raw.csv,10737728,raw/ipeds,low,appears reshaped from IPEDS finance survey despite '_raw' name -- confirm
+/p/BRAIN_DRAIN/Data/finance_raw.csv,/p/BRAIN_DRAIN/Data/intermediate/finance_raw.csv,10737728,intermediate,high,"user's modification of an IPEDS finance file, not raw despite the name (confirmed by user)"
 /p/BRAIN_DRAIN/Data/Grawe.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/Grawe.xlsx,0,_review/needs_inspection,high,zero-byte file
 /p/BRAIN_DRAIN/Data/great_recession/all_bin_shares_cbsa_10.csv,/p/BRAIN_DRAIN/Data/great_recession/all_bin_shares_cbsa_10.csv,1231,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
 /p/BRAIN_DRAIN/Data/great_recession/all_bin_shares_cbsa_5.csv,/p/BRAIN_DRAIN/Data/great_recession/all_bin_shares_cbsa_5.csv,663,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"

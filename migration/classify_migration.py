@@ -105,8 +105,10 @@ BASENAME_RULES = [
     (r"occupation\.xlsx", "raw/bls", "high", "BLS occupation classification file (confirmed by user)"),
     (r"pf\.xlsx", "raw/other", "high",
      "user-created list of public flagship institutions -- a manually authored reference input, not a script-derived intermediate (confirmed by user)"),
-    (r"finance_raw\.csv", "raw/ipeds", "low", "appears reshaped from IPEDS finance survey despite '_raw' name -- confirm"),
-    (r"ipeds_finance_troubleshoot\.xlsx", "raw/ipeds", "low", "likely IPEDS finance troubleshooting workbook -- confirm"),
+    (r"finance_raw\.csv", "intermediate", "high",
+     "user's modification of an IPEDS finance file, not raw despite the name (confirmed by user)"),
+    (r"ipeds_finance_troubleshoot\.xlsx", "intermediate", "high",
+     "a more extensive user modification of IPEDS finance data (confirmed by user)"),
 ]
 
 # rules that DO need folder context (ambiguous basename, or only meaningful within a specific stage folder)

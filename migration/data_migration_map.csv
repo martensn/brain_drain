@@ -1,0 +1,576 @@
+old_path,new_path,size,bucket,confidence,note
+/p/BRAIN_DRAIN/Data/.DS_Store,(DELETE),22532,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/01/.DS_Store,(DELETE),8196,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/01/barrons_mod.xlsx,/p/BRAIN_DRAIN/Data/raw/rankings_membership/barrons_mod.xlsx,48496,raw/rankings_membership,high,Barron's college selectivity rankings
+/p/BRAIN_DRAIN/Data/01/CBSACrosswalk.csv,/p/BRAIN_DRAIN/Data/raw/census_geo/CBSACrosswalk.csv,90751,raw/census_geo,high,Census/OMB geography crosswalk
+/p/BRAIN_DRAIN/Data/01/chetty_college.xlsx,/p/BRAIN_DRAIN/Data/raw/chetty_oi/chetty_college.xlsx,941152,raw/chetty_oi,high,Opportunity Insights / Chetty mobility data
+/p/BRAIN_DRAIN/Data/01/counties.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/counties.xlsx,23996269,raw/census_geo,high,Census/OMB geography crosswalk
+/p/BRAIN_DRAIN/Data/01/Crosswalks/.DS_Store,(DELETE),6148,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2000.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2000.xlsx,2517621,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2001.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2001.xlsx,2498218,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2002.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2002.xlsx,2311443,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2003.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2003.xlsx,2254474,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2004.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2004.xlsx,2231943,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2005.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2005.xlsx,2162895,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2006.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2006.xlsx,2233281,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2007.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2007.xlsx,2334699,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2008.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2008.xlsx,2432644,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2009.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2009.xlsx,2587270,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2010.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2010.xlsx,2699373,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2011.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2011.xlsx,2785145,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2012.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2012.xlsx,2823785,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2013.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2013.xlsx,2795397,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2014.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2014.xlsx,2799469,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2015.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2015.xlsx,2774247,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2016.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2016.xlsx,2754363,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2017.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2017.xlsx,2700642,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2018.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2018.xlsx,2639180,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2019.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2019.xlsx,2588702,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2020.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2020.xlsx,2530819,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2021.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2021.xlsx,2517022,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2022_preliminary.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2022_preliminary.xlsx,2478965,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/mrc_table11.csv,/p/BRAIN_DRAIN/Data/raw/chetty_oi/mrc_table11.csv,433012,raw/chetty_oi,high,Mobility Report Card table
+/p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2000.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2021.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2022_preliminary.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/01/ct_counties.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/ct_counties.xlsx,9416,raw/census_geo,high,Census/OMB geography crosswalk
+/p/BRAIN_DRAIN/Data/01/ipeds_hd2021.csv,/p/BRAIN_DRAIN/Data/raw/ipeds/ipeds_hd2021.csv,4087545,raw/ipeds,high,IPEDS HD/EF/admissions files
+/p/BRAIN_DRAIN/Data/01/msa_2020.csv,/p/BRAIN_DRAIN/Data/raw/census_geo/msa_2020.csv,170767,raw/census_geo,high,Census/OMB geography crosswalk
+/p/BRAIN_DRAIN/Data/01/msa_2020.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/msa_2020.xlsx,82265,raw/census_geo,high,Census/OMB geography crosswalk
+/p/BRAIN_DRAIN/Data/01/Private.csv,/p/BRAIN_DRAIN/Data/raw/nces/Private.csv,5582459,raw/nces,high,NCES CCD school universe files
+/p/BRAIN_DRAIN/Data/01/Public.csv,/p/BRAIN_DRAIN/Data/raw/nces/Public.csv,42879198,raw/nces,high,NCES CCD school universe files
+/p/BRAIN_DRAIN/Data/01/unified_cbsa.csv,/p/BRAIN_DRAIN/Data/raw/census_geo/unified_cbsa.csv,73507,raw/census_geo,high,Census/OMB geography crosswalk
+/p/BRAIN_DRAIN/Data/02/.ArchiveServiceTemp.sb-deb9990c-ffJfij/uwdbhdlkbnzhaqxd.csv,(DELETE),3821010463,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/02/.DS_Store,(DELETE),6148,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/02/2026.04.09_demographics.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_demographics.csv.zip,20411614563,raw/revelio,high,Revelio raw education/demographics panel
+/p/BRAIN_DRAIN/Data/02/2026.04.09_education.csv,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_education.csv,45919259557,raw/revelio,high,Revelio raw education/demographics panel
+/p/BRAIN_DRAIN/Data/02/both_demo.rds,/p/BRAIN_DRAIN/Data/intermediate/both_demo.rds,152015510,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/02/institution_crosswalk.csv,/p/BRAIN_DRAIN/Data/intermediate/institution_crosswalk.csv,2662634,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/02/inst_counts.csv,/p/BRAIN_DRAIN/Data/intermediate/inst_counts.csv,609849,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/02/misfits_2.csv,/p/BRAIN_DRAIN/Data/intermediate/misfits_2.csv,1970532,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/02/misfits_3.csv,/p/BRAIN_DRAIN/Data/intermediate/misfits_3.csv,3673361,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/02/misfits_correction.csv,/p/BRAIN_DRAIN/Data/intermediate/misfits_correction.csv,5458033,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/02/misfits_helper.xlsx,/p/BRAIN_DRAIN/Data/intermediate/misfits_helper.xlsx,262892,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/02/misfit_counts.csv,/p/BRAIN_DRAIN/Data/intermediate/misfit_counts.csv,6563564,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/02/raw_educ_STATES.csv,/p/BRAIN_DRAIN/Data/raw/revelio/raw_educ_STATES.csv,431642743,raw/revelio,high,"Revelio raw education panel, chunked by state"
+/p/BRAIN_DRAIN/Data/02/raw_educ_STATES_AK-MD.csv,/p/BRAIN_DRAIN/Data/raw/revelio/raw_educ_STATES_AK-MD.csv,5363637185,raw/revelio,high,"Revelio raw education panel, chunked by state"
+/p/BRAIN_DRAIN/Data/02/raw_educ_STATES_MI-WY.csv,/p/BRAIN_DRAIN/Data/raw/revelio/raw_educ_STATES_MI-WY.csv,6161357211,raw/revelio,high,"Revelio raw education panel, chunked by state"
+/p/BRAIN_DRAIN/Data/02/sampled_MI-WY.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/sampled_MI-WY.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/02/STATES_AK-MD.csv,/p/BRAIN_DRAIN/Data/raw/revelio/STATES_AK-MD.csv,5363634621,raw/revelio,high,Revelio raw education/demographics panel
+/p/BRAIN_DRAIN/Data/02/uwdbhdlkbnzhaqxd.csv,/p/BRAIN_DRAIN/Data/intermediate/uwdbhdlkbnzhaqxd.csv,69313728101,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/02/~$misfits_helper.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/03/.DS_Store,(DELETE),6148,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2000.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2000.csv.zip,4805750991,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2001.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2001.csv.zip,18329892305,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2002.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2002.csv.zip,18816178601,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2003.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2003.csv.zip,19142437893,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2004.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2004.csv.zip,20196948052,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2005.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2005.csv.zip,21182051918,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2006.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2006.csv.zip,22174271461,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2007.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2007.csv.zip,23407074888,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2008.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2008.csv.zip,24199483664,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2009.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2009.csv.zip,25339923764,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2010.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2010.csv.zip,26606917748,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2011.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2011.csv.zip,28076503412,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2012.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2012.csv.zip,29601227714,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2013.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2013.csv.zip,30964888865,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2014.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2014.csv.zip,32472728832,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2015.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2015.csv.zip,33978865186,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2016.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2016.csv.zip,35885369054,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2017.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2017.csv.zip,37524913108,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2018.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2018.csv.zip,39538097834,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2019.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2019.csv.zip,40732870116,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2020.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2020.csv.zip,41926782719,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2021.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2021.csv.zip,43474561894,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2022.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2022.csv.zip,45780235992,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2023.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2023.csv.zip,46332310862,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/2026.04.10_pos_2025.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.10_pos_2025.csv.zip,45038567970,raw/revelio,high,Revelio raw position-history panel (large file)
+/p/BRAIN_DRAIN/Data/03/cleaned_pos_educ_STATES_AK-MD.csv,/p/BRAIN_DRAIN/Data/raw/revelio/cleaned_pos_educ_STATES_AK-MD.csv,53256452200,raw/revelio,medium,"Revelio position+education panel, lightly cleaned"
+/p/BRAIN_DRAIN/Data/03/cleaned_pos_educ_STATES_MI-WY.csv,/p/BRAIN_DRAIN/Data/raw/revelio/cleaned_pos_educ_STATES_MI-WY.csv,62142870080,raw/revelio,medium,"Revelio position+education panel, lightly cleaned"
+/p/BRAIN_DRAIN/Data/03/msa_string_cleaning.csv,/p/BRAIN_DRAIN/Data/intermediate/msa_string_cleaning.csv,161,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/03/msa_string_cleaning.xlsx,/p/BRAIN_DRAIN/Data/intermediate/msa_string_cleaning.xlsx,10296,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/03/zipcodes.csv,/p/BRAIN_DRAIN/Data/raw/census_geo/zipcodes.csv,891692,raw/census_geo,high,Census/OMB geography crosswalk
+/p/BRAIN_DRAIN/Data/04/cbp19co.txt,/p/BRAIN_DRAIN/Data/raw/cbp/cbp19co.txt,116865881,raw/cbp,high,Census County Business Patterns bulk file
+/p/BRAIN_DRAIN/Data/04/cbp20co.txt,/p/BRAIN_DRAIN/Data/raw/cbp/cbp20co.txt,104653260,raw/cbp,high,Census County Business Patterns bulk file
+/p/BRAIN_DRAIN/Data/04/cbp21co.txt,/p/BRAIN_DRAIN/Data/raw/cbp/cbp21co.txt,105433378,raw/cbp,high,Census County Business Patterns bulk file
+/p/BRAIN_DRAIN/Data/04/cbp22co.txt,/p/BRAIN_DRAIN/Data/raw/cbp/cbp22co.txt,106543178,raw/cbp,high,Census County Business Patterns bulk file
+/p/BRAIN_DRAIN/Data/04/cbsa_shock.csv,/p/BRAIN_DRAIN/Data/intermediate/cbsa_shock.csv,7427833,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/04/efsy_panel_naics.csv,/p/BRAIN_DRAIN/Data/raw/cbp/efsy_panel_naics.csv,1313661755,raw/cbp,high,external EFSY imputed CBP panel
+/p/BRAIN_DRAIN/Data/04/shares.csv,/p/BRAIN_DRAIN/Data/intermediate/shares.csv,1006407,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/04/shifts.csv,/p/BRAIN_DRAIN/Data/intermediate/shifts.csv,83196309,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/04/w_share.csv,/p/BRAIN_DRAIN/Data/intermediate/w_share.csv,6297,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/05/all_bin_shares_10.csv,/p/BRAIN_DRAIN/Data/results/all_bin_shares_10.csv,37623,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/all_bin_shares_25.csv,/p/BRAIN_DRAIN/Data/results/all_bin_shares_25.csv,94545,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/all_bin_shares_5.csv,/p/BRAIN_DRAIN/Data/results/all_bin_shares_5.csv,22604,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/all_bin_shares_cbsa_10.csv,/p/BRAIN_DRAIN/Data/results/all_bin_shares_cbsa_10.csv,1217,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/all_bin_shares_cbsa_25.csv,/p/BRAIN_DRAIN/Data/results/all_bin_shares_cbsa_25.csv,3039,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/all_bin_shares_cbsa_5.csv,/p/BRAIN_DRAIN/Data/results/all_bin_shares_cbsa_5.csv,671,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/all_bin_shares_state_10.csv,/p/BRAIN_DRAIN/Data/results/all_bin_shares_state_10.csv,1314,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/all_bin_shares_state_25.csv,/p/BRAIN_DRAIN/Data/results/all_bin_shares_state_25.csv,3038,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/all_bin_shares_state_5.csv,/p/BRAIN_DRAIN/Data/results/all_bin_shares_state_5.csv,751,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/bin_10.csv,/p/BRAIN_DRAIN/Data/results/bin_10.csv,392870,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/bin_25.csv,/p/BRAIN_DRAIN/Data/results/bin_25.csv,1081265,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/bin_5.csv,/p/BRAIN_DRAIN/Data/results/bin_5.csv,315553,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/bin_5.xlsx,/p/BRAIN_DRAIN/Data/results/bin_5.xlsx,272193,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/bin_cbsa_10.csv,/p/BRAIN_DRAIN/Data/results/bin_cbsa_10.csv,268398,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/bin_cbsa_25.csv,/p/BRAIN_DRAIN/Data/results/bin_cbsa_25.csv,1046321,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/bin_cbsa_5.csv,/p/BRAIN_DRAIN/Data/results/bin_cbsa_5.csv,192020,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/bin_state_10.csv,/p/BRAIN_DRAIN/Data/results/bin_state_10.csv,469599,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/bin_state_25.csv,/p/BRAIN_DRAIN/Data/results/bin_state_25.csv,1014447,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/bin_state_5.csv,/p/BRAIN_DRAIN/Data/results/bin_state_5.csv,295659,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/li_inst.csv,/p/BRAIN_DRAIN/Data/intermediate/li_inst.csv,185959,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/05/local_stocks.csv,/p/BRAIN_DRAIN/Data/intermediate/local_stocks.csv,1947274,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/05/microdata_sample.csv,/p/BRAIN_DRAIN/Data/intermediate/microdata_sample__05.csv,20331,intermediate,COLLISION-RESOLVED,"merged/matched panel, model input || was a basename collision with 2 other file(s); disambiguated with a __05 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/05/raw_microdata.csv,/p/BRAIN_DRAIN/Data/raw/revelio/raw_microdata__05.csv,2886355924,raw/revelio,COLLISION-RESOLVED,"Revelio raw microdata sample || was a basename collision with 1 other file(s); disambiguated with a __05 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/05/return.csv,/p/BRAIN_DRAIN/Data/intermediate/return.csv,15547388,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/05/returners_cbsa_10.csv,/p/BRAIN_DRAIN/Data/results/returners_cbsa_10.csv,94792,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/returners_cbsa_25.csv,/p/BRAIN_DRAIN/Data/results/returners_cbsa_25.csv,953292,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/returners_cbsa_5.csv,/p/BRAIN_DRAIN/Data/results/returners_cbsa_5.csv,71555,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/returners_state_10.csv,/p/BRAIN_DRAIN/Data/results/returners_state_10.csv,360477,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/returners_state_25.csv,/p/BRAIN_DRAIN/Data/results/returners_state_25.csv,951593,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/returners_state_5.csv,/p/BRAIN_DRAIN/Data/results/returners_state_5.csv,198721,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/05/return_occp.csv,/p/BRAIN_DRAIN/Data/intermediate/return_occp.csv,40444957,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/05/state_stocks.csv,/p/BRAIN_DRAIN/Data/intermediate/state_stocks.csv,1123619,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/AAU 2.xlsx,/p/BRAIN_DRAIN/Data/raw/rankings_membership/AAU 2.xlsx,11443,raw/rankings_membership,high,AAU membership list
+/p/BRAIN_DRAIN/Data/06/AAU.xlsx,/p/BRAIN_DRAIN/Data/raw/rankings_membership/AAU__06.xlsx,11794,raw/rankings_membership,COLLISION-RESOLVED,"AAU membership list || was a basename collision with 1 other file(s); disambiguated with a __06 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/06/all_deg.csv,/p/BRAIN_DRAIN/Data/intermediate/all_deg.csv,28403166,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/bls_laus_data.csv,/p/BRAIN_DRAIN/Data/raw/bls/bls_laus_data.csv,953165,raw/bls,high,BLS LAUS bulk download
+/p/BRAIN_DRAIN/Data/06/business_deg.csv,/p/BRAIN_DRAIN/Data/intermediate/business_deg.csv,1043217,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/coef_data.csv,/p/BRAIN_DRAIN/Data/results/coef_data.csv,6178,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/coef_data_semi.csv,/p/BRAIN_DRAIN/Data/results/coef_data_semi.csv,20999,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/cohort_return_col_10.csv,/p/BRAIN_DRAIN/Data/intermediate/cohort_return_col_10.csv,1041,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/cohort_return_hs_10.csv,/p/BRAIN_DRAIN/Data/intermediate/cohort_return_hs_10.csv,1053,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/cohort_x_grad,/p/BRAIN_DRAIN/Data/intermediate/cohort_x_grad,958,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/cohort_x_grad.csv,/p/BRAIN_DRAIN/Data/intermediate/cohort_x_grad.csv,95170,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/CollegeMarketShares_state.csv,/p/BRAIN_DRAIN/Data/intermediate/CollegeMarketShares_state.csv,10207581,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/diff_cbsa.csv,/p/BRAIN_DRAIN/Data/intermediate/diff_cbsa.csv,27572,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/directed_2000_2005.csv,/p/BRAIN_DRAIN/Data/results/directed_2000_2005.csv,3798,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2000_2010.csv,/p/BRAIN_DRAIN/Data/results/directed_2000_2010.csv,3818,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2001_2006.csv,/p/BRAIN_DRAIN/Data/results/directed_2001_2006.csv,3798,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2001_2011.csv,/p/BRAIN_DRAIN/Data/results/directed_2001_2011.csv,3831,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2002_2007.csv,/p/BRAIN_DRAIN/Data/results/directed_2002_2007.csv,3807,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2002_2012.csv,/p/BRAIN_DRAIN/Data/results/directed_2002_2012.csv,3834,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2003_2008.csv,/p/BRAIN_DRAIN/Data/results/directed_2003_2008.csv,3817,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2003_2013.csv,/p/BRAIN_DRAIN/Data/results/directed_2003_2013.csv,3817,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2004_2009.csv,/p/BRAIN_DRAIN/Data/results/directed_2004_2009.csv,3821,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2004_2014.csv,/p/BRAIN_DRAIN/Data/results/directed_2004_2014.csv,3846,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2005_2010.csv,/p/BRAIN_DRAIN/Data/results/directed_2005_2010.csv,3817,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2005_2015.csv,/p/BRAIN_DRAIN/Data/results/directed_2005_2015.csv,3834,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2006_2011.csv,/p/BRAIN_DRAIN/Data/results/directed_2006_2011.csv,3840,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2006_2016.csv,/p/BRAIN_DRAIN/Data/results/directed_2006_2016.csv,3827,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2007_2012.csv,/p/BRAIN_DRAIN/Data/results/directed_2007_2012.csv,3835,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2007_2017.csv,/p/BRAIN_DRAIN/Data/results/directed_2007_2017.csv,3829,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2008_2013.csv,/p/BRAIN_DRAIN/Data/results/directed_2008_2013.csv,3816,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2009_2014.csv,/p/BRAIN_DRAIN/Data/results/directed_2009_2014.csv,3825,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2010_2015.csv,/p/BRAIN_DRAIN/Data/results/directed_2010_2015.csv,3824,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2011_2016.csv,/p/BRAIN_DRAIN/Data/results/directed_2011_2016.csv,3848,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/directed_2012_2017.csv,/p/BRAIN_DRAIN/Data/results/directed_2012_2017.csv,3833,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/engineering_deg.csv,/p/BRAIN_DRAIN/Data/intermediate/engineering_deg.csv,301888,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/group_semi_elasticities.csv,/p/BRAIN_DRAIN/Data/results/group_semi_elasticities.csv,14235,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/06/institutional_characteristics.csv,/p/BRAIN_DRAIN/Data/intermediate/institutional_characteristics.csv,569517,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/inst_names.csv,/p/BRAIN_DRAIN/Data/intermediate/inst_names.csv,609782,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/intercensal.csv,/p/BRAIN_DRAIN/Data/intermediate/intercensal.csv,422700,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/ipeds_finance_troubleshoot.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/ipeds_finance_troubleshoot.xlsx,54966,raw/ipeds,low,likely IPEDS finance troubleshooting workbook -- confirm
+/p/BRAIN_DRAIN/Data/06/local_differences.csv,/p/BRAIN_DRAIN/Data/intermediate/local_differences.csv,25514,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/local_differences_unfilt.csv,/p/BRAIN_DRAIN/Data/intermediate/local_differences_unfilt.csv,49953,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/microdata_sample.csv,/p/BRAIN_DRAIN/Data/intermediate/microdata_sample__06.csv,171259082,intermediate,COLLISION-RESOLVED,"merged/matched panel, model input || was a basename collision with 2 other file(s); disambiguated with a __06 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/06/mrc_table2.xlsx,/p/BRAIN_DRAIN/Data/raw/chetty_oi/mrc_table2.xlsx,1911371,raw/chetty_oi,high,Mobility Report Card table
+/p/BRAIN_DRAIN/Data/06/net_cbsa.csv,/p/BRAIN_DRAIN/Data/intermediate/net_cbsa.csv,80344,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/net_state.csv,/p/BRAIN_DRAIN/Data/intermediate/net_state.csv,10327,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/occ1990dd_task_alm.zip.download/occ1990dd_task_alm.zip.sb-d6a9beb6-zML4WA/occ1990dd_task_alm/occ1990dd_task_alm.dta,(DELETE),5532,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/06/occ1990dd_task_alm.zip.download/occ1990dd_task_alm.zip.sb-d6a9beb6-zML4WA/occ1990dd_task_alm/README for occ1990dd_task_alm.dta.txt,(DELETE),258,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/06/occp_inst_group.csv,/p/BRAIN_DRAIN/Data/intermediate/occp_inst_group.csv,1344,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/outsample_values,/p/BRAIN_DRAIN/Data/_review/needs_inspection/outsample_values,257,_review/needs_inspection,high,"extensionless file, content not yet verified"
+/p/BRAIN_DRAIN/Data/06/recruitment.csv,/p/BRAIN_DRAIN/Data/intermediate/recruitment.csv,377787,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/regression_data.csv,/p/BRAIN_DRAIN/Data/results/regression_data__06.csv,3047395669,results,COLLISION-RESOLVED,"regression/figure-ready output || was a basename collision with 1 other file(s); disambiguated with a __06 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/06/restrict_values,/p/BRAIN_DRAIN/Data/_review/needs_inspection/restrict_values,275,_review/needs_inspection,high,"extensionless file, content not yet verified"
+/p/BRAIN_DRAIN/Data/06/sample_values.csv,/p/BRAIN_DRAIN/Data/intermediate/sample_values.csv,258,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/tie_stocks.csv,/p/BRAIN_DRAIN/Data/intermediate/tie_stocks.csv,1271885,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/total_deg.csv,/p/BRAIN_DRAIN/Data/intermediate/total_deg.csv,1319373,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/06/~$AAU.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/.DS_Store,(DELETE),6148,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/AAU.xlsx,/p/BRAIN_DRAIN/Data/raw/rankings_membership/AAU__07.xlsx,11414,raw/rankings_membership,COLLISION-RESOLVED,"AAU membership list || was a basename collision with 1 other file(s); disambiguated with a __07 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/07/ACSDT1Y2022.B15001-2024-02-23T180106.xlsx,/p/BRAIN_DRAIN/Data/raw/census_acs/ACSDT1Y2022.B15001-2024-02-23T180106.xlsx,24856,raw/census_acs,high,ACS Detailed Tables
+/p/BRAIN_DRAIN/Data/07/col_users,/p/BRAIN_DRAIN/Data/raw/chetty_oi/col_users,1842351,raw/chetty_oi,high,"misleadingly named -- confirmed Chetty mobility data via header, not Revelio"
+/p/BRAIN_DRAIN/Data/07/destination_cbsa.csv,/p/BRAIN_DRAIN/Data/intermediate/destination_cbsa.csv,2380899,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/destination_state.csv,/p/BRAIN_DRAIN/Data/intermediate/destination_state.csv,983969,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/education.xlsx,/p/BRAIN_DRAIN/Data/intermediate/education__07.xlsx,119763,intermediate,COLLISION-RESOLVED,"merged/matched panel, model input || was a basename collision with 1 other file(s); disambiguated with a __07 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/07/fraction.csv,/p/BRAIN_DRAIN/Data/intermediate/fraction.csv,44575,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/hs_shock_year_cbsa.csv,/p/BRAIN_DRAIN/Data/intermediate/hs_shock_year_cbsa.csv,5614,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/hs_shock_year_state.csv,/p/BRAIN_DRAIN/Data/intermediate/hs_shock_year_state.csv,5614,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/instate_li.csv,/p/BRAIN_DRAIN/Data/intermediate/instate_li.csv,49249,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/inst_levels.csv,/p/BRAIN_DRAIN/Data/intermediate/inst_levels.csv,329,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/GUST e-foundry License.txt,(DELETE),1399,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-bold.otf,(DELETE),107780,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-bolditalic.otf,(DELETE),114140,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-italic.otf,(DELETE),115244,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-regular.otf,(DELETE),107188,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromancaps10-oblique.otf,(DELETE),112444,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromancaps10-regular.otf,(DELETE),103948,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandemi10-oblique.otf,(DELETE),114524,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandemi10-regular.otf,(DELETE),107820,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandunh10-oblique.otf,(DELETE),118228,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandunh10-regular.otf,(DELETE),109328,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromanslant10-bold.otf,(DELETE),113756,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromanslant10-regular.otf,(DELETE),115648,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/local_ties_cbsa.csv,/p/BRAIN_DRAIN/Data/intermediate/local_ties_cbsa.csv,51189,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/local_ties_state.csv,/p/BRAIN_DRAIN/Data/intermediate/local_ties_state.csv,6527,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/no_prestige_soc.csv,/p/BRAIN_DRAIN/Data/intermediate/no_prestige_soc.csv,818,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/numerator.csv,/p/BRAIN_DRAIN/Data/intermediate/numerator.csv,582523,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/OccupationalPrestigeRatings.csv,/p/BRAIN_DRAIN/Data/raw/bls/OccupationalPrestigeRatings.csv,270539,raw/bls,medium,occupational prestige scale (raw source table)
+/p/BRAIN_DRAIN/Data/07/pf.xlsx,/p/BRAIN_DRAIN/Data/intermediate/pf.xlsx,13638,intermediate,low,unclear meaning ('pf') -- confirm before finalizing
+/p/BRAIN_DRAIN/Data/07/raw_microdata.csv,/p/BRAIN_DRAIN/Data/raw/revelio/raw_microdata__07.csv,2308154293,raw/revelio,COLLISION-RESOLVED,"Revelio raw microdata sample || was a basename collision with 1 other file(s); disambiguated with a __07 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/07/return_by_year.csv,/p/BRAIN_DRAIN/Data/intermediate/return_by_year.csv,41560,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/return_levels_cbsa.csv,/p/BRAIN_DRAIN/Data/intermediate/return_levels_cbsa.csv,363,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/return_levels_state.csv,/p/BRAIN_DRAIN/Data/intermediate/return_levels_state.csv,291,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/soc_2010_to_2018_crosswalk.xlsx,/p/BRAIN_DRAIN/Data/raw/bls/soc_2010_to_2018_crosswalk.xlsx,46630,raw/bls,high,BLS SOC classification crosswalk
+/p/BRAIN_DRAIN/Data/07/soc_ba.csv,/p/BRAIN_DRAIN/Data/intermediate/soc_ba.csv,189227,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/soc_li_distribution.csv,/p/BRAIN_DRAIN/Data/intermediate/soc_li_distribution.csv,15368,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/soc_merge.csv,/p/BRAIN_DRAIN/Data/intermediate/soc_merge.csv,189227,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/07/State_of_Residence_By_Place_of_Birth_Table_2022_T13.xlsx,/p/BRAIN_DRAIN/Data/raw/census_acs/State_of_Residence_By_Place_of_Birth_Table_2022_T13.xlsx,76441,raw/census_acs,high,ACS nativity/migration table
+/p/BRAIN_DRAIN/Data/07/tabn318.10.xlsx,/p/BRAIN_DRAIN/Data/raw/nces/tabn318.10.xlsx,17609,raw/nces,high,NCES Digest of Education Statistics table
+/p/BRAIN_DRAIN/Data/07/~$pf.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/actual_cohort.csv,/p/BRAIN_DRAIN/Data/results/actual_cohort.csv,135298,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/all_binary.csv,/p/BRAIN_DRAIN/Data/results/all_binary.csv,15684,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/all_binary.xlsx,/p/BRAIN_DRAIN/Data/results/all_binary.xlsx,34051,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/all_binary_cbsa.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/all_binary_cbsa.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/all_binary_cbsa.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/all_binary_cbsa.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/barrons01.pdf,/p/BRAIN_DRAIN/Data/_review/needs_inspection/barrons01.pdf,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/barrons_mod_endowment.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/barrons_mod_endowment.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/barrons_raw.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/barrons_raw.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/be_sch.csv,/p/BRAIN_DRAIN/Data/intermediate/be_sch.csv,64459,intermediate,low,unclear exact meaning ('be_sch') -- confirm before finalizing
+/p/BRAIN_DRAIN/Data/be_sch_full.csv,/p/BRAIN_DRAIN/Data/intermediate/be_sch_full.csv,103142,intermediate,low,unclear exact meaning ('be_sch') -- confirm before finalizing
+/p/BRAIN_DRAIN/Data/be_sch_grad.csv,/p/BRAIN_DRAIN/Data/intermediate/be_sch_grad.csv,46947,intermediate,low,unclear exact meaning ('be_sch') -- confirm before finalizing
+/p/BRAIN_DRAIN/Data/both_final.rds,/p/BRAIN_DRAIN/Data/intermediate/both_final.rds,124896206,intermediate,high,"merged/matched panel, model input"
+/p/BRAIN_DRAIN/Data/both_orig.rds,/p/BRAIN_DRAIN/Data/intermediate/both_orig.rds,90543244,intermediate,high,"merged/matched panel, model input"
+/p/BRAIN_DRAIN/Data/cbsa_2020.csv,/p/BRAIN_DRAIN/Data/raw/census_geo/cbsa_2020.csv,245365,raw/census_geo,high,Census/OMB geography crosswalk
+/p/BRAIN_DRAIN/Data/cc.rds,/p/BRAIN_DRAIN/Data/intermediate/cc.rds,284967,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/cc_alias.csv,/p/BRAIN_DRAIN/Data/intermediate/cc_alias.csv,948689,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/cc_alias.rds,/p/BRAIN_DRAIN/Data/intermediate/cc_alias.rds,238698,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/cc_rsid_crosswalk.rds,/p/BRAIN_DRAIN/Data/intermediate/cc_rsid_crosswalk.rds,94508,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/cc_strings.csv,/p/BRAIN_DRAIN/Data/intermediate/cc_strings.csv,257529,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/cc_strings.rds,/p/BRAIN_DRAIN/Data/intermediate/cc_strings.rds,75647,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/chetty_closed_colleges.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/chetty_closed_colleges.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/chetty_college_inc_dist.xlsx,/p/BRAIN_DRAIN/Data/raw/chetty_oi/chetty_college_inc_dist.xlsx,2157147,raw/chetty_oi,high,Opportunity Insights / Chetty mobility data
+/p/BRAIN_DRAIN/Data/classification_sample_1.csv,/p/BRAIN_DRAIN/Data/intermediate/classification_sample_1.csv,12542,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/colleges.rds,/p/BRAIN_DRAIN/Data/intermediate/colleges.rds,323383,intermediate,high,"merged/matched panel, model input"
+/p/BRAIN_DRAIN/Data/colleges_ipeds_completions-2digcip_2000.csv,/p/BRAIN_DRAIN/Data/raw/ipeds/colleges_ipeds_completions-2digcip_2000.csv,65965912,raw/ipeds,high,IPEDS survey component export
+/p/BRAIN_DRAIN/Data/colleges_ipeds_completions-2digcip_2010.csv,/p/BRAIN_DRAIN/Data/raw/ipeds/colleges_ipeds_completions-2digcip_2010.csv,127106321,raw/ipeds,high,IPEDS survey component export
+/p/BRAIN_DRAIN/Data/colleges_ipeds_completions-2digcip_2020.csv,/p/BRAIN_DRAIN/Data/raw/ipeds/colleges_ipeds_completions-2digcip_2020.csv,132219568,raw/ipeds,high,IPEDS survey component export
+/p/BRAIN_DRAIN/Data/colleges_ipeds_directory.csv,/p/BRAIN_DRAIN/Data/raw/ipeds/colleges_ipeds_directory.csv,114956178,raw/ipeds,high,IPEDS survey component export
+/p/BRAIN_DRAIN/Data/colleges_ipeds_fall-res.csv,/p/BRAIN_DRAIN/Data/raw/ipeds/colleges_ipeds_fall-res.csv,69505558,raw/ipeds,high,IPEDS survey component export
+/p/BRAIN_DRAIN/Data/colleges_ipeds_grad-rates.csv,/p/BRAIN_DRAIN/Data/raw/ipeds/colleges_ipeds_grad-rates.csv,469490722,raw/ipeds,high,IPEDS survey component export
+/p/BRAIN_DRAIN/Data/col_alias.csv,/p/BRAIN_DRAIN/Data/intermediate/col_alias.csv,1874599,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/col_alias.rds,/p/BRAIN_DRAIN/Data/intermediate/col_alias.rds,348495,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/col_alias_resp.rds,/p/BRAIN_DRAIN/Data/intermediate/col_alias_resp.rds,156432643,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/col_ct.csv,/p/BRAIN_DRAIN/Data/intermediate/col_ct.csv,734635,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/col_ct.rds,/p/BRAIN_DRAIN/Data/intermediate/col_ct.rds,271062,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/col_embed.rds,/p/BRAIN_DRAIN/Data/intermediate/col_embed.rds,121128,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/col_gt.csv,/p/BRAIN_DRAIN/Data/intermediate/col_gt.csv,20526,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/col_rsid_crosswalk.rds,/p/BRAIN_DRAIN/Data/intermediate/col_rsid_crosswalk.rds,174849,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/col_shock.csv,/p/BRAIN_DRAIN/Data/intermediate/col_shock.csv,135297,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/col_strings.csv,/p/BRAIN_DRAIN/Data/intermediate/col_strings.csv,604944,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/col_strings.rds,/p/BRAIN_DRAIN/Data/intermediate/col_strings.rds,164166,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/col_users.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/col_users.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/col_users.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/col_users.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/col_wo_rsid.csv,/p/BRAIN_DRAIN/Data/intermediate/col_wo_rsid.csv,43117,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/dupe_match_rsid.csv,/p/BRAIN_DRAIN/Data/intermediate/dupe_match_rsid.csv,174712,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/education.xlsx,/p/BRAIN_DRAIN/Data/intermediate/education__top.xlsx,119908,intermediate,COLLISION-RESOLVED,"merged/matched panel, model input || was a basename collision with 1 other file(s); disambiguated with a __top stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/EducationDataPortal_08.18.2024_datadictionary.csv,/p/BRAIN_DRAIN/Data/raw/urban_institute/EducationDataPortal_08.18.2024_datadictionary.csv,1261,raw/urban_institute,high,Urban Institute Ed Data Portal
+/p/BRAIN_DRAIN/Data/education_0000_part_00.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/education_0000_part_00.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/education_cleaned.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/education_cleaned.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/ed_funding.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/ed_funding.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/ed_wide.rds,/p/BRAIN_DRAIN/Data/intermediate/ed_wide.rds,121029697,intermediate,high,"merged/matched panel, model input"
+/p/BRAIN_DRAIN/Data/ELSI_csv_export_6390435784786712152626.csv,/p/BRAIN_DRAIN/Data/raw/nces/ELSI_csv_export_6390435784786712152626.csv,15111154,raw/nces,high,NCES ELSI export
+/p/BRAIN_DRAIN/Data/ELSI_csv_export_639044261135902865330.csv,/p/BRAIN_DRAIN/Data/raw/nces/ELSI_csv_export_639044261135902865330.csv,2617101,raw/nces,high,NCES ELSI export
+/p/BRAIN_DRAIN/Data/ELSI_csv_export_6390455368533882136542.csv,/p/BRAIN_DRAIN/Data/raw/nces/ELSI_csv_export_6390455368533882136542.csv,18653457,raw/nces,high,NCES ELSI export
+/p/BRAIN_DRAIN/Data/finance_raw.csv,/p/BRAIN_DRAIN/Data/raw/ipeds/finance_raw.csv,10737728,raw/ipeds,low,appears reshaped from IPEDS finance survey despite '_raw' name -- confirm
+/p/BRAIN_DRAIN/Data/Grawe.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/Grawe.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/great_recession/all_bin_shares_cbsa_10.csv,/p/BRAIN_DRAIN/Data/great_recession/all_bin_shares_cbsa_10.csv,1231,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/all_bin_shares_cbsa_5.csv,/p/BRAIN_DRAIN/Data/great_recession/all_bin_shares_cbsa_5.csv,663,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/bin_cbsa_10.csv,/p/BRAIN_DRAIN/Data/great_recession/bin_cbsa_10.csv,122293,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/bin_cbsa_5.csv,/p/BRAIN_DRAIN/Data/great_recession/bin_cbsa_5.csv,101216,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/coef_data_semi.csv,/p/BRAIN_DRAIN/Data/great_recession/coef_data_semi.csv,21183,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/compliers.csv,/p/BRAIN_DRAIN/Data/great_recession/compliers.csv,1864,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/dens_sam.csv,/p/BRAIN_DRAIN/Data/great_recession/dens_sam.csv,19153,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/destination_cbsa.csv,/p/BRAIN_DRAIN/Data/great_recession/destination_cbsa.csv,2380899,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/destination_state.csv,/p/BRAIN_DRAIN/Data/great_recession/destination_state.csv,983969,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2000_2005.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2000_2005.csv,3534,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2001_2006.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2001_2006.csv,3590,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2002_2007.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2002_2007.csv,3621,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2003_2008.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2003_2008.csv,3634,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2004_2009.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2004_2009.csv,3681,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2005_2010.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2005_2010.csv,3689,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2006_2011.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2006_2011.csv,3704,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2007_2012.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2007_2012.csv,3719,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2008_2013.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2008_2013.csv,3719,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2009_2014.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2009_2014.csv,3735,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2010_2015.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2010_2015.csv,3726,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2011_2016.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2011_2016.csv,3753,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/directed_2012_2017.csv,/p/BRAIN_DRAIN/Data/great_recession/directed_2012_2017.csv,3742,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/fraction_cohort.csv,/p/BRAIN_DRAIN/Data/great_recession/fraction_cohort.csv,766,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/group_semi_elasticities.csv,/p/BRAIN_DRAIN/Data/great_recession/group_semi_elasticities.csv,14170,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/hs_shock_year_cbsa.csv,/p/BRAIN_DRAIN/Data/great_recession/hs_shock_year_cbsa.csv,591,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/hs_shock_year_state.csv,/p/BRAIN_DRAIN/Data/great_recession/hs_shock_year_state.csv,588,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/instate_li.csv,/p/BRAIN_DRAIN/Data/great_recession/instate_li.csv,49249,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/inst_levels.csv,/p/BRAIN_DRAIN/Data/great_recession/inst_levels.csv,329,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/leaver_levels_cbsa.csv,/p/BRAIN_DRAIN/Data/great_recession/leaver_levels_cbsa.csv,925,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/leaver_levels_state.csv,/p/BRAIN_DRAIN/Data/great_recession/leaver_levels_state.csv,1147,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/li_deg_awarded.csv,/p/BRAIN_DRAIN/Data/great_recession/li_deg_awarded.csv,485,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/li_inst.csv,/p/BRAIN_DRAIN/Data/great_recession/li_inst.csv,191840,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/local_differences.csv,/p/BRAIN_DRAIN/Data/great_recession/local_differences.csv,26998,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/local_stocks.csv,/p/BRAIN_DRAIN/Data/great_recession/local_stocks.csv,1947563,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/local_ties_cbsa.csv,/p/BRAIN_DRAIN/Data/great_recession/local_ties_cbsa.csv,51189,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/local_ties_state.csv,/p/BRAIN_DRAIN/Data/great_recession/local_ties_state.csv,6527,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/net_cbsa.csv,/p/BRAIN_DRAIN/Data/great_recession/net_cbsa.csv,80344,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/net_state.csv,/p/BRAIN_DRAIN/Data/great_recession/net_state.csv,10327,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/occp_inst_group.csv,/p/BRAIN_DRAIN/Data/great_recession/occp_inst_group.csv,388,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/outsample_values.rds,/p/BRAIN_DRAIN/Data/great_recession/outsample_values.rds,231,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/quantiles_sam.csv,/p/BRAIN_DRAIN/Data/great_recession/quantiles_sam.csv,26,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/restrict_values.rds,/p/BRAIN_DRAIN/Data/great_recession/restrict_values.rds,237,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/returners_cbsa_10.csv,/p/BRAIN_DRAIN/Data/great_recession/returners_cbsa_10.csv,218617,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/returners_cbsa_5.csv,/p/BRAIN_DRAIN/Data/great_recession/returners_cbsa_5.csv,138271,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/return_levels_cbsa.csv,/p/BRAIN_DRAIN/Data/great_recession/return_levels_cbsa.csv,891,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/return_levels_state.csv,/p/BRAIN_DRAIN/Data/great_recession/return_levels_state.csv,897,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/sample_values.rds,/p/BRAIN_DRAIN/Data/great_recession/sample_values.rds,232,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/state_stocks.csv,/p/BRAIN_DRAIN/Data/great_recession/state_stocks.csv,1124648,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/great_recession/tie_stocks.csv,/p/BRAIN_DRAIN/Data/great_recession/tie_stocks.csv,203052,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/hs_alias.csv,/p/BRAIN_DRAIN/Data/intermediate/hs_alias.csv,9556580,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/hs_alias.rds,/p/BRAIN_DRAIN/Data/intermediate/hs_alias.rds,1451740,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/hs_alias_resp.rds,/p/BRAIN_DRAIN/Data/intermediate/hs_alias_resp.rds,273498112,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/hs_col_classification.csv,/p/BRAIN_DRAIN/Data/intermediate/hs_col_classification.csv,14653586,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/hs_embed.rds,/p/BRAIN_DRAIN/Data/intermediate/hs_embed.rds,48520,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/hs_gt.csv,/p/BRAIN_DRAIN/Data/intermediate/hs_gt.csv,14270,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/hs_rsid_crosswalk.rds,/p/BRAIN_DRAIN/Data/intermediate/hs_rsid_crosswalk.rds,500468,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/hs_shock.csv,/p/BRAIN_DRAIN/Data/intermediate/hs_shock.csv,135296,intermediate,medium,per-stage pipeline intermediate
+/p/BRAIN_DRAIN/Data/hs_strings.csv,/p/BRAIN_DRAIN/Data/intermediate/hs_strings.csv,28051801,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/hs_strings.rds,/p/BRAIN_DRAIN/Data/intermediate/hs_strings.rds,4817514,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/hs_users.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/hs_users.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/hs_users.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/hs_users.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/input_col.rds,/p/BRAIN_DRAIN/Data/intermediate/input_col.rds,21486726,intermediate,high,"merged/matched panel, model input"
+/p/BRAIN_DRAIN/Data/input_col_m.rds,/p/BRAIN_DRAIN/Data/intermediate/input_col_m.rds,340042363,intermediate,high,"merged/matched panel, model input"
+/p/BRAIN_DRAIN/Data/IPEDS codebook.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/IPEDS codebook.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/ipeds_adm2021.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/ipeds_adm2021.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/ipeds_deg_awarded.rds,/p/BRAIN_DRAIN/Data/intermediate/ipeds_deg_awarded.rds,224033,intermediate,medium,IPEDS degree-award data reshaped/summarized
+/p/BRAIN_DRAIN/Data/ipeds_deg_awarded_field,/p/BRAIN_DRAIN/Data/intermediate/ipeds_deg_awarded_field,1261,intermediate,medium,IPEDS degree-award data reshaped/summarized
+/p/BRAIN_DRAIN/Data/ipeds_ef2020c.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/ipeds_ef2020c.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/ipeds_hd2020_dictionary.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/ipeds_hd2020_dictionary.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/llm_1_unk.csv,/p/BRAIN_DRAIN/Data/intermediate/llm_1_unk.csv,9223,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/llm_1_unk.xlsx,/p/BRAIN_DRAIN/Data/intermediate/llm_1_unk.xlsx,21194,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/llm_1_us.csv,/p/BRAIN_DRAIN/Data/intermediate/llm_1_us.csv,10859,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/llm_1_us.xlsx,/p/BRAIN_DRAIN/Data/intermediate/llm_1_us.xlsx,19451,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/make_transfer_inventory.py,/p/BRAIN_DRAIN/Data/_review/junk/make_transfer_inventory.py,4869,_review/junk,high,"filesystem inventory tooling, unrelated to analysis data"
+/p/BRAIN_DRAIN/Data/matched_col.rds,/p/BRAIN_DRAIN/Data/intermediate/matched_col.rds,98388,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/matched_hs.rds,/p/BRAIN_DRAIN/Data/intermediate/matched_hs.rds,632072,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/match_problems.xlsx,/p/BRAIN_DRAIN/Data/intermediate/match_problems.xlsx,55420,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/microdata_sample.csv,/p/BRAIN_DRAIN/Data/intermediate/microdata_sample__top.csv,148025,intermediate,COLLISION-RESOLVED,"merged/matched panel, model input || was a basename collision with 2 other file(s); disambiguated with a __top stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/nces_public_school_file.zip.download/nces_public_school_file.zip.sb-652df04a-9Tybbh/nces_public_school_file/ELSI_csv_export_6390435443173860515321.csv,(DELETE),57382082,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/occupation.xlsx,/p/BRAIN_DRAIN/Data/raw/bls/occupation.xlsx,407963,raw/bls,low,likely BLS occupation classification -- confirm
+/p/BRAIN_DRAIN/Data/occupational_prestige.csv,/p/BRAIN_DRAIN/Data/intermediate/occupational_prestige.csv,226997,intermediate,medium,merge of raw prestige scale + BLS employment + Revelio shares
+/p/BRAIN_DRAIN/Data/Paper/chetty_sel_dist_stats.xlsx,/p/BRAIN_DRAIN/Data/results/chetty_sel_dist_stats.xlsx,10727,results,medium,"paper-ready summary stat derived from Chetty data, not raw itself"
+/p/BRAIN_DRAIN/Data/persistent_match_issues.xlsx,/p/BRAIN_DRAIN/Data/intermediate/persistent_match_issues.xlsx,27985,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_cbsa_10.csv,/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_cbsa_10.csv,1288,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_cbsa_25.csv,/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_cbsa_25.csv,2941,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_cbsa_5.csv,/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_cbsa_5.csv,725,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_state_10.csv,/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_state_10.csv,1229,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_state_25.csv,/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_state_25.csv,2928,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_state_5.csv,/p/BRAIN_DRAIN/Data/pooled/all_bin_shares_state_5.csv,673,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/bin_cbsa_10.csv,/p/BRAIN_DRAIN/Data/pooled/bin_cbsa_10.csv,488245,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/bin_cbsa_25.csv,/p/BRAIN_DRAIN/Data/pooled/bin_cbsa_25.csv,379255,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/bin_cbsa_5.csv,/p/BRAIN_DRAIN/Data/pooled/bin_cbsa_5.csv,303665,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/bin_state_10.csv,/p/BRAIN_DRAIN/Data/pooled/bin_state_10.csv,229388,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/bin_state_25.csv,/p/BRAIN_DRAIN/Data/pooled/bin_state_25.csv,317648,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/bin_state_5.csv,/p/BRAIN_DRAIN/Data/pooled/bin_state_5.csv,166738,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/coef_data_semi.csv,/p/BRAIN_DRAIN/Data/pooled/coef_data_semi.csv,21790,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/compliers.csv,/p/BRAIN_DRAIN/Data/pooled/compliers.csv,1865,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/dens_sam.csv,/p/BRAIN_DRAIN/Data/pooled/dens_sam.csv,19049,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/destination_cbsa.csv,/p/BRAIN_DRAIN/Data/pooled/destination_cbsa.csv,2380899,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/destination_state.csv,/p/BRAIN_DRAIN/Data/pooled/destination_state.csv,983969,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2000_2005.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2000_2005.csv,3534,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2001_2006.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2001_2006.csv,3590,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2002_2007.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2002_2007.csv,3621,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2003_2008.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2003_2008.csv,3634,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2004_2009.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2004_2009.csv,3681,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2005_2010.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2005_2010.csv,3689,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2006_2011.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2006_2011.csv,3704,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2007_2012.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2007_2012.csv,3719,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2008_2013.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2008_2013.csv,3719,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2009_2014.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2009_2014.csv,3735,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2010_2015.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2010_2015.csv,3726,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2011_2016.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2011_2016.csv,3753,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/directed_2012_2017.csv,/p/BRAIN_DRAIN/Data/pooled/directed_2012_2017.csv,3742,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/fraction_cohort.csv,/p/BRAIN_DRAIN/Data/pooled/fraction_cohort.csv,766,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/group_semi_elasticities.csv,/p/BRAIN_DRAIN/Data/pooled/group_semi_elasticities.csv,14253,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/hs_shock_year_cbsa.csv,/p/BRAIN_DRAIN/Data/pooled/hs_shock_year_cbsa.csv,5615,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/hs_shock_year_state.csv,/p/BRAIN_DRAIN/Data/pooled/hs_shock_year_state.csv,5619,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/instate_li.csv,/p/BRAIN_DRAIN/Data/pooled/instate_li.csv,49249,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/inst_levels.csv,/p/BRAIN_DRAIN/Data/pooled/inst_levels.csv,329,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/leaver_levels_cbsa.csv,/p/BRAIN_DRAIN/Data/pooled/leaver_levels_cbsa.csv,938,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/leaver_levels_state.csv,/p/BRAIN_DRAIN/Data/pooled/leaver_levels_state.csv,1169,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/li_deg_awarded.csv,/p/BRAIN_DRAIN/Data/pooled/li_deg_awarded.csv,485,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/li_inst.csv,/p/BRAIN_DRAIN/Data/pooled/li_inst.csv,191840,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/local_differences.csv,/p/BRAIN_DRAIN/Data/pooled/local_differences.csv,27018,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/local_stocks.csv,/p/BRAIN_DRAIN/Data/pooled/local_stocks.csv,1947563,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/local_ties_cbsa.csv,/p/BRAIN_DRAIN/Data/pooled/local_ties_cbsa.csv,51189,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/local_ties_state.csv,/p/BRAIN_DRAIN/Data/pooled/local_ties_state.csv,6527,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/net_cbsa.csv,/p/BRAIN_DRAIN/Data/pooled/net_cbsa.csv,80344,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/net_state.csv,/p/BRAIN_DRAIN/Data/pooled/net_state.csv,10327,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/occp_inst_group.csv,/p/BRAIN_DRAIN/Data/pooled/occp_inst_group.csv,1422,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/outsample_values.rds,/p/BRAIN_DRAIN/Data/pooled/outsample_values.rds,231,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/quantiles_sam.csv,/p/BRAIN_DRAIN/Data/pooled/quantiles_sam.csv,26,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/restrict_values.rds,/p/BRAIN_DRAIN/Data/pooled/restrict_values.rds,240,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/returners_cbsa_10.csv,/p/BRAIN_DRAIN/Data/pooled/returners_cbsa_10.csv,359345,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/returners_cbsa_25.csv,/p/BRAIN_DRAIN/Data/pooled/returners_cbsa_25.csv,126723,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/returners_cbsa_5.csv,/p/BRAIN_DRAIN/Data/pooled/returners_cbsa_5.csv,198031,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/returners_state_10.csv,/p/BRAIN_DRAIN/Data/pooled/returners_state_10.csv,96604,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/returners_state_25.csv,/p/BRAIN_DRAIN/Data/pooled/returners_state_25.csv,130175,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/returners_state_5.csv,/p/BRAIN_DRAIN/Data/pooled/returners_state_5.csv,71947,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/return_levels_cbsa.csv,/p/BRAIN_DRAIN/Data/pooled/return_levels_cbsa.csv,919,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/return_levels_state.csv,/p/BRAIN_DRAIN/Data/pooled/return_levels_state.csv,921,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/sample_values.rds,/p/BRAIN_DRAIN/Data/pooled/sample_values.rds,232,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/state_stocks.csv,/p/BRAIN_DRAIN/Data/pooled/state_stocks.csv,1124648,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pooled/tie_stocks.csv,/p/BRAIN_DRAIN/Data/pooled/tie_stocks.csv,520697,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/Postsecondary.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/Postsecondary.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_cbsa_10.csv,/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_cbsa_10.csv,1233,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_cbsa_25.csv,/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_cbsa_25.csv,2941,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_cbsa_5.csv,/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_cbsa_5.csv,672,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_state_10.csv,/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_state_10.csv,1229,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_state_25.csv,/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_state_25.csv,2928,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_state_5.csv,/p/BRAIN_DRAIN/Data/post_2000/all_bin_shares_state_5.csv,673,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/all_deg.csv,/p/BRAIN_DRAIN/Data/post_2000/all_deg.csv,28403166,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/bin_cbsa_10.csv,/p/BRAIN_DRAIN/Data/post_2000/bin_cbsa_10.csv,351915,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/bin_cbsa_25.csv,/p/BRAIN_DRAIN/Data/post_2000/bin_cbsa_25.csv,379255,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/bin_cbsa_5.csv,/p/BRAIN_DRAIN/Data/post_2000/bin_cbsa_5.csv,249501,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/bin_state_10.csv,/p/BRAIN_DRAIN/Data/post_2000/bin_state_10.csv,229388,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/bin_state_25.csv,/p/BRAIN_DRAIN/Data/post_2000/bin_state_25.csv,317648,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/bin_state_5.csv,/p/BRAIN_DRAIN/Data/post_2000/bin_state_5.csv,166738,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/business_deg.csv,/p/BRAIN_DRAIN/Data/post_2000/business_deg.csv,879078,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/coef_data_semi.csv,/p/BRAIN_DRAIN/Data/post_2000/coef_data_semi.csv,21300,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/compliers.csv,/p/BRAIN_DRAIN/Data/post_2000/compliers.csv,1861,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/dens_sam.csv,/p/BRAIN_DRAIN/Data/post_2000/dens_sam.csv,19167,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/destination_cbsa.csv,/p/BRAIN_DRAIN/Data/post_2000/destination_cbsa.csv,2380899,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/destination_state.csv,/p/BRAIN_DRAIN/Data/post_2000/destination_state.csv,983969,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2000_2005.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2000_2005.csv,3534,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2001_2006.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2001_2006.csv,3590,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2002_2007.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2002_2007.csv,3621,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2003_2008.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2003_2008.csv,3634,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2004_2009.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2004_2009.csv,3681,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2005_2010.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2005_2010.csv,3689,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2006_2011.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2006_2011.csv,3704,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2007_2012.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2007_2012.csv,3719,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2008_2013.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2008_2013.csv,3719,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2009_2014.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2009_2014.csv,3735,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2010_2015.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2010_2015.csv,3726,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2011_2016.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2011_2016.csv,3753,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/directed_2012_2017.csv,/p/BRAIN_DRAIN/Data/post_2000/directed_2012_2017.csv,3742,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/engineering_deg.csv,/p/BRAIN_DRAIN/Data/post_2000/engineering_deg.csv,879078,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/fraction_cohort.csv,/p/BRAIN_DRAIN/Data/post_2000/fraction_cohort.csv,766,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/group_semi_elasticities.csv,/p/BRAIN_DRAIN/Data/post_2000/group_semi_elasticities.csv,14204,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/hs_shock_year_cbsa.csv,/p/BRAIN_DRAIN/Data/post_2000/hs_shock_year_cbsa.csv,2510,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/hs_shock_year_state.csv,/p/BRAIN_DRAIN/Data/post_2000/hs_shock_year_state.csv,2512,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/instate_li.csv,/p/BRAIN_DRAIN/Data/post_2000/instate_li.csv,49249,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/inst_levels.csv,/p/BRAIN_DRAIN/Data/post_2000/inst_levels.csv,329,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/leaver_levels_cbsa.csv,/p/BRAIN_DRAIN/Data/post_2000/leaver_levels_cbsa.csv,936,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/leaver_levels_state.csv,/p/BRAIN_DRAIN/Data/post_2000/leaver_levels_state.csv,1166,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/li_deg_awarded.csv,/p/BRAIN_DRAIN/Data/post_2000/li_deg_awarded.csv,485,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/li_inst.csv,/p/BRAIN_DRAIN/Data/post_2000/li_inst.csv,191840,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/local_differences.csv,/p/BRAIN_DRAIN/Data/post_2000/local_differences.csv,27004,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/local_stocks.csv,/p/BRAIN_DRAIN/Data/post_2000/local_stocks.csv,1947563,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/local_ties_cbsa.csv,/p/BRAIN_DRAIN/Data/post_2000/local_ties_cbsa.csv,51189,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/local_ties_state.csv,/p/BRAIN_DRAIN/Data/post_2000/local_ties_state.csv,6527,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/net_cbsa.csv,/p/BRAIN_DRAIN/Data/post_2000/net_cbsa.csv,80344,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/net_state.csv,/p/BRAIN_DRAIN/Data/post_2000/net_state.csv,10327,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/occp_inst_group.csv,/p/BRAIN_DRAIN/Data/post_2000/occp_inst_group.csv,1077,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/outsample_values.rds,/p/BRAIN_DRAIN/Data/post_2000/outsample_values.rds,231,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/quantiles_sam.csv,/p/BRAIN_DRAIN/Data/post_2000/quantiles_sam.csv,26,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/restrict_values.rds,/p/BRAIN_DRAIN/Data/post_2000/restrict_values.rds,240,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/returners_cbsa_10.csv,/p/BRAIN_DRAIN/Data/post_2000/returners_cbsa_10.csv,346683,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/returners_cbsa_25.csv,/p/BRAIN_DRAIN/Data/post_2000/returners_cbsa_25.csv,126723,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/returners_cbsa_5.csv,/p/BRAIN_DRAIN/Data/post_2000/returners_cbsa_5.csv,192978,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/returners_state_10.csv,/p/BRAIN_DRAIN/Data/post_2000/returners_state_10.csv,96604,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/returners_state_25.csv,/p/BRAIN_DRAIN/Data/post_2000/returners_state_25.csv,130175,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/returners_state_5.csv,/p/BRAIN_DRAIN/Data/post_2000/returners_state_5.csv,71947,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/return_levels_cbsa.csv,/p/BRAIN_DRAIN/Data/post_2000/return_levels_cbsa.csv,911,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/return_levels_state.csv,/p/BRAIN_DRAIN/Data/post_2000/return_levels_state.csv,912,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/sample_values.rds,/p/BRAIN_DRAIN/Data/post_2000/sample_values.rds,232,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/state_stocks.csv,/p/BRAIN_DRAIN/Data/post_2000/state_stocks.csv,1124648,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/tie_stocks.csv,/p/BRAIN_DRAIN/Data/post_2000/tie_stocks.csv,301268,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/tie_stocks_alt.csv,/p/BRAIN_DRAIN/Data/post_2000/tie_stocks_alt.csv,241449,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/post_2000/total_deg.csv,/p/BRAIN_DRAIN/Data/post_2000/total_deg.csv,1319373,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/all_bin_shares_cbsa_10.csv,/p/BRAIN_DRAIN/Data/pre_2000/all_bin_shares_cbsa_10.csv,1293,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/all_bin_shares_cbsa_5.csv,/p/BRAIN_DRAIN/Data/pre_2000/all_bin_shares_cbsa_5.csv,732,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/bin_cbsa_10.csv,/p/BRAIN_DRAIN/Data/pre_2000/bin_cbsa_10.csv,355048,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/bin_cbsa_5.csv,/p/BRAIN_DRAIN/Data/pre_2000/bin_cbsa_5.csv,249331,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/coef_data_semi.csv,/p/BRAIN_DRAIN/Data/pre_2000/coef_data_semi.csv,22123,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/compliers.csv,/p/BRAIN_DRAIN/Data/pre_2000/compliers.csv,1861,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/dens_sam.csv,/p/BRAIN_DRAIN/Data/pre_2000/dens_sam.csv,19153,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/destination_cbsa.csv,/p/BRAIN_DRAIN/Data/pre_2000/destination_cbsa.csv,2380899,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/destination_state.csv,/p/BRAIN_DRAIN/Data/pre_2000/destination_state.csv,983969,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2000_2005.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2000_2005.csv,3534,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2001_2006.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2001_2006.csv,3590,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2002_2007.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2002_2007.csv,3621,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2003_2008.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2003_2008.csv,3634,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2004_2009.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2004_2009.csv,3681,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2005_2010.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2005_2010.csv,3689,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2006_2011.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2006_2011.csv,3704,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2007_2012.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2007_2012.csv,3719,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2008_2013.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2008_2013.csv,3719,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2009_2014.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2009_2014.csv,3735,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2010_2015.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2010_2015.csv,3726,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2011_2016.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2011_2016.csv,3753,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/directed_2012_2017.csv,/p/BRAIN_DRAIN/Data/pre_2000/directed_2012_2017.csv,3742,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/fraction_cohort.csv,/p/BRAIN_DRAIN/Data/pre_2000/fraction_cohort.csv,766,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/group_semi_elasticities.csv,/p/BRAIN_DRAIN/Data/pre_2000/group_semi_elasticities.csv,14342,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/hs_shock_year_cbsa.csv,/p/BRAIN_DRAIN/Data/pre_2000/hs_shock_year_cbsa.csv,3164,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/hs_shock_year_state.csv,/p/BRAIN_DRAIN/Data/pre_2000/hs_shock_year_state.csv,3166,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/instate_li.csv,/p/BRAIN_DRAIN/Data/pre_2000/instate_li.csv,49249,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/inst_levels.csv,/p/BRAIN_DRAIN/Data/pre_2000/inst_levels.csv,329,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/leaver_levels_cbsa.csv,/p/BRAIN_DRAIN/Data/pre_2000/leaver_levels_cbsa.csv,928,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/leaver_levels_state.csv,/p/BRAIN_DRAIN/Data/pre_2000/leaver_levels_state.csv,1152,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/li_deg_awarded.csv,/p/BRAIN_DRAIN/Data/pre_2000/li_deg_awarded.csv,485,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/li_inst.csv,/p/BRAIN_DRAIN/Data/pre_2000/li_inst.csv,191840,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/local_differences.csv,/p/BRAIN_DRAIN/Data/pre_2000/local_differences.csv,27011,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/local_stocks.csv,/p/BRAIN_DRAIN/Data/pre_2000/local_stocks.csv,1947563,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/local_ties_cbsa.csv,/p/BRAIN_DRAIN/Data/pre_2000/local_ties_cbsa.csv,51189,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/local_ties_state.csv,/p/BRAIN_DRAIN/Data/pre_2000/local_ties_state.csv,6527,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/net_cbsa.csv,/p/BRAIN_DRAIN/Data/pre_2000/net_cbsa.csv,80344,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/net_state.csv,/p/BRAIN_DRAIN/Data/pre_2000/net_state.csv,10327,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/occp_inst_group.csv,/p/BRAIN_DRAIN/Data/pre_2000/occp_inst_group.csv,391,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/outsample_values.rds,/p/BRAIN_DRAIN/Data/pre_2000/outsample_values.rds,231,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/quantiles_sam.csv,/p/BRAIN_DRAIN/Data/pre_2000/quantiles_sam.csv,26,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/restrict_values.rds,/p/BRAIN_DRAIN/Data/pre_2000/restrict_values.rds,239,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/returners_cbsa_10.csv,/p/BRAIN_DRAIN/Data/pre_2000/returners_cbsa_10.csv,221203,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/returners_cbsa_5.csv,/p/BRAIN_DRAIN/Data/pre_2000/returners_cbsa_5.csv,137702,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/return_levels_cbsa.csv,/p/BRAIN_DRAIN/Data/pre_2000/return_levels_cbsa.csv,907,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/return_levels_state.csv,/p/BRAIN_DRAIN/Data/pre_2000/return_levels_state.csv,908,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/sample_values.rds,/p/BRAIN_DRAIN/Data/pre_2000/sample_values.rds,232,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/state_stocks.csv,/p/BRAIN_DRAIN/Data/pre_2000/state_stocks.csv,1124648,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/pre_2000/tie_stocks.csv,/p/BRAIN_DRAIN/Data/pre_2000/tie_stocks.csv,505293,subsamples (unchanged),high,"user-confirmed intentional shared structure, not touched by source-based reorg"
+/p/BRAIN_DRAIN/Data/Private15.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/Private15.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/Public15.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/Public15.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/raw_deg_award,/p/BRAIN_DRAIN/Data/intermediate/raw_deg_award,1670028,intermediate,high,"valid RDS (no extension), written by new/00_alias_generation.R, read by 09_plots.Rmd"
+/p/BRAIN_DRAIN/Data/raw_unmatched_strings.csv,/p/BRAIN_DRAIN/Data/intermediate/raw_unmatched_strings.csv,12679696,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/raw_unmatched_strings.rds,/p/BRAIN_DRAIN/Data/intermediate/raw_unmatched_strings.rds,4100702,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/regression_data.csv,/p/BRAIN_DRAIN/Data/results/regression_data__top.csv,5499040,results,COLLISION-RESOLVED,"regression/figure-ready output || was a basename collision with 1 other file(s); disambiguated with a __top stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/return_rate_layout.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/return_rate_layout.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/rsid_id_dup_crosswalk.rds,/p/BRAIN_DRAIN/Data/intermediate/rsid_id_dup_crosswalk.rds,324820,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/rsid_wo_col.csv,/p/BRAIN_DRAIN/Data/intermediate/rsid_wo_col.csv,373678,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/schools.rds,/p/BRAIN_DRAIN/Data/intermediate/schools.rds,1959998,intermediate,high,"merged/matched panel, model input"
+/p/BRAIN_DRAIN/Data/state_fips.rds,/p/BRAIN_DRAIN/Data/intermediate/state_fips.rds,596,intermediate,high,"merged/matched panel, model input"
+/p/BRAIN_DRAIN/Data/state_list.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/state_list.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/summary_demographics.csv,/p/BRAIN_DRAIN/Data/results/summary_demographics.csv,2215,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/summary_demographics.rds,/p/BRAIN_DRAIN/Data/results/summary_demographics.rds,1042,results,medium,regression/figure-ready output
+/p/BRAIN_DRAIN/Data/totals_cbsa.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/totals_cbsa.csv,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/totals_cbsa.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/totals_cbsa.xlsx,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/transfer_code.csv,/p/BRAIN_DRAIN/Data/_review/junk/transfer_code.csv,3841,_review/junk,high,"filesystem inventory tooling, unrelated to analysis data"
+/p/BRAIN_DRAIN/Data/transfer_inventory.csv,/p/BRAIN_DRAIN/Data/_review/junk/transfer_inventory.csv,37610,_review/junk,high,"filesystem inventory tooling, unrelated to analysis data"
+/p/BRAIN_DRAIN/Data/transfer_outputs.csv,/p/BRAIN_DRAIN/Data/_review/junk/transfer_outputs.csv,12548,_review/junk,high,"filesystem inventory tooling, unrelated to analysis data"
+/p/BRAIN_DRAIN/Data/unmatched_cc.csv,/p/BRAIN_DRAIN/Data/intermediate/unmatched_cc.csv,269731,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/unmatched_cc.rds,/p/BRAIN_DRAIN/Data/intermediate/unmatched_cc.rds,93899,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/unmatched_col.csv,/p/BRAIN_DRAIN/Data/intermediate/unmatched_col.csv,267148,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/unmatched_col.rds,/p/BRAIN_DRAIN/Data/intermediate/unmatched_col.rds,92672,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/unmatched_hs.rds,/p/BRAIN_DRAIN/Data/intermediate/unmatched_hs.rds,345559,intermediate,high,entity-resolution / name-matching pipeline output
+/p/BRAIN_DRAIN/Data/WholeData Data Dictionary.pdf,/p/BRAIN_DRAIN/Data/_review/needs_inspection/WholeData Data Dictionary.pdf,0,_review/needs_inspection,high,zero-byte file
+/p/BRAIN_DRAIN/Data/~$education.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/~$occupation.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/~$persistent_match_issues.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"

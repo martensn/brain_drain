@@ -1,0 +1,387 @@
+./00_crosswalks.Rmd:60:superope_ope_crosswalk = read_csv(file.path(directory,"Data/01/Crosswalks",superopeidfilename))
+./00_crosswalks.Rmd:64:ope_unit_crosswalk = read_excel(file.path(directory,"Data/01/Crosswalks",opeidunitidfilename), 
+./00_crosswalks.Rmd:69:cbsa = read_csv(file.path(directory,"Data/01",cbsafilename),
+./00_crosswalks.Rmd:73:raw_county = read_excel(file.path(directory,"Data/01",countyfilename)) %>%
+./00_crosswalks.Rmd:100:ct_county = read_excel(file.path(directory,"Data/01",ctcountyfilename)) %>%
+./00_crosswalks.Rmd:158:write.csv(unified_cbsa,file.path(directory,"Data/01/unified_cbsa.csv"))
+./01_shocks.Rmd:43:cbp = fread(file.path(directory,"Data/04",eckertcbpfilename),
+./01_shocks.Rmd:67:cbp22 = fread(file.path(directory,"Data/04",cbp22filename),
+./01_shocks.Rmd:72:cbp21 = fread(file.path(directory,"Data/04",cbp21filename),
+./01_shocks.Rmd:77:cbp20 = fread(file.path(directory,"Data/04",cbp20filename),
+./01_shocks.Rmd:82:cbp19 = fread(file.path(directory,"Data/04",cbp19filename),
+./01_shocks.Rmd:156:write.csv(shifts,file.path(directory,"Data/04","shifts.csv"),row.names = FALSE)
+./01_shocks.Rmd:172:write.csv(w_share,file.path(directory,"Data/04","w_share.csv"),row.names = FALSE)
+./01_shocks.Rmd:180:write.csv(shares,file.path(directory,"Data/04","shares.csv"),row.names = FALSE)
+./01_shocks.Rmd:309:write.csv(cbsa_shock_ptile,file.path(directory,"Data/04","cbsa_shock.csv"),row.names = FALSE)
+./02_col_chars.Rmd:50:#load(file.path(directory,"Code/06_workspace.RData"))
+./02_col_chars.Rmd:60: # microdata = fread(file.path(directory,"Data/06/regression_data.csv"),
+./02_col_chars.Rmd:74:aau = read_excel(file.path(directory,"Data/06",aaufilename),
+./02_col_chars.Rmd:125:raw_mobility = read_excel(file.path(directory,"Data/06",mobilityfilename))
+./02_col_chars.Rmd:470:write.csv(institutional_characteristics, file.path(directory,"Data/06","institutional_characteristics.csv"))
+./02_hs_chars.Rmd:57:public = read_delim(file.path(directory,"Data/01",pubfilename))
+./02_hs_chars.Rmd:58:private = read_delim(file.path(directory,"Data/01",privfilename))
+./03_dedup_col.R:3:col_p5 = readRDS(file.path(data_dir,"col_embed.rds")) %>% 
+./03_li_ed.Rmd:42:#x1 = readLines(file.path(directory,"Data/02",edufilename1))
+./03_li_ed.Rmd:48:ed_li1 = read_delim(file.path(directory,"Data/02",edufilename1))
+./03_li_ed.Rmd:49:ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
+./03_li_ed.Rmd:51:#ed_li1 = fread(file.path(directory,"Data/02",edufilename1),
+./03_li_ed.Rmd:59:#ed_li2 = fread(file.path(directory,"Data/02",edufilename2),
+./03_li_ed.Rmd:170:write.csv(misfit_counts, file.path(directory,"Data/02/misfits_3.csv"))
+./03_li_ed.Rmd:174:misfits_correction <- read_delim(file.path(directory,"Data/02",misfitscorrection)) %>%
+./03_li_ed.Rmd:203:write.csv(inst_counts,file.path(directory,"Data/02/inst_counts.csv"))
+./04_li_ed_pos.Rmd:45:pos1 = fread(file.path(directory,"Data/03",posfilename1),
+./04_li_ed_pos.Rmd:50:pos2 = fread(file.path(directory,"Data/03",posfilename2),
+./04_li_ed_pos.Rmd:89:write.csv(pos_summary,file.path(directory,"Data/07","soc_li_distribution.csv"))
+./04_li_ed_pos.Rmd:229:dt_zips <- as.data.table(read.csv(file.path(directory,"Data/03",zipcodefilename),
+./04_li_ed_pos.Rmd:349:string_cleaning = fread(file.path(directory,"Data/03",msastringfilename))
+./04_li_ed_pos.Rmd:509:write.csv(numerator,file.path(directory,"Data/07/numerator.csv"))
+./04_li_ed_pos.Rmd:510:write.csv(completed,file.path(directory,"Data/05/raw_microdata.csv"))
+./05_merge.Rmd:36:  raw_microdata = fread(file.path(directory,"Data/05/raw_microdata.csv"),
+./05_merge.Rmd:95:occp_prestige <- fread(file.path(directory,"Data","occupational_prestige.csv")) %>%
+./05_merge.Rmd:164:write.csv(return,file.path(directory,"Data/05","return_occp.csv"), row.names=FALSE)
+./05_merge.Rmd:284:write.csv(return_by_year,file.path(directory,"Data/07","return_by_year.csv"), row.names=FALSE)
+./05_merge.Rmd:339:dt_zips <- as.data.table(read.csv(file.path(directory,"Data/03",zipcodefilename),
+./05_merge.Rmd:407:raw_prestige = read_csv(file.path(directory,"Data/07",occupational_prestige_filename),
+./05_merge.Rmd:417:soc_educ <- readxl::read_excel(file.path(directory, "Data", bls_education_filename), 
+./05_merge.Rmd:426:raw_occp <- readxl::read_excel(file.path(directory, "Data", bls_occupation_filename), 
+./05_merge.Rmd:430:#pos_summary = fread(file.path(directory,"Data/07","soc_li_distribution.csv"))  
+./05_merge.Rmd:548:write.csv(soc_ba,file.path(directory,"Data/07","soc_ba.csv"), row.names=FALSE)
+./05_merge.Rmd:556:write.csv(soc_ba,file.path(directory,"Data/07","soc_merge.csv"), row.names=FALSE)
+./05_merge.Rmd:595:write.csv(soc_li_dist,file.path(directory,"Data/07","soc_li_distribution.csv"), row.names=FALSE)
+./05_merge.Rmd:672:write.csv(microdata,file.path(directory,"Data/06/microdata.csv"), row.names=FALSE)
+./05_merge.Rmd:675:write.csv(microdata_sample,file.path(directory,"Data/06/microdata_sample.csv"), row.names=FALSE)
+./05_merge.Rmd:693:write.csv(microdata,file.path(directory,"Data/06/microdata_compressed.csv"), row.names=FALSE)
+./06_finalize_data.Rmd:62:  microdata <- fread(file.path(directory,"Data/06/microdata.csv"))
+./06_finalize_data.Rmd:64:  microdata <- fread(file.path(directory,"Data/06/microdata_sample.csv"))
+./06_finalize_data.Rmd:96:inst_group <- fread(file.path(directory,"Data/06","institutional_characteristics.csv")) %>%
+./06_finalize_data.Rmd:132:#differences_unfilt <- read_csv(file.path(directory,"Data/06","local_differences_unfilt.csv")) %>%
+./06_finalize_data.Rmd:148:#all_binary_final = read.csv(file.path(directory,"Data/regression_data.csv"))
+./06_finalize_data.Rmd:149:#actual_cohort = read.csv(file.path(directory,"Data/actual_cohort.csv"))
+./06_finalize_data.Rmd:239:write.csv(cohort_return_hs,file.path(directory,"Data/06/cohort_return_hs_10.csv"),row.names = FALSE)
+./06_finalize_data.Rmd:240:write.csv(cohort_return_col,file.path(directory,"Data/06/cohort_return_col_10.csv"),row.names = FALSE)
+./06_finalize_data.Rmd:244:write.csv(leaver_levels_state,file=file.path(directory,"Data",specification,"leaver_levels_state.csv"),row.names = FALSE)
+./06_finalize_data.Rmd:246:write.csv(leaver_levels_cbsa,file=file.path(directory,"Data",specification,"leaver_levels_cbsa.csv"), row.names = FALSE)
+./06_finalize_data.Rmd:292:institutional_characteristics <- fread(file.path(directory,"Data/06","institutional_characteristics.csv"))
+./06_finalize_data.Rmd:304:write.csv(cohort_x_grad,file.path(directory,"Data/06/cohort_x_grad.csv"),row.names = FALSE)
+./06_finalize_data.Rmd:327:saveRDS(sample_values,file.path(directory,"Data",specification,"sample_values.rds"))
+./06_finalize_data.Rmd:349:saveRDS(restrict_values,file.path(directory,"Data",specification,"restrict_values.rds"))
+./06_finalize_data.Rmd:372:saveRDS(outsample_values,file.path(directory,"Data",specification,"outsample_values.rds"))
+./07_regressions.Rmd:514:write.csv(group_semi_elasticities,file.path(directory,"Data",specification,"group_semi_elasticities.csv"), row.names=FALSE)
+./07_regressions.Rmd:515:write.csv(coef_data,file.path(directory,"Data",specification,"coef_data_semi.csv"), row.names=FALSE)
+./07_regressions.Rmd:550:cbsa_shock_ptile = fread(file.path(directory,"Data/04","cbsa_shock.csv"))
+./07_regressions.Rmd:606:write.csv(differences,file.path(directory,"Data",specification,"local_differences.csv"))
+./08_data_generation.Rmd:41:write.csv(fraction_cohort,file.path(directory,"Data",specification,"fraction_cohort.csv"),row.names=FALSE)
+./08_data_generation.Rmd:46:write.csv(li_deg_awarded,file.path(directory,"Data",specification,"li_deg_awarded.csv"),row.names=FALSE)
+./08_data_generation.Rmd:52:write.csv(dens_sam,file.path(directory,"Data",specification,"dens_sam.csv"),row.names=FALSE)
+./08_data_generation.Rmd:55:write.csv(quant_sam,file.path(directory,"Data",specification,"quantiles_sam.csv"),row.names=FALSE)
+./08_data_generation.Rmd:80:write.csv(local_stocks %>% 
+./08_data_generation.Rmd:83:          file.path(directory,"Data",specification,"local_stocks.csv"))
+./08_data_generation.Rmd:87:write.csv(state_stocks %>% 
+./08_data_generation.Rmd:89:          file.path(directory,"Data",specification,"state_stocks.csv"))
+./08_data_generation.Rmd:94:write.csv(li_inst,file.path(directory,"Data",specification,"li_inst.csv"))
+./08_data_generation.Rmd:97:inst_group = fread(file.path(directory,"Data/06","institutional_characteristics.csv")) %>%
+./08_data_generation.Rmd:112:write.csv(occp_inst_group_counts,file.path(directory,"Data",specification,"occp_inst_group.csv"),row.names = FALSE)
+./08_data_generation.Rmd:123:write.csv(instate_li,file.path(directory,"Data",specification,"instate_li.csv"))
+./08_data_generation.Rmd:134:write.csv(destination_cbsa,file.path(directory,"Data",specification,"destination_cbsa.csv"))
+./08_data_generation.Rmd:151:write.csv(net_cbsa,file.path(directory,"Data",specification,"net_cbsa.csv"))
+./08_data_generation.Rmd:158:write.csv(destination_state,file.path(directory,"Data",specification,"destination_state.csv"))
+./08_data_generation.Rmd:175:write.csv(net_state,file.path(directory,"Data",specification,"net_state.csv"))
+./08_data_generation.Rmd:179:write.csv(return_levels_state,file=file.path(directory,"Data",specification,"return_levels_state.csv"),row.names = FALSE)
+./08_data_generation.Rmd:181:write.csv(return_levels_cbsa,file=file.path(directory,"Data",specification,"return_levels_cbsa.csv"), row.names = FALSE)
+./08_data_generation.Rmd:218:write.csv(local_ties_cbsa,file.path(directory,"Data",specification,"local_ties_cbsa.csv"))
+./08_data_generation.Rmd:249:write.csv(local_ties_state,file.path(directory,"Data",specification,"local_ties_state.csv"))
+./08_data_generation.Rmd:290:write.csv(inst_levels,file.path(directory,"Data",specification,"inst_levels.csv"))
+./08_data_generation.Rmd:338:    write.csv(all_bin_shares,file.path(directory,"Data",specification,all_bin_filename))
+./08_data_generation.Rmd:360:    write.csv(bin,file.path(directory,"Data",specification,bin_filename))
+./08_data_generation.Rmd:374:    write.csv(get(paste0("returners_", h,"_",b)),file.path(directory,"Data",specification,paste0("returners_", h,"_",b,".csv")))
+./08_data_generation.Rmd:389:write.csv(hs_shock_year_state,file.path(directory,"Data",specification,paste0("hs_shock_year_state.csv")))
+./08_data_generation.Rmd:400:write.csv(hs_shock_year_cbsa,file.path(directory,"Data",specification,paste0("hs_shock_year_cbsa.csv")))
+./08_data_generation.Rmd:476:  write.csv(tie_stocks,file.path(directory,"Data",specification,"tie_stocks_alt.csv"),row.names = FALSE)
+./08_data_generation.Rmd:490:#differences_unfilt <- read_csv(file.path(directory,"Data/06","local_differences_unfilt.csv")) %>%
+./08_data_generation.Rmd:496:differences <- read_csv(file.path(directory,"Data",specification,"local_differences.csv")) %>%
+./08_data_generation.Rmd:571:write.csv(compliers,file.path(directory,"Data",specification,"compliers.csv"),row.names = FALSE)
+./08_data_generation.Rmd:590:sink(file.path(directory,"Outputs",specification,"complier_means.tex"))
+./09b_plots_old.Rmd:162:write.csv(omission_distribution,file.path(directory,"Outputs/omission_distribution.csv"))
+./09b_plots_old.Rmd:169:omission_distribution = read_csv(file.path(directory,"Outputs/omission_distribution.csv")) %>%
+./09b_plots_old.Rmd:481:write.csv(fraction,file.path(directory,"Data/07/fraction.csv"))
+./09b_plots_old.Rmd:658:          out = file.path(directory,"/Outputs/Tables/oos-dist-wide.tex"),
+./09b_plots_old.Rmd:711:          out = file.path(directory,"/Outputs/Tables/is-dist-wide.tex"),
+./09b_plots_old.Rmd:880:          out = file.path(directory,"Outputs/Tables/inst-levels-cbsa.tex"),
+./09b_plots_old.Rmd:892:          out = file.path(directory,"Outputs/Tables/inst-levels-state.tex"),
+./09b_plots_old.Rmd:959:          out = file.path(directory,"Outputs",specification,"shocks.tex")
+./09b_plots_old.Rmd:968:differences <- read_csv(file.path(directory,"Data",specification,"local_differences.csv")) %>%
+./09b_plots_old.Rmd:975:differences_unfilt <- read_csv(file.path(directory,"Data/06","local_differences_unfilt.csv")) %>%
+./09b_plots_old.Rmd:983:lt_cbsa <- read_csv(file.path(directory,"Data",specification,"local_ties_cbsa.csv"),col_select = -`...1`) %>%
+./09b_plots_old.Rmd:1053:net_cbsa <- read_csv(file.path(directory,"Data",specification,"net_cbsa.csv"),col_select = -`...1`) %>%
+./09b_plots_old.Rmd:1140:net_state <- read_csv(file.path(directory,"Data",specification,"net_state.csv"),col_select = -`...1`) %>%
+./09b_plots_old.Rmd:1234:net_cbsa <- read_csv(file.path(directory,"Data",specification,"net_cbsa.csv"),col_select = -`...1`) %>%
+./09b_plots_old.Rmd:1253:net_state <- read_csv(file.path(directory,"Data",specification,"net_state.csv"),col_select = -`...1`) %>%
+./09b_plots_old.Rmd:1380:differences <- read_csv(file.path(directory,"Data",specification,"local_differences.csv")) %>%
+./09b_plots_old.Rmd:1387:lt_cbsa <- read_csv(file.path(directory,"Data",specification,"local_ties_cbsa.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:104:          out = file.path(directory,"Outputs",specification,"observation-accounting.tex"),
+./09_plots.Rmd:116:li_soc = read_csv(file.path(directory,"Data/07","soc_li_distribution.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:122:soc_ba = read_csv(file.path(directory,"Data/07","soc_ba.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:210:print(occp_h,file=file.path(directory,"Outputs",specification,"largest_occp_high.tex"),include.rownames = FALSE)
+./09_plots.Rmd:215:print(occp_m,file=file.path(directory,"Outputs",specification,"largest_occp_middle.tex"),include.rownames = FALSE)
+./09_plots.Rmd:220:print(occp_m,file=file.path(directory,"Outputs",specification,"largest_occp_low.tex"),include.rownames = FALSE)
+./09_plots.Rmd:228:occp_inst_group_counts <- fread(file.path(directory,"Data",specification,"occp_inst_group.csv"))
+./09_plots.Rmd:267:raw_return <- fread(file.path(directory,"Data/05","return_occp.csv"))
+./09_plots.Rmd:270:inst_weights <- read_csv(file.path(directory,"Data/06","institutional_characteristics.csv")) %>%
+./09_plots.Rmd:436:return_by_year <- fread(file.path(directory,"Data/07","return_by_year.csv")) %>%
+./09_plots.Rmd:496:net_cbsa <- read_csv(file.path(directory,"Data",specification,"net_cbsa.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:507:net_state <- read_csv(file.path(directory,"Data",specification,"net_state.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:688:#return_levels_state <- read_csv(file.path(directory,"Data",specification,"return_levels_state.csv")) %>%
+./09_plots.Rmd:697:return_levels_cbsa <- read_csv(file.path(directory,"Data",specification,"return_levels_cbsa.csv")) %>%
+./09_plots.Rmd:726:raw_ll <- read_csv(file.path(directory,"Data",specification,"leaver_levels_cbsa.csv")) %>%
+./09_plots.Rmd:767:print(ll,file=file.path(directory,"Outputs",specification,"leaver_levels.tex"),include.rownames = FALSE)
+./09_plots.Rmd:803:local_ties_cbsa <- read_csv(file.path(directory,"Data",specification,"local_ties_cbsa.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:805:local_ties_state <- read_csv(file.path(directory,"Data",specification,"local_ties_state.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:848:extremes <- read_csv(file.path(directory,"Data",specification,"bin_cbsa_5.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:963:instate_li = read_csv(file.path(directory,"Data",specification,"instate_li.csv"),col_select = -`...1`)
+./09_plots.Rmd:996:destination_cbsa <- fread(file.path(directory,"Data",specification,"destination_cbsa.csv"),drop="V1")
+./09_plots.Rmd:997:destination_state <- fread(file.path(directory,"Data",specification,"destination_state.csv"),drop="V1")
+./09_plots.Rmd:1022:institutional_characteristics = read_csv(file.path(directory,"Data/06","institutional_characteristics.csv"))
+./09_plots.Rmd:1035:gotg = fread(file.path(directory,"Data/06/CollegeMarketShares_state.csv"),drop="V1")
+./09_plots.Rmd:1165:li_inst = read_csv(file.path(directory,"Data",specification,"li_inst.csv"))
+./09_plots.Rmd:1237:coef_data <- fread(file.path(directory,"Data",specification,"coef_data_semi.csv")) %>%
+./09_plots.Rmd:1288:ggsave(filename = file.path(directory,"Outputs",specification,"ld_coef.png"), width = 8, height = 6)
+./09_plots.Rmd:1297:differences <- read_csv(file.path(directory,"Data",specification,"local_differences.csv")) %>%
+./09_plots.Rmd:1304:lt_cbsa <- read_csv(file.path(directory,"Data",specification,"local_ties_cbsa.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:1419:occp_prestige <- fread(file.path(directory,"Data","occupational_prestige.csv")) %>%
+./09_plots.Rmd:1428:    returner_data <- fread(file.path(directory,"Data",specification,paste0("returners_", h,"_",b,".csv"))) %>%
+./09_plots.Rmd:1533:raw_semi <- read_csv(file.path(directory,"Data",specification,"group_semi_elasticities.csv"))
+./09_plots.Rmd:1545:  left_join(read_csv(file.path(directory,"Data/06","institutional_characteristics.csv")) %>% dplyr::select(c(unitid,inst_group)), by = "unitid") %>%
+./09_plots.Rmd:1652:#raw_lm = fread(file.path(directory,"Data/04","cbp19co.txt"),
+./09_plots.Rmd:1684:  left_join(read_csv(file.path(directory,"Data/06","institutional_characteristics.csv")) %>% 
+./09_plots.Rmd:1776:hs_shock_year_cbsa <- read_csv(file.path(directory,"Data",specification,"hs_shock_year_cbsa.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:1787:print(hs_yr_cbsa,file=file.path(directory,"Outputs",specification,"hs_shock_year_cbsa.tex"),include.rownames = FALSE)
+./09_plots.Rmd:1790:hs_shock_year_state <- read_csv(file.path(directory,"Data",specification,"hs_shock_year_state.csv"),col_select = -`...1`) %>%
+./09_plots.Rmd:1801:print(hs_yr_state,file=file.path(directory,"Outputs",specification,"hs_shock_year_state.tex"),include.rownames = FALSE)
+./09_plots.Rmd:1816:tie_stocks <- fread(file.path(directory,"Data",specification,"tie_stocks_alt.csv"))
+./09_plots.Rmd:1817:cbsa_shock <- fread(file.path(directory,"Data/04","cbsa_shock.csv"))
+./09_plots.Rmd:1982:hs_cbsa_10 <- read_csv(file.path(directory,"Data/06/cohort_return_hs_10.csv"))
+./09_plots.Rmd:1983:col_cbsa_10 <- read_csv(file.path(directory,"Data/06/cohort_return_col_10.csv"))
+./09_plots.Rmd:2063:cbsa_shock <- read_csv(file.path(directory,"Data/04","cbsa_shock.csv")) %>%
+./09_plots.Rmd:2169:raw_laus <- read_csv(file.path(directory,"Data/06/bls_laus_data.csv"))
+./09_plots.Rmd:2198:write.csv(intercensal,file.path(directory,"Data/06/intercensal.csv"),row.names = FALSE)
+./09_plots.Rmd:2206:intercensal <- read_csv(file.path(directory,"Data/06/intercensal.csv"))
+./09_plots.Rmd:2328:  write.csv(split,file.path(directory,"Data",specification,paste0("directed_",start,"_",end,".csv")),row.names = FALSE)
+./09_plots.Rmd:2347:  split <- read_csv(file.path(directory,"Data",specification,paste0("directed_",start,"_",end,".csv")))
+./09_plots.Rmd:2414:complier_plot <- read_csv(file.path(directory,"Data",specification,"compliers.csv")) %>% 
+./09_plots.Rmd:2502:          out = file.path(directory,"Outputs",specification,"pf.tex"),
+./09_plots.Rmd:2516:returner_data <- fread(file.path(directory,"Data",specification,paste0("returners_", h,"_",b,".csv"))) %>%
+./09_plots.Rmd:2569:fraction_cohort <- read_csv(file.path(directory,"Data",specification,"fraction_cohort.csv")) %>%
+./09_plots.Rmd:2580:li_deg_awarded <- read_csv(file.path(directory,"Data",specification,"li_deg_awarded.csv"))
+./09_plots.Rmd:2586:deg_awarded = read_excel(file.path(directory,"Data/07",degrees_awardedfilename)) %>%
+./09_plots.Rmd:2676:  ggsave(file = file.path(directory,"Outputs",specification,"cohort_coverage.png"),
+./09_plots.Rmd:2685:dens_sam <- read_csv(file.path(directory,"Data",specification,"dens_sam.csv"))
+./09_plots.Rmd:2686:quantiles_sam <- read_csv(file.path(directory,"Data",specification,"quantiles_sam.csv"))
+./09_plots.Rmd:2748:ggsave(file = file.path(directory,"Outputs",specification,"age_distribution.png"),
+./09_plots.Rmd:2785:write.csv(total_deg,file.path(directory,"Data/06/total_deg.csv"), row.names = FALSE)
+./09_plots.Rmd:2798:write.csv(business_deg,file.path(directory,"Data/06/business_deg.csv"), row.names = FALSE)
+./09_plots.Rmd:2809:write.csv(engineering_deg,file.path(directory,"Data/06/engineering_deg.csv"), row.names = FALSE)
+./09_plots.Rmd:2816:write.csv(all_deg,file.path(directory,"Data/06/all_deg.csv"),row.names = FALSE)
+./09_plots.Rmd:2825:institutional_characteristics = read_csv(file.path(directory,"Data/06","institutional_characteristics.csv"), 
+./09_plots.Rmd:2833:cohort_x_grad <-fread(file.path(directory,"Data/06/cohort_x_grad.csv"))
+./09_plots.Rmd:2882:total_deg <- read_csv(file.path(directory,"Data/06/total_deg.csv"))
+./09_plots.Rmd:2883:business_deg <- read_csv(file.path(directory,"Data/06/business_deg.csv")) %>%
+./09_plots.Rmd:2885:engineering_deg <- read_csv(file.path(directory,"Data/06/engineering_deg.csv")) %>%
+./09_plots.Rmd:3004:total_deg <- read_csv(file.path(directory,"Data/06/total_deg.csv"))
+./09_plots.Rmd:3005:business_deg <- read_csv(file.path(directory,"Data/06/business_deg.csv")) %>%
+./09_plots.Rmd:3007:engineering_deg <- read_csv(file.path(directory,"Data/06/engineering_deg.csv")) %>%
+./09_plots.Rmd:3090:sample_values <- readRDS(file.path(directory,"Data",specification,"sample_values.rds"))
+./09_plots.Rmd:3091:restrict_values <- readRDS(file.path(directory,"Data",specification,"restrict_values.rds"))
+./09_plots.Rmd:3092:outsample_values <- readRDS(file.path(directory,"Data",specification,"outsample_values.rds"))
+./09_plots.Rmd:3103:print(xsumstat,file=file.path(directory,"Outputs",specification,"summary_stats.tex"),include.rownames = FALSE)
+./09_plots.Rmd:3120:total_deg <- read_csv(file.path(directory,"Data/06/total_deg.csv"))
+./09_plots.Rmd:3121:business_deg <- read_csv(file.path(directory,"Data/06/business_deg.csv")) %>%
+./09_plots.Rmd:3123:engineering_deg <- read_csv(file.path(directory,"Data/06/engineering_deg.csv")) %>%
+./09_plots.Rmd:3213:print(xoutsumstat,file=file.path(directory,"Outputs",specification,"outsample_summary_stats.tex"),include.rownames = FALSE)
+./10_roi.Rmd:49:load(file.path(directory,"Code/06_workspace.RData"))
+./10_roi.Rmd:56:microdata = fread(file.path(directory,"Data/06/regression_data.csv"),
+./10_roi.Rmd:70:aau = read_excel(file.path(directory,"Data/06",aaufilename),
+./10_roi.Rmd:114:raw_mobility = read_excel(file.path(directory,"Data/06",mobilityfilename))
+./10_roi.Rmd:572:print(ss,file=file.path(directory,"Outputs/Tables","sumstat_dec.tex"),include.rownames = FALSE)
+./10_roi.Rmd:752:print(roi_table_no_nc, file = file.path(directory,"/Outputs/Tables/roi_group_no_nc.tex"),include.rownames = FALSE, hline.after = c(-1, 0, nrow(roi_group_no_nc)), caption.placement = "top")
+./10_roi.Rmd:765:print(roi_table_nc, file = file.path(directory,"/Outputs/Tables/roi_group_nc.tex"), include.rownames = FALSE, hline.after = c(-1, 0, nrow(roi_group_nc)), caption.placement = "top")
+./a_hs_col_construct.R:248:raw_private = fread(file.path(directory,"Data",private_school_filename),
+./a_hs_col_construct.R:250:raw_private_address = fread(file.path(directory,"Data",private_school_address_filename),
+./a_hs_col_construct.R:781:raw_subunit <- read_csv(file.path(directory,"Data/be_sch_full.csv")) 
+./a_hs_col_construct.R:1055:saveRDS(hs_alias,file.path(directory,"Data/hs_alias.rds"))
+./a_hs_col_construct.R:1056:saveRDS(alias,file.path(directory,"Data/col_alias.rds"))
+./a_hs_col_construct.R:1057:write.csv(hs_alias,file.path(directory,"Data/hs_alias.csv"),row.names=FALSE)
+./a_hs_col_construct.R:1058:write.csv(alias,file.path(directory,"Data/col_alias.csv"),row.names=FALSE)
+./a_hs_col_construct.R:1059:saveRDS(schools,file.path(directory,"Data/schools.rds"))
+./a_hs_col_construct.R:1060:saveRDS(colleges,file.path(directory,"Data/colleges.rds"))
+./b_embedding_test.R:122:hs_alias = fread(file.path(directory,"Data", "hs_alias.csv"))
+./b_embedding_test.R:124:col_alias = fread(file.path(directory,"Data","col_alias.csv"))
+./b_embedding_test.R:128:shrunken = fread(file.path(directory,"Data","hs_col_classification.csv"))
+./b_embedding_test.R:166:hs_path  <- file.path(directory, "Data/hs_gt.csv")
+./b_embedding_test.R:167:col_path <- file.path(directory, "Data/col_gt.csv")
+./b_embedding_test.R:170:  write.csv(hs_raw_strings, hs_path, row.names = FALSE)
+./b_embedding_test.R:174:  write.csv(col_raw_strings, col_path, row.names = FALSE)
+./b_embedding_test.R:193:saveRDS(hs_alias_resp,file.path(directory,"Data","hs_alias_resp.rds"))
+./b_embedding_test.R:342:saveRDS(col_alias_resp,file.path(directory,"Data","col_alias_resp.rds"))
+./cohort.R:15:hs_cbsa_10 <- read_csv(file.path(directory,"Data/06/cohort_return_hs_10.csv"))
+./cohort.R:16:col_cbsa_10 <- read_csv(file.path(directory,"Data/06/cohort_return_col_10.csv"))
+./c_col_hs_classification.R:260:ed_li1 = read_delim(file.path(directory,"Data/02",edufilename1))
+./c_col_hs_classification.R:261:ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
+./c_col_hs_classification.R:280:fwrite(shrunken,file.path(directory,"Data","hs_col_classification.csv"))
+./c_col_hs_classification.R:283:hs_alias = fread(file.path(directory,"Data", "hs_alias.csv"))
+./c_col_hs_classification.R:285:col_alias = fread(file.path(directory,"Data","col_alias.csv"))
+./c_col_hs_classification.R:289:shrunken = fread(file.path(directory,"Data","hs_col_classification.csv"))
+./c_col_hs_classification.R:338:hs_path  <- file.path(directory, "Data/hs_gt.csv")
+./c_col_hs_classification.R:339:col_path <- file.path(directory, "Data/col_gt.csv")
+./c_col_hs_classification.R:342:  write.csv(hs_raw_strings, hs_path, row.names = FALSE)
+./c_col_hs_classification.R:346:  write.csv(col_raw_strings, col_path, row.names = FALSE)
+./c_col_hs_classification.R:399:saveRDS(hs_,file.path(directory,"Data","hs_strings.rds"))
+./c_col_hs_classification.R:400:fwrite(hs_,file.path(directory,"Data","hs_strings.csv"))
+./c_col_hs_classification.R:453:saveRDS(col_,file.path(directory,"Data","col_strings.rds"))
+./c_col_hs_classification.R:454:fwrite(col_,file.path(directory,"Data","col_strings.csv"))
+./demo.R:7:data_dir = file.path(directory,"Data")
+./demo.R:8:file_dir = file.path(data_dir,"02/2026.04.09_education.csv")
+./demo.R:141:input <- fread(file_dir, select=c("university_name","rsid","degree","university_country","university_location"))
+./demo.R:143:col_alias <- readRDS(file.path(directory,"Data","col_alias.rds"))
+./demo.R:144:hs_alias <- readRDS(file.path(directory,"Data","hs_alias.rds"))
+./demo.R:148:col_ <- readRDS(file.path(directory,"Data","col_strings.rds")) %>%
+./demo.R:151:hs_ <- readRDS(file.path(directory,"Data","hs_strings.rds")) %>%
+./demo.R:154:#raw_ind <- fread(file_dir, select=c("user_id","rsid","degree"))
+./demo.R:193:saveRDS(unmatched_col,file.path(data_dir,"unmatched_col.rds"))
+./demo.R:197:col_p5 = readRDS(file.path(data_dir,"col_embed.rds")) %>% 
+./d_sample_construction.R:15:ed_li1 = read_delim(file.path(directory,"Data/02",edufilename1))
+./d_sample_construction.R:16:ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
+./d_sample_construction.R:29:col_strings = readRDS(file.path(directory,"Data","col_strings.rds")) %>%
+./d_sample_construction.R:37:hs_strings = readRDS(file.path(directory,"Data","hs_strings.rds")) %>%
+./d_sample_construction.R:52:fwrite(string_,file.path(directory,"Data/raw_unmatched_strings.csv"))
+./d_sample_construction.R:53:saveRDS(string_,file.path(directory,"Data/raw_unmatched_strings.rds"))
+./d_sample_construction.R:110:schools = readRDS(file.path(directory,"Data/schools.rds"))
+./d_sample_construction.R:111:colleges = readRDS(file.path(directory,"Data/colleges.rds"))
+./d_sample_construction.R:116:saveRDS(ed_wide,file.path(directory,"Data/ed_wide.rds"))
+./d_sample_construction.R:117:saveRDS(ed_wide_sample,file.path(directory,"Data/ed_wide_sample.rds"))
+./d_sample_construction.R:130:saveRDS(imp_ct,file.path(directory,"Data/col_ct.rds"))
+./d_sample_construction.R:131:fwrite(imp_ct,file.path(directory,"Data/col_ct.csv"))
+./e_detect_mismatches.R:15:ed_li1 = read_delim(file.path(directory,"Data/02",edufilename1))
+./e_detect_mismatches.R:16:ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
+./e_detect_mismatches.R:53:col_strings = readRDS(file.path(directory,"Data","col_strings.rds")) %>%
+./e_detect_mismatches.R:62:hs_strings = readRDS(file.path(directory,"Data","hs_strings.rds")) %>%
+./e_detect_mismatches.R:136:schools = readRDS(file.path(directory,"Data/schools.rds")) %>%
+./e_detect_mismatches.R:138:colleges = readRDS(file.path(directory,"Data/colleges.rds"))
+./e_scrape.R:104:fwrite(be_sch,file.path(directory,"Data/be_sch.csv"))
+./intercensal.R:12:cbsa_shock <- read_csv(file.path(directory,"Data/04","cbsa_shock.csv")) %>%
+./intercensal.R:118:raw_laus <- read_csv(file.path(directory,"Data/06/bls_laus_data.csv"))
+./intercensal.R:147:write.csv(intercensal,file.path(directory,"Data/06/intercensal.csv"),row.names = FALSE)
+./kappa.R:17:differences_unfilt <- read_csv(file.path(directory,"Data/06","local_differences_unfilt.csv")) %>%
+./yagan.R:8:intercensal <- read_csv(file.path(directory,"Data/06/intercensal.csv"))
+./yagan.R:130:  write.csv(split,file.path(directory,"Data/06",paste0("directed_",start,"_",end,".csv")),row.names = FALSE)
+./yagan.R:145:split <- read_csv(file.path(directory,"Data/06",paste0("directed_",start,"_",end,".csv")))
+./new/00_alias_generation.R:248:raw_private = fread(file.path(directory,"Data",private_school_filename),
+./new/00_alias_generation.R:250:raw_private_address = fread(file.path(directory,"Data",private_school_address_filename),
+./new/00_alias_generation.R:427:raw_institutions = fread(file.path(data_dir,"colleges_ipeds_directory.csv"))
+./new/00_alias_generation.R:440:saveRDS(raw_deg_award,file.path(data_dir,"raw_deg_award"))
+./new/00_alias_generation.R:454:deg_award_2000 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2000.csv"))
+./new/00_alias_generation.R:455:deg_award_2010 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2010.csv"))
+./new/00_alias_generation.R:456:deg_award_2020 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2020.csv"))
+./new/00_alias_generation.R:581:raw_deg_award = readRDS(file.path(data_dir,"raw_deg_award"))
+./new/00_alias_generation.R:919:raw_subunit <- read_csv(file.path(directory,"Data/be_sch_full.csv")) 
+./new/00_alias_generation.R:1252:saveRDS(hs_alias,file.path(directory,"Data/hs_alias.rds"))
+./new/00_alias_generation.R:1253:saveRDS(alias,file.path(directory,"Data/col_alias.rds"))
+./new/00_alias_generation.R:1254:saveRDS(cc_alias,file.path(directory,"Data/cc_alias.rds"))
+./new/00_alias_generation.R:1255:write.csv(hs_alias,file.path(directory,"Data/hs_alias.csv"),row.names=FALSE)
+./new/00_alias_generation.R:1256:write.csv(alias,file.path(directory,"Data/col_alias.csv"),row.names=FALSE)
+./new/00_alias_generation.R:1257:write.csv(cc_alias,file.path(directory,"Data/cc_alias.csv"),row.names=FALSE)
+./new/00_alias_generation.R:1258:saveRDS(schools,file.path(directory,"Data/schools.rds"))
+./new/00_alias_generation.R:1259:saveRDS(colleges,file.path(directory,"Data/colleges.rds"))
+./new/00_alias_generation.R:1260:saveRDS(cc,file.path(directory,"Data/cc.rds"))
+./new/01_col_hs_crosswalk.R:9:data_dir = file.path(directory,"Data")
+./new/01_col_hs_crosswalk.R:10:file_dir = file.path(data_dir,"02/2026.04.09_education.csv")
+./new/01_col_hs_crosswalk.R:143:input <- fread(file_dir, select=c("university_name","rsid","degree","university_country","university_location"))
+./new/01_col_hs_crosswalk.R:148:#saveRDS(input_col,file.path(data_dir,"input_col.rds"))
+./new/01_col_hs_crosswalk.R:150:input_col = readRDS(file.path(data_dir,"input_col.rds"))
+./new/01_col_hs_crosswalk.R:152:col_alias <- readRDS(file.path(directory,"Data","col_alias.rds"))
+./new/01_col_hs_crosswalk.R:153:hs_alias <- readRDS(file.path(directory,"Data","hs_alias.rds"))
+./new/01_col_hs_crosswalk.R:154:cc_alias <- readRDS(file.path(directory,"Data","cc_alias.rds"))
+./new/01_col_hs_crosswalk.R:160:col_ <- readRDS(file.path(directory,"Data","col_strings.rds")) %>%
+./new/01_col_hs_crosswalk.R:163:hs_ <- readRDS(file.path(directory,"Data","hs_strings.rds")) %>%
+./new/01_col_hs_crosswalk.R:166:#raw_ind <- fread(file_dir, select=c("user_id","rsid","degree"))
+./new/01_col_hs_crosswalk.R:238:saveRDS(matched_col,file.path(data_dir,"matched_col.rds"))
+./new/01_col_hs_crosswalk.R:245:saveRDS(unmatched_col,file.path(data_dir,"unmatched_col.rds"))
+./new/01_col_hs_crosswalk.R:249:saveRDS(matched_hs,file.path(data_dir,"matched_hs.rds"))
+./new/01_col_hs_crosswalk.R:256:saveRDS(unmatched_hs,file.path(data_dir,"unmatched_hs.rds"))
+./new/02_embed.R:17:data_dir = file.path(directory,"Data")
+./new/02_embed.R:27:saveRDS(state_fips,file.path(data_dir,"state_fips.rds"))
+./new/02_embed.R:102:col_alias <- readRDS(file.path(directory,"Data","col_alias.rds"))
+./new/02_embed.R:103:unmatched_col <- readRDS(file.path(data_dir,"unmatched_col.rds"))
+./new/02_embed.R:104:hs_alias <- readRDS(file.path(directory,"Data","hs_alias.rds"))
+./new/02_embed.R:105:unmatched_hs <- readRDS(file.path(data_dir,"unmatched_hs.rds"))
+./new/02_embed.R:161:saveRDS(col_embed,file.path(data_dir,"col_embed.rds"))
+./new/02_embed.R:213:saveRDS(hs_embed,file.path(data_dir,"hs_embed.rds"))
+./new/02_embed_new.R:260:#ed_li1 = read_delim(file.path(directory,"Data/02",edufilename1))
+./new/02_embed_new.R:261:#ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
+./new/02_embed_new.R:273:#fwrite(shrunken,file.path(directory,"Data","hs_col_classification.csv"))
+./new/02_embed_new.R:276:hs_alias = fread(file.path(directory,"Data", "hs_alias.csv"))
+./new/02_embed_new.R:278:col_alias = fread(file.path(directory,"Data","col_alias.csv"))
+./new/02_embed_new.R:280:cc_alias = fread(file.path(directory,"Data","cc_alias.csv"))
+./new/02_embed_new.R:286:#shrunken = fread(file.path(directory,"Data","hs_col_classification.csv"))
+./new/02_embed_new.R:289:input_col = readRDS(file.path(directory,"Data/input_col.rds"))
+./new/02_embed_new.R:510:saveRDS(col_,file.path(directory,"Data","col_strings.rds"))
+./new/02_embed_new.R:511:fwrite(col_,file.path(directory,"Data","col_strings.csv"))
+./new/02_embed_new.R:512:saveRDS(remaining_col,file.path(directory,"Data","unmatched_col.rds"))
+./new/02_embed_new.R:513:fwrite(remaining_col,file.path(directory,"Data","unmatched_col.csv"))
+./new/02_embed_new.R:584:saveRDS(cc_,file.path(directory,"Data","cc_strings.rds"))
+./new/02_embed_new.R:585:fwrite(cc_,file.path(directory,"Data","cc_strings.csv"))
+./new/02_embed_new.R:586:saveRDS(remaining_cc,file.path(directory,"Data","unmatched_cc.rds"))
+./new/02_embed_new.R:587:fwrite(remaining_cc,file.path(directory,"Data","unmatched_cc.csv"))
+./new/02_embed_new.R:647:saveRDS(hs_,file.path(directory,"Data","hs_strings.rds"))
+./new/02_embed_new.R:648:fwrite(hs_,file.path(directory,"Data","hs_strings.csv"))
+./new/03_crosswalk_val.R:7:data_dir = file.path(directory,"Data")
+./new/03_crosswalk_val.R:9:colleges <- readRDS(file.path(directory,"Data","colleges.rds")) %>%
+./new/03_crosswalk_val.R:13:matched_col <- readRDS(file.path(directory,"Data","col_strings.rds"))
+./new/03_crosswalk_val.R:14:unmatched_col <- readRDS(file.path(directory,"Data","unmatched_col.rds"))
+./new/03_crosswalk_val.R:18:col_wo_rsid <- read_csv(file.path(directory,"Data","col_wo_rsid.csv")) %>%
+./new/03_crosswalk_val.R:20:  left_join(readRDS(file.path(directory,"Data","input_col.rds")) %>% 
+./new/03_crosswalk_val.R:32:rsid_wo_col <- read_csv(file.path(directory,"Data","rsid_wo_col.csv")) %>%
+./new/03_crosswalk_val.R:35:  left_join(readRDS(file.path(directory,"Data","input_col.rds")) %>%
+./new/03_crosswalk_val.R:57:#write.csv(dupes,file.path(data_dir,"dupe_match_rsid.csv"),row.names = FALSE)
+./new/03_crosswalk_val.R:70:saveRDS(col_rsid_crosswalk, file.path(data_dir,"col_rsid_crosswalk.rds"))
+./new/03_crosswalk_val.R:82:cc <- readRDS(file.path(directory,"Data","cc.rds")) %>%
+./new/03_crosswalk_val.R:85:matched_cc <- readRDS(file.path(directory,"Data","cc_strings.rds"))
+./new/03_crosswalk_val.R:86:unmatched_cc <- readRDS(file.path(directory,"Data","unmatched_cc.rds"))
+./new/03_crosswalk_val.R:97:#write.csv(dupes,file.path(data_dir,"dupe_match_rsid.csv"),row.names = FALSE)
+./new/03_crosswalk_val.R:111:saveRDS(cc_rsid_crosswalk, file.path(directory,"Data","cc_rsid_crosswalk.rds"))
+./new/03_crosswalk_val.R:137:schools <- readRDS(file.path(directory,"Data","schools.rds")) %>%
+./new/03_crosswalk_val.R:141:matched_hs <- readRDS(file.path(directory,"Data","matched_hs.rds"))
+./new/03_crosswalk_val.R:142:unmatched_hs <- readRDS(file.path(directory,"Data","unmatched_hs.rds"))
+./new/03_crosswalk_val.R:160:saveRDS(rsid_id_dup_crosswalk,file.path(data_dir,"rsid_id_dup_crosswalk.rds"))
+./new/03_crosswalk_val.R:174:saveRDS(hs_rsid_crosswalk, file.path(data_dir,"hs_rsid_crosswalk.rds"))
+./new/04_col_hs_construct.R:9:data_dir = file.path(directory,"Data")
+./new/04_col_hs_construct.R:354:input_ <- fread(file.path(data_dir,"02/2026.04.09_education.csv"), 
+./new/04_col_hs_construct.R:358:col_rsid_crosswalk <- readRDS(file.path(data_dir,"col_rsid_crosswalk.rds"))
+./new/04_col_hs_construct.R:359:cc_rsid_crosswalk <- readRDS(file.path(data_dir,"cc_rsid_crosswalk.rds"))
+./new/04_col_hs_construct.R:360:hs_rsid_crosswalk <- readRDS(file.path(data_dir,"hs_rsid_crosswalk.rds"))
+./new/04_col_hs_construct.R:408:saveRDS(both_,file.path(directory,"Data","both_orig.rds"))
+./new/04_col_hs_construct.R:409:saveRDS(input_col,file.path(directory,"Data","input_col_m.rds"))
+./new/04_col_hs_construct.R:413:both_ = readRDS(file.path(directory,"Data","both_orig.rds"))
+./new/04_col_hs_construct.R:414:input_col = readRDS(file.path(directory,"Data","input_col_m.rds"))
+./new/04_col_hs_construct.R:813:schools = readRDS(file.path(data_dir,"schools.rds"))
+./new/04_col_hs_construct.R:814:colleges = readRDS(file.path(data_dir,"colleges.rds"))
+./new/04_col_hs_construct.R:817:state_fips = readRDS(file.path(data_dir,"state_fips.rds"))
+./new/04_col_hs_construct.R:821:raw_instate = fread(file.path(data_dir,"colleges_ipeds_fall-res.csv")) %>%
+./new/04_col_hs_construct.R:825:rsid_id_dup_crosswalk = readRDS(file.path(data_dir,"rsid_id_dup_crosswalk.rds"))
+./new/04_col_hs_construct.R:915:  col_instate = fread(file.path(data_dir,"colleges_ipeds_fall-res.csv")) %>%
+./new/04_col_hs_construct.R:963:saveRDS(both__,file.path(directory,"Data","both_final.rds"))  
+./new/05_demographics.R:11:data_dir = file.path(directory,"Data")
+./new/05_demographics.R:63:both__ = readRDS(file.path(directory,"Data","both_final.rds"))
+./new/05_demographics.R:64:users = fread(file.path(data_dir,"02/uwdbhdlkbnzhaqxd.csv"),nrows=10000)
+./new/05_demographics.R:66:users = open_dataset(file.path(data_dir,"02/uwdbhdlkbnzhaqxd.csv"), format = "csv")
+./new/05_demographics.R:83:saveRDS(users_,file.path(data_dir,"02/both_demo.rds"))
+./new/05_demographics.R:298:fwrite(sumstat, file.path(data_dir, "summary_demographics.csv"))
+./new/05_demographics.R:299:saveRDS(sumstat, file.path(data_dir, "summary_demographics.rds"))
+./new/06_census.R:10:data_dir = file.path(directory,"Data")
+./new/06_census.R:15:if(exists(file.path(data_dir,"ipeds_deg_awarded.rds")))
+./new/06_census.R:38:  saveRDS(raw_deg_award,file.path(data_dir,"ipeds_deg_awarded.rds"))
+./new/06_census.R:42:res = fread(file.path(data_dir,"colleges_ipeds_fall-res.csv"))
+./new/06_census.R:155:deg_award_2000 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2000.csv"))
+./new/06_census.R:156:deg_award_2010 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2010.csv"))
+./new/06_census.R:157:deg_award_2020 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2020.csv"))
+./new/06_census.R:158:origin = fread(file.path(data_dir,"colleges_ipeds_fall-res.csv"))
+./new/06_census.R:159:grad_rates_100 = fread(file.path(data_dir,"colleges_ipeds_grad-rates.csv"))

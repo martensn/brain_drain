@@ -157,9 +157,10 @@ with open(MANIFEST, encoding="utf-8") as f:
 
         if is_junk(relpath, basename):
             rows.append({
-                "old_path": fullpath, "new_path": "(DELETE)", "size": size,
+                "old_path": fullpath, "new_path": f"{DATA_ROOT}/_review/junk/{basename}", "size": size,
                 "bucket": "_review/junk", "confidence": "high",
-                "note": "OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere",
+                "note": "OS/Office/download cruft, consolidated here for deletion in Phase 7",
+                "_relpath": relpath, "_basename": basename,
             })
             continue
 
@@ -202,6 +203,22 @@ for new_path, group in dest_map.items():
                       f"{len(group)-1} other file(s); disambiguated with a "
                       f"__{suffix} stage suffix pending your review -- sizes differ "
                       f"substantially across the group, these are NOT simple duplicates")
+
+# safety net: the stage suffix alone can still collide (e.g. two files under the
+# same numbered folder but different subfolders) -- guarantee uniqueness with a
+# numeric fallback for anything still colliding after the pass above
+final_dest_map = defaultdict(list)
+for r in rows:
+    if r["new_path"]:
+        final_dest_map[r["new_path"]].append(r)
+for new_path, group in final_dest_map.items():
+    if len(group) <= 1:
+        continue
+    for i, r in enumerate(group, start=1):
+        stem, ext = os.path.splitext(r["new_path"])
+        r["new_path"] = f"{stem}-{i}{ext}"
+        r["confidence"] = "COLLISION-RESOLVED"
+        r["note"] = f"{r['note']} || still collided after stage-suffixing; appended numeric fallback -{i}"
 
 for r in rows:
     r.pop("_relpath", None)

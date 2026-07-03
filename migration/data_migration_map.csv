@@ -1,11 +1,11 @@
 old_path,new_path,size,bucket,confidence,note
-/p/BRAIN_DRAIN/Data/.DS_Store,(DELETE),22532,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/01/.DS_Store,(DELETE),8196,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/.DS_Store,/p/BRAIN_DRAIN/Data/_review/junk/.DS_Store__top,22532,_review/junk,COLLISION-RESOLVED,"OS/Office/download cruft, consolidated here for deletion in Phase 7 || was a basename collision with 5 other file(s); disambiguated with a __top stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
+/p/BRAIN_DRAIN/Data/01/.DS_Store,/p/BRAIN_DRAIN/Data/_review/junk/.DS_Store__01-1,8196,_review/junk,COLLISION-RESOLVED,"OS/Office/download cruft, consolidated here for deletion in Phase 7 || was a basename collision with 5 other file(s); disambiguated with a __01 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates || still collided after stage-suffixing; appended numeric fallback -1"
 /p/BRAIN_DRAIN/Data/01/barrons_mod.xlsx,/p/BRAIN_DRAIN/Data/raw/rankings_membership/barrons_mod.xlsx,48496,raw/rankings_membership,high,Barron's college selectivity rankings
 /p/BRAIN_DRAIN/Data/01/CBSACrosswalk.csv,/p/BRAIN_DRAIN/Data/raw/census_geo/CBSACrosswalk.csv,90751,raw/census_geo,high,Census/OMB geography crosswalk
 /p/BRAIN_DRAIN/Data/01/chetty_college.xlsx,/p/BRAIN_DRAIN/Data/raw/chetty_oi/chetty_college.xlsx,941152,raw/chetty_oi,high,Opportunity Insights / Chetty mobility data
 /p/BRAIN_DRAIN/Data/01/counties.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/counties.xlsx,23996269,raw/census_geo,high,Census/OMB geography crosswalk
-/p/BRAIN_DRAIN/Data/01/Crosswalks/.DS_Store,(DELETE),6148,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/.DS_Store,/p/BRAIN_DRAIN/Data/_review/junk/.DS_Store__01-2,6148,_review/junk,COLLISION-RESOLVED,"OS/Office/download cruft, consolidated here for deletion in Phase 7 || was a basename collision with 5 other file(s); disambiguated with a __01 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates || still collided after stage-suffixing; appended numeric fallback -2"
 /p/BRAIN_DRAIN/Data/01/Crosswalks/CW2000.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2000.xlsx,2517621,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
 /p/BRAIN_DRAIN/Data/01/Crosswalks/CW2001.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2001.xlsx,2498218,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
 /p/BRAIN_DRAIN/Data/01/Crosswalks/CW2002.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2002.xlsx,2311443,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
@@ -30,9 +30,9 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/01/Crosswalks/CW2021.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2021.xlsx,2517022,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
 /p/BRAIN_DRAIN/Data/01/Crosswalks/CW2022_preliminary.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2022_preliminary.xlsx,2478965,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
 /p/BRAIN_DRAIN/Data/01/Crosswalks/mrc_table11.csv,/p/BRAIN_DRAIN/Data/raw/chetty_oi/mrc_table11.csv,433012,raw/chetty_oi,high,Mobility Report Card table
-/p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2000.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2021.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2022_preliminary.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2000.xlsx,/p/BRAIN_DRAIN/Data/_review/junk/~$CW2000.xlsx,165,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2021.xlsx,/p/BRAIN_DRAIN/Data/_review/junk/~$CW2021.xlsx,165,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2022_preliminary.xlsx,/p/BRAIN_DRAIN/Data/_review/junk/~$CW2022_preliminary.xlsx,165,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
 /p/BRAIN_DRAIN/Data/01/ct_counties.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/ct_counties.xlsx,9416,raw/census_geo,high,Census/OMB geography crosswalk
 /p/BRAIN_DRAIN/Data/01/ipeds_hd2021.csv,/p/BRAIN_DRAIN/Data/raw/ipeds/ipeds_hd2021.csv,4087545,raw/ipeds,high,IPEDS HD/EF/admissions files
 /p/BRAIN_DRAIN/Data/01/msa_2020.csv,/p/BRAIN_DRAIN/Data/raw/census_geo/msa_2020.csv,170767,raw/census_geo,high,Census/OMB geography crosswalk
@@ -40,8 +40,8 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/01/Private.csv,/p/BRAIN_DRAIN/Data/raw/nces/Private.csv,5582459,raw/nces,high,NCES CCD school universe files
 /p/BRAIN_DRAIN/Data/01/Public.csv,/p/BRAIN_DRAIN/Data/raw/nces/Public.csv,42879198,raw/nces,high,NCES CCD school universe files
 /p/BRAIN_DRAIN/Data/01/unified_cbsa.csv,/p/BRAIN_DRAIN/Data/raw/census_geo/unified_cbsa.csv,73507,raw/census_geo,high,Census/OMB geography crosswalk
-/p/BRAIN_DRAIN/Data/02/.ArchiveServiceTemp.sb-deb9990c-ffJfij/uwdbhdlkbnzhaqxd.csv,(DELETE),3821010463,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/02/.DS_Store,(DELETE),6148,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/02/.ArchiveServiceTemp.sb-deb9990c-ffJfij/uwdbhdlkbnzhaqxd.csv,/p/BRAIN_DRAIN/Data/_review/junk/uwdbhdlkbnzhaqxd.csv,3821010463,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/02/.DS_Store,/p/BRAIN_DRAIN/Data/_review/junk/.DS_Store__02,6148,_review/junk,COLLISION-RESOLVED,"OS/Office/download cruft, consolidated here for deletion in Phase 7 || was a basename collision with 5 other file(s); disambiguated with a __02 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
 /p/BRAIN_DRAIN/Data/02/2026.04.09_demographics.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_demographics.csv.zip,20411614563,raw/revelio,high,Revelio raw education/demographics panel
 /p/BRAIN_DRAIN/Data/02/2026.04.09_education.csv,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_education.csv,45919259557,raw/revelio,high,Revelio raw education/demographics panel
 /p/BRAIN_DRAIN/Data/02/both_demo.rds,/p/BRAIN_DRAIN/Data/intermediate/both_demo.rds,152015510,intermediate,high,entity-resolution / name-matching pipeline output
@@ -58,8 +58,8 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/02/sampled_MI-WY.csv,/p/BRAIN_DRAIN/Data/_review/needs_inspection/sampled_MI-WY.csv,0,_review/needs_inspection,high,zero-byte file
 /p/BRAIN_DRAIN/Data/02/STATES_AK-MD.csv,/p/BRAIN_DRAIN/Data/raw/revelio/STATES_AK-MD.csv,5363634621,raw/revelio,high,Revelio raw education/demographics panel
 /p/BRAIN_DRAIN/Data/02/uwdbhdlkbnzhaqxd.csv,/p/BRAIN_DRAIN/Data/intermediate/uwdbhdlkbnzhaqxd.csv,69313728101,intermediate,high,entity-resolution / name-matching pipeline output
-/p/BRAIN_DRAIN/Data/02/~$misfits_helper.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/03/.DS_Store,(DELETE),6148,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/02/~$misfits_helper.xlsx,/p/BRAIN_DRAIN/Data/_review/junk/~$misfits_helper.xlsx,165,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/03/.DS_Store,/p/BRAIN_DRAIN/Data/_review/junk/.DS_Store__03,6148,_review/junk,COLLISION-RESOLVED,"OS/Office/download cruft, consolidated here for deletion in Phase 7 || was a basename collision with 5 other file(s); disambiguated with a __03 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
 /p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2000.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2000.csv.zip,4805750991,raw/revelio,high,Revelio raw position-history panel (large file)
 /p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2001.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2001.csv.zip,18329892305,raw/revelio,high,Revelio raw position-history panel (large file)
 /p/BRAIN_DRAIN/Data/03/2026.04.09_pos_2002.csv.zip,/p/BRAIN_DRAIN/Data/raw/revelio/2026.04.09_pos_2002.csv.zip,18816178601,raw/revelio,high,Revelio raw position-history panel (large file)
@@ -177,8 +177,8 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/06/mrc_table2.xlsx,/p/BRAIN_DRAIN/Data/raw/chetty_oi/mrc_table2.xlsx,1911371,raw/chetty_oi,high,Mobility Report Card table
 /p/BRAIN_DRAIN/Data/06/net_cbsa.csv,/p/BRAIN_DRAIN/Data/intermediate/net_cbsa.csv,80344,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/06/net_state.csv,/p/BRAIN_DRAIN/Data/intermediate/net_state.csv,10327,intermediate,medium,per-stage pipeline intermediate
-/p/BRAIN_DRAIN/Data/06/occ1990dd_task_alm.zip.download/occ1990dd_task_alm.zip.sb-d6a9beb6-zML4WA/occ1990dd_task_alm/occ1990dd_task_alm.dta,(DELETE),5532,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/06/occ1990dd_task_alm.zip.download/occ1990dd_task_alm.zip.sb-d6a9beb6-zML4WA/occ1990dd_task_alm/README for occ1990dd_task_alm.dta.txt,(DELETE),258,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/06/occ1990dd_task_alm.zip.download/occ1990dd_task_alm.zip.sb-d6a9beb6-zML4WA/occ1990dd_task_alm/occ1990dd_task_alm.dta,/p/BRAIN_DRAIN/Data/_review/junk/occ1990dd_task_alm.dta,5532,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/06/occ1990dd_task_alm.zip.download/occ1990dd_task_alm.zip.sb-d6a9beb6-zML4WA/occ1990dd_task_alm/README for occ1990dd_task_alm.dta.txt,/p/BRAIN_DRAIN/Data/_review/junk/README for occ1990dd_task_alm.dta.txt,258,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
 /p/BRAIN_DRAIN/Data/06/occp_inst_group.csv,/p/BRAIN_DRAIN/Data/intermediate/occp_inst_group.csv,1344,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/06/outsample_values,/p/BRAIN_DRAIN/Data/_review/needs_inspection/outsample_values,257,_review/needs_inspection,high,"extensionless file, content not yet verified"
 /p/BRAIN_DRAIN/Data/06/recruitment.csv,/p/BRAIN_DRAIN/Data/intermediate/recruitment.csv,377787,intermediate,medium,per-stage pipeline intermediate
@@ -187,8 +187,8 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/06/sample_values.csv,/p/BRAIN_DRAIN/Data/intermediate/sample_values.csv,258,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/06/tie_stocks.csv,/p/BRAIN_DRAIN/Data/intermediate/tie_stocks.csv,1271885,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/06/total_deg.csv,/p/BRAIN_DRAIN/Data/intermediate/total_deg.csv,1319373,intermediate,medium,per-stage pipeline intermediate
-/p/BRAIN_DRAIN/Data/06/~$AAU.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/.DS_Store,(DELETE),6148,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/06/~$AAU.xlsx,/p/BRAIN_DRAIN/Data/_review/junk/~$AAU.xlsx,165,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/.DS_Store,/p/BRAIN_DRAIN/Data/_review/junk/.DS_Store__07,6148,_review/junk,COLLISION-RESOLVED,"OS/Office/download cruft, consolidated here for deletion in Phase 7 || was a basename collision with 5 other file(s); disambiguated with a __07 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
 /p/BRAIN_DRAIN/Data/07/AAU.xlsx,/p/BRAIN_DRAIN/Data/raw/rankings_membership/AAU__07.xlsx,11414,raw/rankings_membership,COLLISION-RESOLVED,"AAU membership list || was a basename collision with 1 other file(s); disambiguated with a __07 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
 /p/BRAIN_DRAIN/Data/07/ACSDT1Y2022.B15001-2024-02-23T180106.xlsx,/p/BRAIN_DRAIN/Data/raw/census_acs/ACSDT1Y2022.B15001-2024-02-23T180106.xlsx,24856,raw/census_acs,high,ACS Detailed Tables
 /p/BRAIN_DRAIN/Data/07/col_users,/p/BRAIN_DRAIN/Data/raw/chetty_oi/col_users,1842351,raw/chetty_oi,high,"misleadingly named -- confirmed Chetty mobility data via header, not Revelio"
@@ -200,19 +200,19 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/07/hs_shock_year_state.csv,/p/BRAIN_DRAIN/Data/intermediate/hs_shock_year_state.csv,5614,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/07/instate_li.csv,/p/BRAIN_DRAIN/Data/intermediate/instate_li.csv,49249,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/07/inst_levels.csv,/p/BRAIN_DRAIN/Data/intermediate/inst_levels.csv,329,intermediate,medium,per-stage pipeline intermediate
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/GUST e-foundry License.txt,(DELETE),1399,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-bold.otf,(DELETE),107780,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-bolditalic.otf,(DELETE),114140,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-italic.otf,(DELETE),115244,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-regular.otf,(DELETE),107188,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromancaps10-oblique.otf,(DELETE),112444,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromancaps10-regular.otf,(DELETE),103948,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandemi10-oblique.otf,(DELETE),114524,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandemi10-regular.otf,(DELETE),107820,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandunh10-oblique.otf,(DELETE),118228,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandunh10-regular.otf,(DELETE),109328,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromanslant10-bold.otf,(DELETE),113756,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromanslant10-regular.otf,(DELETE),115648,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/GUST e-foundry License.txt,/p/BRAIN_DRAIN/Data/_review/junk/GUST e-foundry License.txt,1399,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-bold.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmroman10-bold.otf,107780,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-bolditalic.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmroman10-bolditalic.otf,114140,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-italic.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmroman10-italic.otf,115244,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmroman10-regular.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmroman10-regular.otf,107188,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromancaps10-oblique.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmromancaps10-oblique.otf,112444,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromancaps10-regular.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmromancaps10-regular.otf,103948,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandemi10-oblique.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmromandemi10-oblique.otf,114524,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandemi10-regular.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmromandemi10-regular.otf,107820,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandunh10-oblique.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmromandunh10-oblique.otf,118228,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromandunh10-regular.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmromandunh10-regular.otf,109328,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromanslant10-bold.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmromanslant10-bold.otf,113756,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/07/Latin-Modern-Roman/lmromanslant10-regular.otf,/p/BRAIN_DRAIN/Data/_review/junk/lmromanslant10-regular.otf,115648,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
 /p/BRAIN_DRAIN/Data/07/local_ties_cbsa.csv,/p/BRAIN_DRAIN/Data/intermediate/local_ties_cbsa.csv,51189,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/07/local_ties_state.csv,/p/BRAIN_DRAIN/Data/intermediate/local_ties_state.csv,6527,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/07/no_prestige_soc.csv,/p/BRAIN_DRAIN/Data/intermediate/no_prestige_soc.csv,818,intermediate,medium,per-stage pipeline intermediate
@@ -229,7 +229,7 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/07/soc_merge.csv,/p/BRAIN_DRAIN/Data/intermediate/soc_merge.csv,189227,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/07/State_of_Residence_By_Place_of_Birth_Table_2022_T13.xlsx,/p/BRAIN_DRAIN/Data/raw/census_acs/State_of_Residence_By_Place_of_Birth_Table_2022_T13.xlsx,76441,raw/census_acs,high,ACS nativity/migration table
 /p/BRAIN_DRAIN/Data/07/tabn318.10.xlsx,/p/BRAIN_DRAIN/Data/raw/nces/tabn318.10.xlsx,17609,raw/nces,high,NCES Digest of Education Statistics table
-/p/BRAIN_DRAIN/Data/07/~$pf.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/07/~$pf.xlsx,/p/BRAIN_DRAIN/Data/_review/junk/~$pf.xlsx,165,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
 /p/BRAIN_DRAIN/Data/actual_cohort.csv,/p/BRAIN_DRAIN/Data/results/actual_cohort.csv,135298,results,medium,regression/figure-ready output
 /p/BRAIN_DRAIN/Data/all_binary.csv,/p/BRAIN_DRAIN/Data/results/all_binary.csv,15684,results,medium,regression/figure-ready output
 /p/BRAIN_DRAIN/Data/all_binary.xlsx,/p/BRAIN_DRAIN/Data/results/all_binary.xlsx,34051,results,medium,regression/figure-ready output
@@ -364,7 +364,7 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/matched_hs.rds,/p/BRAIN_DRAIN/Data/intermediate/matched_hs.rds,632072,intermediate,high,entity-resolution / name-matching pipeline output
 /p/BRAIN_DRAIN/Data/match_problems.xlsx,/p/BRAIN_DRAIN/Data/intermediate/match_problems.xlsx,55420,intermediate,high,entity-resolution / name-matching pipeline output
 /p/BRAIN_DRAIN/Data/microdata_sample.csv,/p/BRAIN_DRAIN/Data/intermediate/microdata_sample__top.csv,148025,intermediate,COLLISION-RESOLVED,"merged/matched panel, model input || was a basename collision with 2 other file(s); disambiguated with a __top stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
-/p/BRAIN_DRAIN/Data/nces_public_school_file.zip.download/nces_public_school_file.zip.sb-652df04a-9Tybbh/nces_public_school_file/ELSI_csv_export_6390435443173860515321.csv,(DELETE),57382082,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/nces_public_school_file.zip.download/nces_public_school_file.zip.sb-652df04a-9Tybbh/nces_public_school_file/ELSI_csv_export_6390435443173860515321.csv,/p/BRAIN_DRAIN/Data/_review/junk/ELSI_csv_export_6390435443173860515321.csv,57382082,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
 /p/BRAIN_DRAIN/Data/occupation.xlsx,/p/BRAIN_DRAIN/Data/raw/bls/occupation.xlsx,407963,raw/bls,high,BLS occupation classification file (confirmed by user)
 /p/BRAIN_DRAIN/Data/occupational_prestige.csv,/p/BRAIN_DRAIN/Data/intermediate/occupational_prestige.csv,226997,intermediate,medium,merge of raw prestige scale + BLS employment + Revelio shares
 /p/BRAIN_DRAIN/Data/Paper/chetty_sel_dist_stats.xlsx,/p/BRAIN_DRAIN/Data/results/chetty_sel_dist_stats.xlsx,10727,results,medium,"paper-ready summary stat derived from Chetty data, not raw itself"
@@ -571,6 +571,6 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/unmatched_col.rds,/p/BRAIN_DRAIN/Data/intermediate/unmatched_col.rds,92672,intermediate,high,entity-resolution / name-matching pipeline output
 /p/BRAIN_DRAIN/Data/unmatched_hs.rds,/p/BRAIN_DRAIN/Data/intermediate/unmatched_hs.rds,345559,intermediate,high,entity-resolution / name-matching pipeline output
 /p/BRAIN_DRAIN/Data/WholeData Data Dictionary.pdf,/p/BRAIN_DRAIN/Data/_review/needs_inspection/WholeData Data Dictionary.pdf,0,_review/needs_inspection,high,zero-byte file
-/p/BRAIN_DRAIN/Data/~$education.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/~$occupation.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/~$persistent_match_issues.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
+/p/BRAIN_DRAIN/Data/~$education.xlsx,/p/BRAIN_DRAIN/Data/_review/junk/~$education.xlsx,165,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/~$occupation.xlsx,/p/BRAIN_DRAIN/Data/_review/junk/~$occupation.xlsx,165,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"
+/p/BRAIN_DRAIN/Data/~$persistent_match_issues.xlsx,/p/BRAIN_DRAIN/Data/_review/junk/~$persistent_match_issues.xlsx,165,_review/junk,high,"OS/Office/download cruft, consolidated here for deletion in Phase 7"

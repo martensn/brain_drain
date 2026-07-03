@@ -1,0 +1,1620 @@
+---
+title: "05_visualizations"
+author: "Nicholas Martens"
+date: "2024-01-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(extrafont)
+library(tidyverse)
+library(tidycensus)
+library(sf)
+library(spdep)
+library(sf)
+library(texreg)
+library(scales)
+library(stargazer)
+library(tidycensus)
+library(ggplot2)
+library(data.table)
+
+# Only needs to run once
+font_import(pattern = "lmroman*")
+loadfonts()
+
+#directory = "/Volumes/lsa-areynoso"
+directory = "/nfs/turbo/lsa-areynoso"
+
+# Height, width, units, and background for maps
+hei = 3.75
+wid = 6.5
+dpi = 600
+bkgrnd = 'transparent'
+unit = "in"
+
+# Ensures stargazer tables have three digits instead of a zero after the first two
+options(digits=3)
+```
+
+Declare %nin% so we can filter observations
+```{r negate, include=FALSE}
+`%nin%` = Negate(`%in%`)
+```
+
+##    Semielasticity Plot
+
+```{r}
+
+# Step 1: Read the CSV file
+raw_semi <- read.csv(file.path(directory,"Outputs/Tables",'semielasticities.csv') )
+
+# Step 2: Filter the data
+semi <- raw_semi %>%
+  filter(return_geo == "state", shock_version == "norm") %>%
+  filter(model_version %in% c(2,5))
+
+# Step 3: Prepare data for plotting
+# We assume there are separate rows for models 2 and 5
+semi$model <- as.factor(ifelse(semi$model == 2, "No Controls", "All Controls"))
+
+# Step 4: Create the whisker plot
+ggplot(semi, aes(y = as.factor(group), x = hs_shock_semi, color = model)) +
+  geom_point(position = position_dodge(width = 0.5),
+             size = 6) +
+  geom_errorbar(aes(xmin = hs_shock_semi - hs_shock_se, xmax = hs_shock_semi + hs_shock_se), # Replace with actual error bounds
+                width = 0.2, position = position_dodge(width = 0.5)) +
+  labs(y = "Institutional Grouping", x = "Shock Semi-Elasticity", color = "Model") +
+  theme_minimal() +
+  theme(#panel.background = element_rect(fill='transparent'),
+        panel.background = element_blank(),
+        #plot.background = element_rect(fill='transparent', color=NA),
+        plot.background = element_blank(),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_line(color = "grey",
+                                          linewidth = 0.25),
+        panel.grid.major.y = element_blank(),
+        axis.line.y = element_line(color="black"),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA))#+
+  #theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(file = paste(directory,"/Outputs/","semielasticity.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+##    Table of Institutional Group Levels
+
+```{r inst sumstat}
+
+# Order that institutions will appear in table
+col_order = c("Public Flagship","RPU, More Selective","RPU, Less Selective",
+              "Private, Non-Profit","Private, For-Profit")
+
+# Calculating return rates by institutional groups 
+inst_levels = regression %>%
+  as.data.frame() %>%
+  mutate(in_state = case_when(in_state == "In-State" ~ "is",
+                              in_state == "Out-of-State" ~ "oos"),
+         col_type = factor(col_type, ordered = TRUE,
+                           levels = col_order)) %>%
+  group_by(col_type,in_state) %>%
+  dplyr::summarise(same_cbsa_hs = sum(same_cbsa_hs),
+                   same_state_hs = sum(same_state_hs),
+                   n = n()) %>%
+  mutate(same_cbsa_prop = round((same_cbsa_hs/n) * 100,1),
+         same_state_prop = round((same_state_hs/n) * 100,1)) %>%
+  select(-c(same_cbsa_hs,same_state_hs)) %>%
+  pivot_wider(names_from = in_state,
+              values_from = c(same_cbsa_prop,same_state_prop,n)) %>%
+  mutate(cbsa_retention_gap = same_cbsa_prop_is - same_cbsa_prop_oos,
+         state_retention_gap = same_state_prop_is - same_state_prop_oos) %>%
+  relocate(c("n_is","n_oos"), .before = "same_cbsa_prop_is") %>%
+  relocate("cbsa_retention_gap", .after = "same_cbsa_prop_oos") %>%
+  # Convert institutional grouping back into character so it appears in table
+  mutate(col_type = as.character(col_type))
+
+# Splitting data into CBSA and state-level tables
+inst_levels_cbsa = inst_levels %>%
+  select(contains("cbsa"))
+inst_levels_state = inst_levels %>%
+  select(contains("state"))
+
+#inst_levels_is = inst_levels %>%
+#  select(ends_with("is"))
+#inst_levels_oos = inst_levels %>%
+#  select(ends_with("oos"))
+
+# Export tables
+stargazer(inst_levels_cbsa, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = TRUE,
+          covariate.labels = c("Institutional Grouping","Pct Returning, In-State","Pct Returning, Out-of-State","Difference"),
+          title = "Return rate to high school labor market, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"Outputs/Tables/inst-levels-cbsa.tex"),
+          digit.separator = ","
+          )
+stargazer(inst_levels_state, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = TRUE,
+          covariate.labels = c("Institutional Grouping","Pct Returning, In-State","Pct Returning, Out-of-State","Difference"),
+          title = "Return rate to high school state, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"Outputs/Tables/inst-levels-state.tex"),
+          digit.separator = ","
+          )
+
+
+median_distance = regression %>%
+  as.data.frame() %>%
+  filter(in_state == "Out-of-State") %>%
+  mutate(col_type = case_when(col_type == "RPU, More Selective" ~ "RPU",
+                              col_type == "RPU, Less Selective" ~ "RPU",
+                              TRUE ~ col_type)) %>%
+  group_by(col_type) %>%
+  summarize(pct10 = quantile(distance_mi, 0.10),
+            pct25 = quantile(distance_mi, 0.25),
+            median = median(distance_mi),
+            pct75 = quantile(distance_mi, 0.75),
+            pct90 = quantile(distance_mi, 0.90)
+            )
+
+```
+
+##    Table for Measuring Income Distribution by Institutional Group
+
+```{r chetty table}
+
+# Certain public flagships need to be manually recoded
+# pf.xlsx contains the correct names
+pffilename = "pf.xlsx"
+pf = read_excel(file.path(directory,"Data/07",pffilename),
+                 col_types = "text") %>%
+  mutate(col_type = "Public Flagship") 
+
+# Merge manually recoded Public Flagships with Chetty data  
+col_inc_dist = read_xlsx(paste(directory,"Data/chetty_college_inc_dist.xlsx",sep="/")) %>%
+  as.data.frame() %>%
+  mutate(name = str_to_lower(name)) %>%
+  left_join(pf, by = c("name"="chetty_name")) %>%
+  select(-c(institution,state.y,opeid)) %>%
+  mutate(col_type = case_when(super_opeid %in% pf$opeid ~ "Public Flagship",
+                                        type == "1" & tier %in% c("1","2","3","4") ~ "RPU, More Selective",
+                                        type == "1" & tier %in% c("5","9","999","Unrated") ~ "RPU, Less Selective",
+                                        type == "2" ~ "Private, Non-Profit",
+                                        TRUE ~ "Private, For-Profit"))
+
+inc_by_col_type = col_inc_dist %>% 
+  filter(is.na(col_type)==FALSE) %>%
+  group_by(col_type) %>% 
+  summarize(par_q1_n = sum(par_q1_n),
+            par_q2_n = sum(par_q2_n),
+            par_q3_n = sum(par_q3_n),
+            par_q4_n = sum(par_q4_n),
+            par_q5_n = sum(par_q5_n)) %>%
+  mutate(total = par_q1_n + par_q2_n + par_q3_n + par_q4_n + par_q5_n) %>%
+  mutate(par_q1_pct = round(par_q1_n/total * 100,1),
+         par_q2_pct = round(par_q2_n/total * 100,1),
+         par_q3_pct = round(par_q3_n/total * 100,1),
+         par_q4_pct = round(par_q4_n/total * 100,1),
+         par_q5_pct = round(par_q5_n/total * 100,1)) %>%
+  select(c(col_type,par_q1_pct:par_q5_pct)) %>%
+  rename("Grouping" = "col_type",
+         "Bottom" = "par_q1_pct",
+         "Lower Middle" = "par_q2_pct",
+         "Middle" = "par_q3_pct",
+         "Upper Middle" = "par_q4_pct",
+         "Top" = "par_q5_pct")
+
+stargazer(inc_by_col_type[1:6,], 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 3,
+          #style = "qje",
+          align = TRUE,
+          title = "Parental income distribution of students by institutional grouping",
+          float = TRUE,
+          #label = "table:observation",
+          digit.separator = ",",
+          out = file.path(directory,"/Outputs/Tables/income-distribution.tex")
+          )
+```
+##    Plotting Institutional Grouping by Income Quantile
+
+```{r quantile grouping}
+
+inc_by_col_unnorm = col_inc_dist %>% 
+  filter(is.na(col_type)==FALSE) %>%
+  group_by(col_type) %>% 
+  summarize(par_q1_n = sum(par_q1_n),
+            par_q2_n = sum(par_q2_n),
+            par_q3_n = sum(par_q3_n),
+            par_q4_n = sum(par_q4_n),
+            par_q5_n = sum(par_q5_n)) %>%
+  rename("Grouping" = "col_type",
+         "Bottom" = "par_q1_n",
+         "Lower Middle" = "par_q2_n",
+         "Middle" = "par_q3_n",
+         "Upper Middle" = "par_q4_n",
+         "Top" = "par_q5_n") %>%
+  pivot_longer(cols = !Grouping,
+               names_to = "Quantile",
+               values_to = "N") %>%
+  mutate(Quantile = factor(Quantile, 
+                           levels = c("Bottom","Lower Middle","Middle","Upper Middle","Top"))) %>%
+  filter(Grouping != "Private, For-Profit")
+
+
+ggplot(inc_by_col_unnorm, aes(x = Quantile, y = N, fill = Grouping)) +
+  geom_col() + 
+  scale_y_continuous(limits = c(0,800000),
+                     expand = c(0,0),
+                     labels = scales::comma) +
+  xlab("Parental Income Quantile") +
+  ylab("Bachelor's Degrees Awarded in 2013") +
+  labs(title = "Institutional Groupings by Parental Income Quantile in 2013") +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "bottom",
+        panel.grid.major.y = element_line(color = "grey",
+                                          linewidth = 0.25),
+        axis.line.x = element_line(color="black"))
+ggsave(file = paste(directory,"/Outputs/","grouping_by_quantile.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+
+##    Table for Estimating Quantiles
+
+```{r}
+
+quantifying_quantiles1 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_1) %>% 
+  dplyr::summarize(est1 = stats::weighted.mean(x = avg_1, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_1")
+quantifying_quantiles3 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_3) %>% 
+  dplyr::summarize(est3 = stats::weighted.mean(x = avg_3, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_3")
+quantifying_quantiles5 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_5) %>% 
+  dplyr::summarize(est5 = stats::weighted.mean(x = avg_5, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_5")
+quantifying_quantiles7 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_7) %>% 
+  dplyr::summarize(est7 = stats::weighted.mean(x = avg_7, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_7")
+
+quantifying_quantiles = quantifying_quantiles1 %>%
+  dplyr::left_join(quantifying_quantiles3, by = "ptile")  %>%
+  dplyr::left_join(quantifying_quantiles5, by = "ptile") %>%
+  dplyr::left_join(quantifying_quantiles7, by = "ptile") %>%
+  arrange(ptile)
+
+stargazer(quantifying_quantiles[1:10,], 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 3,
+          #style = "qje",
+          align = TRUE,
+          title = "Average employment shock by decile in 2021",
+          float = TRUE,
+          #label = "table:observation",
+          digit.separator = ",",
+          out = file.path(directory,"/Outputs/Tables/shocks.tex")
+          )
+
+```
+
+
+##    Table for Observation Accounting
+
+```{r}
+
+observation_accounting = data.table(Reason = c("All BA Completers in US",
+                      "Include HS",
+                      "Work history has geodata",
+                      "Work history has end date after start",
+                      "Work history has start or end date",
+                      paste0("Work history between 1975 and 2023"),
+                      "College appears in IPEDS",
+                      "Graduated college [1982,2021] and born [1930,2002]",
+                      "Educational institutions in 50 states or DC",
+                      "Final analytic sample"),
+           Sample = c(col_users_length,
+                      both_hs_col_length,
+                      no_work_location,
+                      non_chronological_work,
+                      no_work_date,
+                      no_work_hist,
+                      college_dne,
+                      birth_outliers,
+                      territory_hs_col,
+                      "Add later"))
+                      #nobs(models[[1]])))
+
+#tli.table <- xtable(observation_accounting[1:10, ])
+#print(tli.table, include.rownames = FALSE, booktabs = TRUE)
+
+stargazer(observation_accounting[1:10,], 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = TRUE,
+          title = "Effect of data cleaning on sample size",
+          float = TRUE,
+          out = file.path(directory,"/Outputs/Tables/observation-accounting.tex"),
+          #label = "table:observation",
+          digit.separator = ","
+          )
+          #caption = "Most LI users omit their high school, eliminating more than 90 percent of users. Imposing the requirement of at least one position with a location, start date, and end date removes users with minimal information on their profiles. Availability of County Business Patterns data resulted in the restrictions on college graduation. County-level estimates of labor demand shocks are only available until 2021. Most of the observations removed from the sample were people who graduated after 2021. The limits on estimated year of birth remove obvious outliers that likely stem from data entry errors.",
+          
+
+```
+
+##    Skippable Omission Cleaning
+```{r om clean, include=FALSE}
+
+in_hs_cols = paste("in_hs_cbsa",as.character(c(min_post_grad:max_post_grad)),sep="_")
+in_state_cols = paste("in_hs_state",as.character(c(min_post_grad:max_post_grad)),sep="_")
+
+survivorship = microdata[, (in_hs_cols) := lapply(.SD, `==`, hs_cbsa_code), .SDcols = paste("cbsa_code",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+survivorship[, (in_state_cols) := lapply(.SD, `==`, hs_state), .SDcols = paste("cbsa_state",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+  
+
+residence_cols = c(paste("in_hs_cbsa",as.character(c(min_post_grad:max_post_grad)),sep="_"),
+         paste("in_hs_state",as.character(c(min_post_grad:max_post_grad)),sep="_"))
+
+survivorship[, (residence_cols) :=  lapply(.SD, 
+                                 function(x) ifelse(is.na(x)==TRUE, NA, ifelse(x==TRUE,1,0))),
+             .SDcols = residence_cols]
+
+relevant_cols = c(residence_cols,"col_end","user_id")
+survivorship = survivorship[, ..relevant_cols]  
+
+#reshaped_cbsa = melt(survivorship, (in_hs_cols)) %>% 
+#  dcast((in_hs_cols) + year ~ variable)
+
+reshaped_cbsa = melt(survivorship, 
+     measure_vars = (in_hs_cols),
+     id.vars = c("user_id","col_end")) %>%
+  table.express::mutate(variable = str_remove_all(variable,"[[:punct:]]")) %>%
+  table.express::mutate(geo = str_remove_all(variable,"[[:digit:]]")) %>%
+  table.express::mutate(geo = str_remove_all(geo,"inhs")) %>%
+  table.express::mutate(n_grad = str_remove_all(variable,"[[:alpha:]]")) %>%
+  table.express::mutate(n_grad = as.numeric(n_grad)) %>%
+  table.express::mutate(year = col_end + n_grad) %>%
+  # Remove NAs that are in the future
+  # Those NAs are not valid missing data
+  table.express::filter(year <= 2023) #%>%
+  #dcast(n_grad ~ geo,
+  #      fun.aggregate = length,
+  #      value_var = "value")
+omission_plot = reshaped_cbsa %>%
+  filter(geo == "cbsa") %>%
+  # Remove missing data (years between college graduation
+  # and 2023 with no work history)
+  filter(is.na(value)==FALSE) %>%
+  as.data.frame() %>%
+  select(-c(variable,geo)) %>%
+  group_by(user_id,col_end) %>%
+  summarize(yrs_inc = n()) %>%
+  mutate(max_yrs_inc = 2023 - col_end,
+         adj_yrs_inc = case_when(yrs_inc > max_yrs_inc ~ max_yrs_inc,
+                                 TRUE ~ yrs_inc))
+
+omission_distribution = omission_plot %>%
+  group_by(col_end) %>%
+  summarize(yrs_inc_05 = quantile(adj_yrs_inc,0.05),
+            yrs_inc_25 = quantile(adj_yrs_inc,0.25),
+            yrs_inc_50 = quantile(adj_yrs_inc,0.50),
+            yrs_inc_75 = quantile(adj_yrs_inc,0.75), 
+            yrs_inc_95 = quantile(adj_yrs_inc,0.95)) #%>%
+  #pivot_longer(!col_end,
+  #             names_to = "ptile",
+  #             names_prefix = "yrs_inc_",
+  #             values_to = "yrs_inc"
+  #             )
+write.csv(omission_distribution,file.path(directory,"Outputs/omission_distribution.csv"))
+```
+
+##    Plotting ROI Bar Chart
+
+```{r}
+# Bar chart data
+roi_bar <- roi %>%
+  # Merge with institutional characteristics to get institutional groupings
+  inner_join(institutional_characteristics %>% select(unitid, inst_group,state_abbr), by = "unitid") %>%
+  # Summarize at the institutional group level
+  #group_by(inst_group,state_abbr) %>%
+  filter(inst_group != "Private, For-Profit") %>%
+  group_by(inst_group) %>%
+  summarize(total_grads = sum(total_grads, na.rm = TRUE),
+            not_recruited_shr = (sum(not_recruited, na.rm = TRUE) / total_grads),
+            not_retained_shr = (sum(not_retained, na.rm = TRUE) / total_grads),
+            recruited_shr = (sum(recruited, na.rm = TRUE) / total_grads),
+            retained_shr = (sum(retained, na.rm = TRUE) / total_grads)) %>%
+  select(-c(total_grads)) %>%
+  pivot_longer(ends_with("shr"),names_to = "metric",values_to="shr") %>%
+  mutate(metric = str_replace_all(metric, "_", " ") %>%
+           str_replace_all("shr", "") %>%
+           str_to_title() %>%
+           trimws(),
+         inst_group = case_when(inst_group == "PF" ~ "Public Flagship",
+                                 TRUE ~ inst_group))
+
+custom_colors = c("Recruited" = '#d9f0d3',
+                  "Retained" = '#5aae61',
+                  "Not Retained" = '#9970ab',
+                  "Not Recruited" = '#e7d4e8') 
+
+
+# Create the bar plot
+ggplot(roi_bar, aes(x = shr, y = reorder(inst_group, shr), fill = metric)) +
+  geom_col(alpha = 0.7) +
+  labs(x = "Percent of Graduates", y = "Institutional Group") +
+  scale_fill_manual(values = custom_colors) +  # Apply custom colors
+  scale_x_continuous(labels = percent_format(),
+                     limits = c(0,1.01),
+                     expand = c(0.001,0)) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        text         = element_text(size=10, family="LM Roman 10"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank())
+ggsave(file = paste(directory,"/Outputs/","roi_bar.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+```
+
+
+##    Plotting Grads on the Go Benchmarks
+
+```{r}
+
+ggplot(gotg_merged, aes(x = share_state_adj, y = shr_state, size = total_deg_awarded, color = inst_group)) + 
+  geom_point(alpha = 0.4, show.legend = c(size = FALSE)) +
+  geom_abline(intercept = 0, slope = 1, color = "black", linetype = "dashed", size = 0.5) +  # y = x line
+  scale_x_continuous(expand = c(0.001,0),
+                     limits = c(0,1.02),
+                     labels = percent_format()) + 
+  scale_y_continuous(limits = c(0,1.02),
+                     expand = c(0,0),
+                     labels = percent_format()) + 
+  xlab("Analytical Sample") +
+  ylab("Grads on the Go Benchmark") +
+  labs(title = "Share of Graduates in Top Destination State") +
+  # Adjust legend title width or text wrapping
+  guides(color = guide_legend(title = "Institutional\nGroup"),  # Split the title into two lines
+         size = guide_legend(title = "Degrees\nAwarded")) +  # Adjust other legends similarly if needed
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "bottom",
+        panel.grid.major.y = element_line(color = "grey",
+                                          linewidth = 0.25),
+        panel.grid.major.x = element_blank(),
+        axis.line.x = element_line(color="black")) +
+  # Add the best fit line equation, R^2, and standard error below the legend
+  annotate("text", x = 0.005, y = 0.95, label = dest_equation, size = 4, color = "black", hjust = 0, vjust = 1, family = "LM Roman 10") +
+  annotate("text", x = 0.005, y = 0.85, label = dest_r_squared, size = 4, color = "black", hjust = 0, vjust = 1, family = "LM Roman 10") +
+  annotate("text", x = 0.005, y = 0.90, label = dest_std_error, size = 4, color = "black", hjust = 0, vjust = 1, family = "LM Roman 10")
+  
+  ggsave(file = paste(directory,"/Outputs/","dest_benchmark.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)     
+```
+##    Plotting IPEDS Benchmarks
+
+```{r}
+
+ggplot(gotg_merged, aes(x = shr_instate_li, y = shr_instate_ipeds, size = total_deg_awarded, color = inst_group)) + 
+  geom_point(alpha = 0.4, show.legend = c(size = FALSE)) +
+  geom_abline(intercept = 0, slope = 1, color = "black", linetype = "dashed", size = 0.5) +  # y = x line
+  scale_x_continuous(expand = c(0.001,0),
+                     limits = c(-0.01,1.02),
+                     labels = percent_format()) + 
+  scale_y_continuous(limits = c(0,1.01),
+                     expand = c(0,0),
+                     labels = percent_format()) + 
+  xlab("Analytical Sample") +
+  ylab("IPEDS Benchmark") +
+  labs(title = "In-State Student Share") +
+  # Adjust legend title width or text wrapping
+  guides(color = guide_legend(title = "Institutional\nGroup"),  # Split the title into two lines
+         size = guide_legend(title = "Degrees\nAwarded")) +  # Adjust other legends similarly if needed
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "bottom",
+        panel.grid.major.y = element_line(color = "grey",
+                                          linewidth = 0.25),
+        panel.grid.major.x = element_blank(),
+        axis.line.x = element_line(color="black"))+
+  # Add the best fit line equation, R^2, and standard error below the legend
+  annotate("text", x = 0.005, y = 0.95, label = orig_equation, size = 4, color = "black", hjust = 0, vjust = 1, family = "LM Roman 10") +
+  annotate("text", x = 0.005, y = 0.85, label = orig_r_squared, size = 4, color = "black", hjust = 0, vjust = 1, family = "LM Roman 10") +
+  annotate("text", x = 0.005, y = 0.90, label = orig_std_error, size = 4, color = "black", hjust = 0, vjust = 1, family = "LM Roman 10")
+  
+  ggsave(file = paste(directory,"/Outputs/","orig_benchmark.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)     
+```
+
+##    Plotting Omission
+```{r om plot, include=FALSE}
+
+# Pulling data on the number of years of work history, by college graduation year
+# Data shows pattern of strategic omission as workers age
+omission_distribution = read_csv(file.path(directory,"Outputs/omission_distribution.csv")) %>%
+  select(c(col_end,ptile,yrs_inc)) %>%
+  pivot_wider(names_from = ptile,
+              names_prefix = "yrs_inc_",
+              values_from = yrs_inc) %>%
+  mutate(n_grad = 2023 - col_end)
+
+ggplot(omission_distribution) + 
+  geom_line(aes(x = n_grad, y = yrs_inc_50, color = "Median LI User")) +
+  geom_point(aes(x = n_grad, y = yrs_inc_50), color = "#40004b") +
+  geom_ribbon(aes(x = n_grad, ymin = yrs_inc_25, ymax = yrs_inc_75, 
+                  fill = "Interquartile Range"),
+              color = NA,
+              alpha = 0.3) +
+  geom_line(aes(x = n_grad, y = n_grad, color = "Theoretical Maximum")) +
+  scale_x_continuous(expand = c(0.001,0)) + 
+  scale_y_continuous(limits = c(0,41),
+                     expand = c(0,0)) + 
+  scale_color_manual(name='',values = c("Median LI User"="#40004b",
+                                        "Interquartile Range" = "#40004b",
+                                        "Theoretical Maximum"= "#2c7fb8")) +
+  scale_fill_manual(name='',values = c("Median LI User"="#40004b",
+                                       "Interquartile Range" = "#40004b",
+                                        "Theoretical Maximum"= "#2c7fb8")) +
+  xlab("Year Since College Graduation") +
+  ylab("Years of Work History on LI Profile") +
+  labs(title = "Omission of Work History on LI by Years Since College Graduation") +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "bottom",
+        panel.grid.major.y = element_line(color = "grey",
+                                          linewidth = 0.25),
+        panel.grid.major.x = element_blank(),
+        axis.line.x = element_line(color="black"))
+  ggsave(file = paste(directory,"/Outputs/","omission_distribution.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)      
+
+```
+
+##    Plotting Birth and Graduation Distribution
+Inspired by: https://stackoverflow.com/questions/34029811/fill-different-colors-for-each-quantile-in-geom-density-of-ggplot 
+```{r age col grad, include=FALSE}
+
+state_list = unique(fips_codes$state)[1:51]
+
+# Pull 2022 1-year ACS microdata 
+col_grad_micro = get_pums(variables = c("ESR","AGEP","SCHL"),
+                          state = state_list,
+                          survey = "acs1",
+                          year = 2022)
+
+# Filter ACS data to only include college graduates who work
+col_grad_filt = col_grad_micro %>%
+  mutate(esr = as.integer(ESR)) %>%
+  filter(esr %in% c(1,2,3)) %>%
+  filter(PWGTP < 10000) %>%
+  # Filter to college graduates
+  filter(SCHL > 20) %>%
+  # Filter to people in labor force
+  filter(ESR %nin% c(0,6)) %>%
+  mutate(age = as.numeric(AGEP),
+         cohort = 2022 - age) %>%
+  select(-c(AGEP,age)) %>%
+  filter(cohort > 1929 & cohort < 2002)
+
+# Calculate total number of college graduates in labor market by age
+denominator_cohort = col_grad_filt %>%
+  group_by(cohort) %>%
+  summarize(count = sum(PWGTP, na.rm = TRUE))
+
+# Calculate share of college-educated in LI sample, by year
+fraction_cohort = regression %>%
+  as.data.frame() %>%
+  group_by(birth) %>%
+  summarize(li_total = n()) %>%
+  left_join(denominator_cohort, by = c("birth"="cohort")) %>%
+  mutate(li_prop = li_total/count,
+         li_cum  = li_total/sum(li_total))
+
+
+
+li_deg_awarded = regression %>%
+  as.data.frame() %>%
+  group_by(col_end) %>%
+  summarize(li_deg_awarded = n()) %>%
+  mutate(year = as.numeric(as.character(col_end))) %>%
+  select(-col_end)
+
+# Import Table 318.10 from 2022 Digest of Education Statistics 
+# https://nces.ed.gov/programs/digest/d22/tables/dt22_318.10.asp
+degrees_awardedfilename = "tabn318.10.xlsx"
+deg_awarded = read_excel(file.path(directory,"Data/07",degrees_awardedfilename)) %>%
+  select(c("Table 318.10. Degrees conferred by postsecondary institutions, by level of degree and sex of student: Selected academic years, 1869-70 through 2031-32","...6")) %>%
+  rename(c("academic_year" = "Table 318.10. Degrees conferred by postsecondary institutions, by level of degree and sex of student: Selected academic years, 1869-70 through 2031-32",
+           "deg_awarded" = "...6")) %>%
+  separate(academic_year,sep ="-",c("first_year","second_year")) %>%
+  filter(is.na(second_year)==FALSE) %>%
+  mutate(year = as.numeric(first_year)+1,
+         deg_awarded = as.numeric(deg_awarded)) %>%
+  select(-c(first_year,second_year)) %>%
+  filter(year > 1981 & year < 2022) %>% 
+  left_join(li_deg_awarded, by = "year") %>%
+  mutate(li_deg_prop = li_deg_awarded/deg_awarded)
+
+birth_deg_cohort = fraction_cohort %>%
+  full_join(deg_awarded, by = c("birth"="year")) %>%
+  select(c(birth,li_prop,li_deg_prop)) %>%
+  rename(year = birth)
+
+# Calculations required to draw explanatory lines
+birth_start_year = c(1965,1992)
+intersection_birth <- approx(x = birth_deg_cohort$year, 
+                             y = birth_deg_cohort$li_prop, 
+                             xout = birth_start_year)$y
+intersection_grad <- approx(x = birth_deg_cohort$li_deg_prop, 
+                             y = birth_deg_cohort$year, 
+                             xout = intersection_birth)$y
+birth_to_grad = round(intersection_grad - birth_start_year,1)
+birth_to_grad_label = paste(birth_to_grad,"Years to BA")
+
+# Create custom colors for x-axis labels
+years = c(seq(1940,2020,20),birth_start_year,intersection_grad)
+colors = c(rep("black",length(seq(1940,2020,20))),
+           rep("#2ca25f",2),rep("#40004b",2))
+x_axis_labels = data.frame(years = years,
+                           colors = colors)
+
+ggplot(birth_deg_cohort, aes(x = year)) + 
+  geom_line(aes(y=li_prop,color="Birth Cohort")) +
+  geom_line(aes(y=li_deg_prop,color="College Graduation Cohort")) +
+  # Create relevant lines for first set of cohort comparisons
+  geom_segment(aes(x = birth_start_year[1], xend = intersection_grad[1], 
+                   y = intersection_birth[1], yend = intersection_birth[1]),
+               color = "gray", linetype = "longdash") +
+  geom_segment(aes(x = birth_start_year[1], xend = birth_start_year[1], 
+                   y = 0, yend = intersection_birth[1]),
+               color = "#2ca25f", linetype = "longdash") +
+  geom_segment(aes(x = intersection_grad[1], xend = intersection_grad[1], 
+                   y = 0, yend = intersection_birth[1]),
+               color = "#40004b", linetype = "longdash") +
+  # Create relevant lines for second set of cohort comparisons
+  geom_segment(aes(x = birth_start_year[2], xend = intersection_grad[2], 
+                   y = intersection_birth[2], yend = intersection_birth[2]),
+               color = "gray", linetype = "longdash") +
+  geom_segment(aes(x = birth_start_year[2], xend = birth_start_year[2], 
+                   y = 0, yend = intersection_birth[2]),
+               color = "#2ca25f", linetype = "longdash") +
+  geom_segment(aes(x = intersection_grad[2], xend = intersection_grad[2], 
+                   y = 0, yend = intersection_birth[2]),
+               color = "#40004b", linetype = "longdash") +
+  scale_color_manual(values=c("#2ca25f", "#40004b")) +
+  scale_x_continuous(breaks = x_axis_labels$years,
+                     limits = c(1940,2022),
+                     expand = c(0.001,0)) + 
+  scale_y_continuous(breaks = c(0,0.02,0.04,0.06),
+                     limits = c(0,0.06),
+                     expand = c(0,0),
+                     labels = scales::percent) + 
+  scale_fill_brewer(guide="none") +
+  xlab("Year") +
+  ylab("Percent Included in Sample") +
+  guides(color=guide_legend(title = "")) +
+  labs(title = "Year of Birth and College Graduation for LinkedIn Sample") +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "bottom",
+        panel.grid.major.y = element_line(color = "grey",
+                                          linewidth = 0.25),
+        axis.line.x = element_line(color="black"),
+        # Remember to keep this even when standardizing the rest of the theme
+        axis.text.x = element_text(colour = x_axis_labels$color)) +
+  annotate(geom = "text", x = birth_start_year[1], y = -0.01, 
+           label = birth_start_year[1], color = "#2ca25f", size=3, family="LM Roman 10") 
+  ggsave(file = paste(directory,"/Outputs/","cohort_coverage.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+    
+```
+
+##    Plotting Birth Distribution Comparison
+Inspired by: https://stackoverflow.com/questions/34029811/fill-different-colors-for-each-quantile-in-geom-density-of-ggplot 
+```{r age, include=FALSE} 
+  
+dens_sam <- density(regression$birth)
+dens_tot <- density(col_grad_filt$cohort, weights = col_grad_filt$PWGTP)
+df <- data.frame(x=dens_sam$x, dens_sam=dens_sam$y, raw_tot = dens_tot$y) %>%
+  mutate(dens_tot = raw_tot/sum(col_grad_filt$PWGTP))
+probs <- 0.5
+quantiles_sam <- quantile(regression$birth, prob=probs)
+quantiles_tot <- quantile(col_grad_filt$cohort, prob=probs)
+quantiles = c(quantiles_sam,quantiles_tot)
+
+df$quant_tot <- factor(findInterval(df$x,quantiles_sam),labels=c("(0,50]",
+                                                                 "(50,100]"))
+df$quant_sam <- factor(findInterval(df$x,quantiles_tot),labels=c("(0,50]",
+                                                                 "(50,100]"))
+df$gap <- df$dens_tot - df$dens_sam
+
+# Calculations required to draw horizonal median lines on chart
+birth_medians = c(as.numeric(quantiles_tot),as.numeric(quantiles_sam))
+intersection_sam <- approx(x = df$x,
+                           y = df$dens_sam,
+                           xout = birth_medians)$y
+intersection_tot <- approx(x = df$x,
+                           y = df$dens_tot,
+                           xout = birth_medians)$y
+
+
+ggplot(df, aes(x=x)) + 
+  geom_line(aes(y=dens_sam,color="LinkedIn Sample")) +
+  geom_line(aes(y=dens_tot,color="College-Educated Labor Force")) +
+  scale_color_manual(values=c("#2ca25f", "#40004b")) +
+  geom_segment(x = birth_medians[1], xend = birth_medians[1],
+               y = 0, yend = intersection_tot[1],
+               color = "#2ca25f", linetype = "longdash") +
+  geom_segment(x = birth_medians[2], xend = birth_medians[2],
+               y = 0, yend = intersection_sam[2],
+               color = "#40004b", linetype = "longdash") +
+  scale_x_continuous(expand = c(0.001,0)) + 
+  scale_y_continuous(breaks= seq(0, 0.06, 0.02),
+                     limits = c(0,0.06),
+                     expand = c(0,0),
+                     labels = scales::percent) + 
+  xlab("Birth Year") +
+  ylab("Share of Observations") +
+  labs(title = "Year of Birth Distribution for College-Educated Labor Force and LinkedIn Sample") +
+  guides(fill=guide_legend(title="Quartile"),
+         color=guide_legend(title ="")) +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "bottom",
+        panel.grid.major.y = element_line(color = "grey",
+                                          linewidth = 0.25),
+        axis.line.x = element_line(color="black")) +
+  annotate(geom = "text", x = birth_medians[1], y = intersection_tot[1] + 0.005, 
+           label = paste("Median:\n",birth_medians[1]),
+           color = "#2ca25f", size=4, family="LM Roman 10") +
+  annotate(geom = "text", x = birth_medians[2] - 2.2, y = intersection_sam[2] + 0.0035, 
+           label = paste("Median:\n",birth_medians[2]),
+           color = "#40004b", size=4, family="LM Roman 10")
+ggsave(file = paste(directory,"/Outputs/","age_distribution.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+
+##   Mapping Labor Markets
+
+```{r map}
+
+# Map coloring fuunction
+nacol <- function(spdf){
+    resample <- function(x, ...) x[sample.int(length(x), ...)]
+    nunique <- function(x){unique(x[!is.na(x)])}
+    np = nrow(spdf)
+    adjl = spdep::poly2nb(spdf)
+    cols = rep(NA, np)
+    cols[1]=1
+    nextColour = 2
+
+    for(k in 2:np){
+        adjcolours = nunique(cols[adjl[[k]]])
+        if(length(adjcolours)==0){
+            cols[k]=resample(cols[!is.na(cols)],1)
+        }else{
+            avail = setdiff(nunique(cols), nunique(adjcolours))
+            if(length(avail)==0){
+                cols[k]=nextColour
+                nextColour=nextColour+1
+            }else{
+                cols[k]=resample(avail,size=1)
+            }
+        }
+    }
+    return(cols)
+}
+
+
+data(county_laea)
+
+map = county_laea %>% 
+  dplyr::left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  group_by(cbsa_code) %>%
+  dplyr::summarize(geometry = st_union(geometry))
+
+#map$C = nacol(map$C)
+colors = nacol(map)
+
+ggplot(map, aes(fill = as.character(colors))) +
+  geom_sf(show.legend = FALSE) +
+  # Palettes must be at least nine colors
+  scale_fill_brewer(palette = "Set3") +
+  theme_void() + 
+  labs(title = "Map of Local Labor Markets") +
+  theme(text = element_text(size=10, family="LM Roman 10"),
+  plot.title = element_text(hjust = 0.5))
+#  scale_fill_manual(values = colors) +
+ggsave(file = paste(directory,"/Outputs/","labor_markets.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)  
+```
+
+##    Cleaning for Violin
+
+```{r hs time}  
+data(county_laea)
+
+# Pull educational attainment by age from the Census Bureau
+# Relies on the following age groups
+# 18-24, 25-34, 35-44, 45-64, 65+
+age_ed = get_acs(geography = "county",
+                 year = 2022,
+                 variables = c(ba_18 = "B15001_009",
+                               ba_18 = "B15001_010",
+                               ba_25 = "B15001_017",
+                               ba_25 = "B15001_018",
+                               ba_35 = "B15001_025",
+                               ba_35 = "B15001_026",
+                               ba_45 = "B15001_033",
+                               ba_45 = "B15001_034",
+                               ba_65 = "B15001_041",
+                               ba_65 = "B15001_042",
+                               ba_18 = "B15001_050",
+                               ba_18 = "B15001_051",
+                               ba_25 = "B15001_058",
+                               ba_25 = "B15001_059",
+                               ba_35 = "B15001_066",
+                               ba_35 = "B15001_067",
+                               ba_45 = "B15001_074",
+                               ba_45 = "B15001_075",
+                               ba_65 = "B15001_082",
+                               ba_65 = "B15001_083"      
+                               )) %>%
+    mutate(GEOID = case_when(GEOID %in% c("02063","02066") ~ "02261",
+                             #  Oglala Lakota County (formerly Shannon), 
+                             #  South Dakota (FIPS 46102) to 46113
+                             GEOID == "46102" ~ "46113",
+                             #  Kusilvak Census Area (formerly Wade Hampton),
+                             #  Alaska (FIPS 0) to 02270
+                             GEOID == "02158" ~ "02270",
+                             .default = GEOID)) %>%
+  left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  # Remove rural Puerto Rico
+  filter(cbsa_code != "72999") %>%
+  group_by(cbsa_code,variable) %>%
+  summarize(total = sum(estimate)) %>%
+  mutate(age = str_sub(variable,4,5)) %>%
+  select(-variable) 
+
+# Declare mode function used to assign single CBSA to user
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+# Calculating modal CBSA for every user
+cbsa_mode = microdata %>% 
+  select(starts_with(c("user_id","cbsa_code_"))) %>%
+  pivot_longer(cols = starts_with("cbsa_code_"),
+               names_to = "n_grad",
+               values_to = "cbsa_code",
+               values_transform = list(cbsa_code = as.character),
+               values_drop_na = TRUE) %>%
+  # CBSA codes omit leading zero so ensures all cbsa_codes include it
+  mutate(cbsa_code = str_pad(cbsa_code,5,side = "left",pad = "0")) %>%
+  filter(is.na(cbsa_code)==FALSE) %>%
+  group_by(user_id) %>%
+  summarise(cbsa_code = Mode(cbsa_code)) %>%
+  as.data.table()
+
+culled = regression[,c("user_id","birth","col_type")]
+age_cbsa = cbsa_mode[culled, on = "user_id"] %>%
+  as.data.frame() %>%
+  group_by(cbsa_code)
+
+# Calculating number of users by age group and CBSA
+cbsa18 = age_cbsa %>%
+  filter(1993 < birth) %>%
+  summarize(li18 = n())
+cbsa25 = age_cbsa %>%
+  filter(1983 < birth & birth < 1998) %>%
+  summarize(li25 = n())  
+cbsa35 = age_cbsa %>%
+  filter(1973 < birth & birth < 1988) %>%
+  summarize(li35 = n())  
+cbsa45 = age_cbsa %>%
+  filter(1953 < birth & birth < 1978) %>%
+  summarize(li45 = n())  
+cbsa65 = age_cbsa %>%
+  filter(birth < 1958) %>%
+  summarize(li65 = n())  
+
+numerator = cbsa18 %>%
+  left_join(cbsa25, by = "cbsa_code") %>%
+  left_join(cbsa35, by = "cbsa_code") %>%
+  left_join(cbsa45, by = "cbsa_code") %>%
+  left_join(cbsa65, by = "cbsa_code") %>%
+  pivot_longer(cols = starts_with("li"),
+               names_to = "age",
+               values_to = "li_total") %>%
+  mutate(age = str_sub(age,3,4)) %>%
+  # Remove non-metropolitan Puerto Rico
+  filter(cbsa_code != "72999")
+  
+fraction_long = age_ed %>%
+  left_join(numerator, by = c("cbsa_code","age")) %>%
+  # Not all CBSAs have LI users for all age groups
+  # Coerce missing data into zeroes instead of NAs
+  mutate(li_total = case_when(is.na(li_total)==TRUE ~ 0,
+                              TRUE ~ li_total),
+         li_prop = li_total/total)
+
+fraction = fraction_long %>%
+  pivot_wider(id_cols = cbsa_code,
+              values_from = li_prop,
+              names_from = age,
+              names_prefix = "age_"
+              )
+
+write.csv(fraction,file.path(directory,"Data/07/fraction.csv"))
+```
+
+##   Plotting Violin
+
+```{r violin}
+
+# Required for weighted median
+library(spatstat)
+
+violin = fraction_long %>%
+  filter(age != "65") %>%
+  mutate(age = case_when(age == "18" ~ "18-24",
+            age == "25" ~ "25-34",
+            age == "35" ~ "35-44",
+            age == "45" ~ "45-64")) %>%
+  mutate(age = factor(age, 
+                      ordered = TRUE, 
+                      levels = c("45-64","35-44","25-34","18-24"))) %>%
+  mutate(age = as.factor(age),
+         cbsa_code = as.factor(cbsa_code)) 
+
+age_medians = violin %>%
+  group_by(age) %>%
+  summarize(li_prop = weighted.median(x = li_prop, w = total))
+
+
+ggplot(data = violin, aes(x = li_prop, 
+                          y = age,
+                          color = age,
+                          fill = age),
+       size = total) +
+  geom_violin(alpha=0.3,
+              trim = TRUE,
+              scale = "width") +
+  geom_point(data = age_medians,
+             shape = 9,
+             aes(x = li_prop,
+                 y = age,
+                 size = 18)) +
+  scale_x_continuous(labels = scales::percent,
+                     expand = c(0,0)) + 
+  labs(title = "LinkedIn Sample Coverage by Age Group and Labor Market") +
+  ylab("Age Group") +
+  xlab("LinkedIn Sample as a Percentage of All College Graduates in Labor Force") +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_line(color = "grey",
+                                          linewidth = 0.25),
+        panel.grid.major.y = element_blank(),
+        axis.line.y = element_line(color="black"),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "none")
+ggsave(file = paste(directory,"/Outputs/","violin.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+##    Mapping Prime-Age Coverage
+
+```{r prime age}
+color_list = c('#f7f7f7','#d9f0d3','#a6dba0','#5aae61','#1b7837') 
+# Divergning  purple-green color scheme
+#color_list = c('#762a83','#9970ab','#c2a5cf','#e7d4e8','#f7f7f7','#d9f0d3','#a6dba0','#5aae61','#1b7837')
+
+# Creating map of coverage for all 25-64 college graduates
+prime_age = fraction_long %>%
+  group_by(cbsa_code) %>%
+  filter(age %in% c("25","35","45")) %>%
+  summarize(li_total = sum(li_total),
+            total = sum(total)) %>%
+  mutate(prime_age_prop = li_total/total)
+
+# Linking to shapefile
+pa_map = map %>%
+  left_join(prime_age, by = "cbsa_code")
+
+ggplot(pa_map, aes(fill = prime_age_prop)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "LI Share of\nCollege Grads",
+                       labels = scales::percent,
+                       colors = color_list,
+                       values = c(0,0.06,0.12,0.18,0.24,0.36,0.5,0.75,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       limits=c(0,0.08),
+    ) +
+  labs(title = "LI Users as a Share of All 25-64 College Graduates, by Labor Market") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","pa_chloropleth.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+##    Mapping Dorling Cartogram
+
+```{r prime age}
+
+# Remove NAs since Dorling function doesn't accept NA weights
+dorling_data = pa_map %>%
+  filter(is.na(total)==FALSE)
+
+# Create Dorling cartogram of prime-age coverage
+pa_dorling <- cartogram_dorling(x = dorling_data,
+                                    weight = "total",
+                                    k = 1, itermax = 100)
+
+
+ggplot(data = pa_dorling, aes(fill = prime_age_prop)) +
+  geom_sf(data = pa_map, fill = NA, colour="gray", size=0.1) +
+  geom_sf(color = "grey30", size = 0.5,show.legend = TRUE) +
+  scale_fill_gradientn(name = "LI Share of\nCollege Grads",
+                       labels = scales::percent,
+                       colors = color_list,
+                       values = c(0,0.06,0.12,0.18,0.24,0.36,0.5,0.75,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       limits=c(0,0.08),
+    ) +
+  labs(title = "LI Users as a Share of All 25-64 College Graduates, by Labor Market") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5)) 
+ggsave(file = paste(directory,"/Outputs/","pa_dorling.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+##    Regressing Covariates 
+
+```{r}
+
+covariate = same_state %>%
+  left_join(fraction, by = "cbsa_code") %>%
+  left_join(prime_age, by = "cbsa_code") %>%
+  left_join(cbsa_dist, by = "cbsa_code") %>%
+  # NAs generated from merges should be zeroes because they stem
+  # from small sample size
+  mutate(col_hs_same_lm = if_else(is.na(col_hs_same_lm)==TRUE,0,col_hs_same_lm),
+         in_state = if_else(is.na(in_state)==TRUE,0,in_state),
+         dist = if_else(is.na(dist)==TRUE,0,dist))
+
+# Regress log LI users on hs inclusion rate to determine if people in small
+# towns are more likely to include it
+geo_analysis1 = lm(data = covariate, prime_age_prop ~ log(total), weights = total)
+geo_analysis2 = lm(data = covariate, prime_age_prop ~ log(total) + same_state + col_hs_same_lm + in_state + dist, weights = total)
+texreg(list(geo_analysis1,geo_analysis2),
+       file = paste0(directory,"/Outputs/Tables/geo_analysis.tex"),
+       custom.model.names = c("Size Only","Size and LM Characteristics"),
+       custom.coef.names = c("$log($Prime-Age College Grads Population)",
+                             "College Graduates Born in Same State",
+                             "College and HS in Same LM",
+                             "College and HS in Same State",
+                             "Attending Nearby College"
+                             ),
+      center = TRUE,
+      digits = 5,
+      align = TRUE,
+      omit.coef=c('Intercept'))
+
+
+```
+
+##    Obsolete Attrition Plot
+
+```{r}
+
+survivorship_plot = reshaped_cbsa[, .N , by = c("n_grad","geo","value")] %>%
+  mutate(group = ifelse(is.na(value)==TRUE,
+                        "Complete Profile",
+                        "Incomplete Profile")) %>%
+                        #ifelse(value == 0, 
+                        #       paste("Not in hs", geo, sep = " "), 
+                        #       paste("In hs", geo, sep = " ")))) %>%
+  as.data.frame() %>%
+  group_by(group,n_grad,geo) %>%
+  dplyr::summarize(N = sum(N)) %>%
+  mutate(pct = N/nrow(survivorship))
+
+# Filtering data by geography to simplify presentation of data
+survivorship_cbsa = survivorship_plot %>%
+  filter(geo == "cbsa")
+
+write.csv(survivorship_cbsa,file.path(directory,"Outputs/survivorship_cbsa.csv"))
+survivorship_cbsa = read_csv(file.path(directory,"Outputs/survivorship_cbsa.csv")) %>%
+  select(c(group,n_grad,geo,N,pct))
+
+
+# Plot shows the age structure of LI user base
+# Older workers omit early work history, sometimes to avoid age discrimination
+ggplot(survivorship_cbsa, aes(x = n_grad, 
+                              y = pct,
+                              fill = group)) + 
+  geom_bar(stat = "identity") +
+  scale_x_continuous(limits = c(0,40),
+                     expand = c(0.001,0)) +
+  scale_y_continuous(limits = c(0,1),
+                     expand = c(0,0),
+                     labels = scales::percent) +
+  xlab("Years Since College Graduation") +
+  ylab("Percent of Observations") +
+  labs(title = "Attrition and Omission in LinkedIn Profiles",
+       fill = "Status of Geodata") +
+  theme(#panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "bottom")
+  ggsave(file = paste(directory,"/Outputs/","completeness_ngrad.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+
+```
+
+##  Obsolete Age Group Maps
+
+```{r hs inclusion cleaning}
+#color_list = c('#762a83','#9970ab','#c2a5cf','#e7d4e8','#f7f7f7','#d9f0d3','#a6dba0','#5aae61','#1b7837')
+
+map_age = map
+  left_join(fraction, by = "cbsa_code")
+
+ggplot(map_age, aes(fill = age_18)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "% of 18-24\nCollege Grads",
+                       labels = scales::percent,
+                       colors = color_list,
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       limits=c(0,0.25),
+    ) +
+  labs(title = "LI Sample as a Share of College Graduates Aged 18-24 in 2022") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","age_18-24.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+ggplot(map_age, aes(fill = age_25)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "% of 25-34\nCollege Grads",
+                       labels = scales::percent,
+                       colors = color_list,
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       limits=c(0,0.13),
+    ) +
+  labs(title = "LI Sample as a Share of College Graduates Aged 25-34 in 2022") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","age_25-34.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+ggplot(map_age, aes(fill = age_35)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "% of 35-44\nCollege Grads",
+                       labels = scales::percent,
+                       colors = color_list,
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       limits=c(0,0.08),
+    ) +
+  labs(title = "LI Sample as a Share of College Graduates Aged 35-44 in 2022") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","age_35-44.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+##    Obsolete Age Distribution Plot + Table
+
+```{r}
+
+probs <- c(0.1,0.25, 0.5, 0.75,0.9)
+
+# Create table comparing age distribution of HS omitters and includers
+quantile_comp = data.frame(Percentile = c("Analytical Sample","College Graduates in Labor Force")) %>%
+  cbind(rbind(as.character(quantile(microdata$birth, prob = probs)),
+                      as.character(round(weighted.quantile(x = col_grad_micro$cohort,
+                                                     w = col_grad_micro$PWGTP,
+                                                     probs = probs),0)))) %>%
+  setnames(c("1","2","3","4","5"),as.character(probs*100))
+
+
+stargazer(quantile_comp,
+          summary=FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = TRUE,
+          #title = "Age distribution of LinkedIn users who omit and include high school on their profile",
+          float = TRUE,
+          decimal.mark=NULL,
+          out = file.path(directory,"/Outputs/Tables/quantile_comp.tex")
+          )
+
+ggplot(df, aes(x=x)) + 
+  geom_line(aes(y=dens_sam,color="Analytical Sample")) +
+  geom_line(aes(y=dens_tot,color="College-Educated Labor Force")) +
+  scale_color_manual(values=c("#2ca25f", "#40004b")) +
+  geom_vline(xintercept = quantiles_sam, color = "#2ca25f", linetype = "longdash") +
+  geom_vline(xintercept = quantiles_tot, color = "#40004b", linetype = "longdash") +
+  #geom_segment(aes(x = quantiles_sam, y = 0, xend = quantiles_sam, yend = 0.0363),
+  #             color = "#2ca25f", size = 0.3) +
+  #geom_segment(aes(x = quantiles_tot, y = 0, xend = quantiles_tot, yend = 0.023),
+  #             color = "#40004b", size = 0.3) + 
+  # Fills interior of charts based quantiles
+  #geom_ribbon(aes(ymin=0, 
+  #                ymax=dens_tot - gap, 
+  #                fill=quant_tot),
+  #            alpha = 0.5) +
+  #geom_ribbon(aes(ymin=0, 
+  #                ymax=dens_sam + gap, 
+  #                fill=quant_sam),
+  #            alpha = 0.5) +
+  #scale_fill_brewer(direction=-1,
+  #                  palette="Greys") +
+  scale_x_continuous(#breaks= major_breaks,
+                     #labels = major_breaks,
+                     expand = c(0.001,0)) + 
+  scale_y_continuous(breaks= seq(0, 0.06, 0.02),
+                     limits = c(0,0.06),
+                     expand = c(0,0),
+                     labels = scales::percent) + 
+  xlab("Birth Year") +
+  ylab("Share of Observations") +
+  labs(title = "Age Distribution of LinkedIn Sample") +
+  guides(fill=guide_legend(title="Quartile"),
+         color=guide_legend(title ="")) +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        axis.line.x = element_line(color="black"),
+        #panel.grid.major.y = element_line(color = "black",
+        #                                  linewidth = 0.5),
+        plot.title = element_text(hjust = 0.5),
+        #panel.grid.minor = element_blank(),
+        #legend.title=element_blank(),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "bottom") +
+  annotate(geom = "text", x = 1976, y = 0.025, label = "1977",
+           color = "#40004b", size=4, family="LM Roman 10") +
+  annotate(geom = "text", x = 1987, y = 0.0375, label = "1989",
+           color = "#2ca25f", size=4, family="LM Roman 10")
+
+```
+
+##    Appendix Map of College Nearby + In-State
+
+```{r dist time}  
+
+# Calculate LM-level proportions:
+# College in HS labor market
+# College less than 50 miles
+# Attended college in-state
+cbsa_dist = regression %>%
+  as.data.frame() %>%
+  select(c(user_id,in_state,col_in_not_hs_cbsa,dist)) %>%
+  left_join(as.data.frame(cbsa_mode), by = "user_id") %>%
+  mutate(in_state = case_when(in_state == "Out-of-State" ~ 0,
+                              in_state == "In-State" ~ 1),
+         dist = case_when(dist %in% c("[0,50]","(50,100]","(100,150]") ~ 1,
+                          TRUE ~ 0)
+         ) %>%
+  group_by(cbsa_code) %>%
+  summarize(col_hs_same_lm = 1-(sum(col_in_not_hs_cbsa)/n()),
+            in_state = sum(in_state)/n(),
+            dist = sum(dist)/n())
+
+dist_map = map %>%
+  left_join(cbsa_dist, by = "cbsa_code")
+
+ggplot(dist_map, aes(fill = col_hs_same_lm)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "% Attending\nCollege + HS\nIn Same LM",
+                       labels = scales::percent,
+                       colors = color_list,
+                       #values = c(0,0.06,0.12,0.18,0.24,0.36,0.5,0.75,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       #limits=c(0,0.08),
+    ) +
+  labs(title = "Share Attending College and HS in Same Labor Market") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","col_hs_same_lm.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+ggplot(dist_map, aes(fill = in_state)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "% Attending\nCollege + HS\nIn Same State",
+                       labels = scales::percent,
+                       colors = color_list,
+                       #values = c(0,0.06,0.12,0.18,0.24,0.36,0.5,0.75,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       #limits=c(0,0.08),
+    ) +
+  labs(title = "Share Attending College and HS in Same State") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","col_hs_same_state.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+```
+
+
+##    Appendix Table Measuring Distance Traveled by Out-of-State Students
+
+```{r out-of-state}
+
+oos_count = regression %>% 
+  as.data.frame() %>%
+  group_by(col_type,in_state) %>%
+  dplyr::summarize(total = n())
+
+oos_dist_long = regression %>% 
+  table.express::filter(in_state == "Out-of-State") %>%
+  as.data.frame() %>%
+  mutate(Distance = factor(dist,
+                           ordered = TRUE,
+                           levels = c("[0,50]","(50,100]","(100,150]","(150,200]",
+                              "(200,250]","(250,500]","(500,1e+03]","(1e+03,1e+04]")
+                            )) %>%
+  select(-dist)  %>%
+  group_by(Distance,col_type) %>%
+  dplyr::summarize(n = n()) 
+
+oos_totals = oos_dist_long %>%
+  group_by(col_type) %>%
+  dplyr::summarize(total = sum(n))
+
+oos_dist_wide = oos_dist_long %>%
+  dplyr::left_join(oos_totals, by = "col_type") %>%
+  mutate(pct = round((n/total)*100,1)) %>%
+  select(Distance,col_type,pct) %>%
+  pivot_wider(names_from = "col_type",
+              values_from = "pct") %>%
+  arrange(Distance) %>%
+  mutate(Distance = as.character(Distance)) %>%
+  relocate(Distance, .before = "Public Flagship")
+  
+names(oos_dist_wide) = c("Distance","Public\nFlagship","Priavate\nFor-Profit",
+                        "Priavate\nNon-Profit","RPU\nLess Selective","RPU\nMore Selective")
+
+stargazer(oos_dist_wide, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = NA,
+          #style = "qje",
+          align = TRUE,
+          #title = "Distance from high school to baccalaureate institution for out-of-state students, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"/Outputs/Tables/oos-dist-wide.tex"),
+          #label = "table:observation",
+          digit.separator = ","
+          )
+
+```
+```{r in-state}
+
+is_count = regression %>% 
+  as.data.frame() %>%
+  group_by(col_type,in_state) %>%
+  dplyr::summarize(total = n())
+
+is_dist_long = regression %>% 
+  table.express::filter(in_state == "In-State")%>%
+  as.data.frame() %>%
+  mutate(Distance = factor(dist,
+                           ordered = TRUE,
+                           levels = c("[0,50]","(50,100]","(100,150]","(150,200]",
+                              "(200,250]","(250,500]","(500,1e+03]","(1e+03,1e+04]")
+                            )) %>%
+  select(-dist)  %>%
+  group_by(Distance,col_type) %>%
+  dplyr::summarize(n = n()) 
+
+is_totals = is_dist_long %>%
+  group_by(col_type) %>%
+  dplyr::summarize(total = sum(n))
+
+is_dist_wide = is_dist_long %>%
+  dplyr::left_join(is_totals, by = "col_type") %>%
+  mutate(pct = round((n/total)*100,1)) %>%
+  select(Distance,col_type,pct) %>%
+  pivot_wider(names_from = "col_type",
+              values_from = "pct") %>%
+  arrange(Distance) %>%
+  mutate(Distance = as.character(Distance)) %>%
+  relocate(Distance, .before = "Public Flagship")
+
+#names(is_dist_wide) = c("Distance","Public\nFlagship","Private\nFor-Profit",
+#                        "Private\nNon-Profit","RPU\nLess Selective","RPU\nMore Selective")
+
+stargazer(is_dist_wide, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = NA,
+          #style = "qje",
+          align = TRUE,
+          #title = "Distance from high school to baccalaureate institution for in-state students, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"/Outputs/Tables/is-dist-wide.tex"),
+          #label = "table:observation",
+          digit.separator = ","
+          )
+
+```
+
+
+
+##   Appendix Mapping Place of Birth
+
+```{r birthplace}
+
+# Pull state of residence by educational attainment from ACS
+same_state = get_acs(geography = "county",
+                 year = 2022,
+                 variables = c(same_state = "B06009_011",
+                               same_state = "B06009_012",
+                               diff_state = "B06009_017",
+                               diff_state = "B06009_018",
+                               territory = "B06009_023",
+                               territory = "B06009_024",
+                               foreign = "B06009_029",
+                               foreign = "B06009_030")) %>%
+    mutate(GEOID = case_when(GEOID %in% c("02063","02066") ~ "02261",
+                             #  Oglala Lakota County (formerly Shannon), 
+                             #  South Dakota (FIPS 46102) to 46113
+                             GEOID == "46102" ~ "46113",
+                             #  Kusilvak Census Area (formerly Wade Hampton),
+                             #  Alaska (FIPS 0) to 02270
+                             GEOID == "02158" ~ "02270",
+                             .default = GEOID)) %>%
+  left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  group_by(cbsa_code,variable) %>%
+  summarize(total = sum(estimate)) %>%
+  group_by(cbsa_code) %>%
+  mutate(prop = total/sum(total)) %>%
+  filter(variable == "same_cbsa_hs") %>%
+  select(-c(variable,total)) %>%
+  rename(same_state = prop) %>%
+  filter(is.na(same_state)==FALSE)
+
+# Linking to shapefile
+birthplace_map = map %>%
+  left_join(same_state, by = "cbsa_code")
+
+ggplot(birthplace_map, aes(fill = same_state)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "% of College Grads",
+                       labels = scales::percent,
+                       colors = color_list,
+                       #values = c(0,0.06,0.12,0.18,0.24,0.36,0.5,0.75,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       #limits=c(0,1),
+    ) +
+  labs(title = "Share of College Graduates Born in State of Residence, 2022") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","birthplace.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+
+```
+
+##   Appendix Table of Public Flagships
+
+```{r pf}
+
+pf_table = pf %>%
+  select(c(institution,state)) %>%
+  rename(Institution = institution,
+         State = state)
+stargazer(pf_table[1:96,], 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = FALSE,
+          title = "Public Flagship Universities",
+          float = TRUE,
+          out = file.path(directory,"/Outputs/Tables/pf.tex"),
+          #label = "table:observation",
+          digit.separator = ","
+          )
+
+```

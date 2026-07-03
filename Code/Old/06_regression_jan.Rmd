@@ -1,0 +1,263 @@
+---
+title: "06_regression_jan"
+author: "Nicholas Martens"
+date: "2024-01-27"
+output: html_document
+---
+
+##    Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(texreg)
+library(tidyverse)
+library(table.express)
+library(data.table)
+
+options(digits = 1)
+```
+
+##    Setup
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+directory = "/Users/nickmartens/Dropbox (University of Michigan)/Linkedin"
+aaufilename = "AAU.xlsx"
+aau = read_excel(file.path(directory,"Data/06",aaufilename),
+                 col_types = "text") %>%
+  select(c(col_zip,control,aau)) %>%
+  as.data.table()
+
+```
+
+##    Import Microdata
+Avoid rerunning previous eight steps and saving ~6 hours
+```{r import, include=FALSE}
+
+regression = microdata[,c("user_id","col_name","col_state","col_cbsa_code","barrons","col_end",
+                          "col_major","col_zip",
+                          "control","hbcu","c21ugprf", "carnegie", "tribal","land_grant",
+                          "hs_name","hs_state","hs_cbsa_code","transfer","birth",
+                          "same_state_hs","same_cbsa_hs","same_state_col","same_cbsa_col",
+                          "dist","hs_shock_avg_1","hs_shock_avg_3","hs_shock_avg_5","hs_shock_avg_7",
+                          "col_shock_avg_1","col_shock_avg_3","col_shock_avg_5","col_shock_avg_7")] %>%
+  # Create variable for non-traditional students
+  table.express::mutate(non_traditional = ifelse(col_end - birth > 24,
+                                                 "Non-Traditional",
+                                                 "Traditional"),
+                        transfer = ifelse(transfer == "0",
+                                          "Non-Transfer",
+                                          "Transfer"),
+                        col_end = as.factor(col_end),
+                        binary_dist = case_when(dist %in% c("[0,50]","(50,100]","(100,150]","(150,200]","(200,250]") ~ "Near",
+                                               TRUE ~ "Far"
+                                               ),
+                        binary_sel = case_when(barrons %in% c("1","2") ~ "MoreSel",
+                                               TRUE ~ "LessSel"
+                                               ),
+                        in_state = as.factor(case_when(col_state == hs_state ~ "In-State",
+                                             TRUE ~ "Out-of-State")))
+
+regression = aau[regression, on = c("control","col_zip")] %>%
+  table.express::mutate(aau = ifelse(is.na(aau)==TRUE,0,aau)) %>%
+  table.express::mutate(col_type = as.factor(case_when((aau == "1" | land_grant == "1") & control == "1" ~ "Public Flagship",
+                                             control == "1" & barrons %in% c("1","2","3","4") ~ "RPU, More Selective",
+                                             control == "1" & barrons %in% c("5","9","999","Unrated") ~ "RPU, Less Selective",
+                                             control == "2" ~ "Private, Non-Profit",
+                                             TRUE ~ "Private, For-Profit"))
+                        )
+    # Recode variable for transfer students to ease interpretation
+regression$col_type = relevel(regression$col_type, ref = "Public Flagship")
+regression$in_state = relevel(regression$in_state, ref = "Out-of-State")
+
+# Do people who finish college after age 24 have different mobility patterns than
+# those who finish before age 24. Probably use, profile of institutions varies
+na_count = regression[, lapply(.SD, function(x) sum(is.na(x)))]  
+
+missing_selectivity = regression %>%
+  table.express::filter(is.na(barrons)==TRUE)
+
+#all_binary_final = read.csv(file.path(directory,"Data/regression_data.csv"))
+#actual_cohort = read.csv(file.path(directory,"Data/actual_cohort.csv"))
+```
+
+##    Simple In-State State-Level Regression
+
+```{r regression}
+
+simple_state_1  <- lm(same_state_hs ~ hs_shock_avg_1 + col_shock_avg_1  + col_type +
+               #  Interaction terms
+               + (in_state * col_type) +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+
+simple_state_3  <- lm(same_state_hs ~ hs_shock_avg_3 + col_shock_avg_3 + col_type +
+               #  Interaction terms
+               + (in_state * col_type) +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+simple_state_5  <- lm(same_state_hs ~ hs_shock_avg_5 + col_shock_avg_5 + col_type +
+               #  Interaction terms
+               + (in_state * col_type) +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+simple_state_7  <- lm(same_state_hs ~ hs_shock_avg_7 + col_shock_avg_7 + col_type +
+               #  Interaction terms
+               + (in_state * col_type) +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+simple_state_interact  <- lm(same_state_hs ~ hs_shock_avg_7 + col_shock_avg_7 + col_type +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+
+texreg(list(simple_state_1,simple_state_3,simple_state_5,simple_state_7),
+       custom.model.names = c("1-Year Shock",
+                              "3-Year Average",
+                              "5-Year Average",
+                              "7-Yea Average"),
+      custom.header = list("Residing in same state as high school" = 1:4),
+      label = "table:simple-state",
+      caption = "Probability of returning to state containing high school",
+      center = TRUE,
+      digits = 3,
+      omit.coef=c('Intercept|hs_state|col_end|hs_decile|col_decile|major|control'),
+      custom.coef.map = list("hs_shock_avg_1" = "HS LD Shock",
+                              "hs_shock_avg_3" = "HS LD Shock",
+                              "hs_shock_avg_5" = "HS LD Shock",
+                              "hs_shock_avg_7" = "HS LD Shock",
+                              "col_shock_avg_1" = "College LD Shock",
+                              "col_shock_avg_3" = "College LD Shock",
+                              "col_shock_avg_5" = "College LD Shock",
+                              "col_shock_avg_7" = "College LD Shock",
+                              "col_typePrivate, For-Profit" = "Private, For Profit",
+                             "col_typePrivate, Non-Profit" = "Private, Non-Profit",
+                             "col_typeRPU, Less Selective" = "RPU, Less Selective",
+                             "col_typeRPU, More Selective" = "RPU, More Selective",
+                              "col_typePrivate, For-Profit:in_stateIn-State" = "Private, For Profit $times$ In-State",
+                              "col_typePrivate, Non-Profit:in_stateIn-State" = "Private, Non Profit $times$ In-State",
+                              "col_typeRPU, Less Selective:in_stateIn-State" = "RPU, Less Selective $times$ In-State",
+                              "col_typeRPU, More Selective:in_stateIn-State" = "RPU, More Selective $times$ In-State",
+                             "in_stateIn-State" = "College In State",
+                             "non_traditionalTraditional" = "BA by Age 24",
+                             "transferTransfer" = "Transfer Student"))
+
+```
+
+##    Testing Usefulness of Interaction Term with ANOVA
+
+```{r anova}
+options(digits = 3)
+
+state_interaction = simple_state_7
+state_simple  <- lm(same_state_hs ~ hs_shock_avg_7 + col_shock_avg_7 + col_type +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+state_anova = anova(state_interaction,state_simple)
+
+stargazer(state_anova[1:6],
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 3,
+          #style = "qje",
+          align = TRUE,
+          title = "ANOVA test for interaction terms",
+          float = TRUE,
+          #label = "table:observation",
+          digit.separator = ","
+          )
+
+cbsa_interaction = simple_cbsa_7
+cbsa_simple  <- lm(same_cbsa_hs ~ hs_shock_avg_7 + col_shock_avg_7 + col_type +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+cbsa_anova = anova(cbsa_interaction,cbsa_simple)
+
+stargazer(cbsa_anova[1:6],
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 3,
+          #style = "qje",
+          align = TRUE,
+          title = "ANOVA test for interaction terms",
+          float = TRUE,
+          #label = "table:observation",
+          digit.separator = ","
+          )
+
+```
+
+
+##    Simple In-State CBSA-Level Regression
+
+```{r regression}
+
+simple_cbsa_1  <- lm(same_cbsa_hs ~ hs_shock_avg_1 + col_shock_avg_1  + col_type +
+               #  Interaction terms
+               + (in_state * col_type) +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+
+simple_cbsa_3  <- lm(same_cbsa_hs ~ hs_shock_avg_3 + col_shock_avg_3 + col_type +
+               #  Interaction terms
+               + (in_state * col_type) +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+simple_cbsa_5  <- lm(same_cbsa_hs ~ hs_shock_avg_5 + col_shock_avg_5 + col_type +
+               #  Interaction terms
+               + (in_state * col_type) +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+simple_cbsa_7  <- lm(same_cbsa_hs ~ hs_shock_avg_7 + col_shock_avg_7 + col_type +
+               #  Interaction terms
+               + (in_state * col_type) +
+               #  Controls
+              in_state + non_traditional + transfer + col_major + hs_state + col_end,
+             data = regression)
+
+#simple_cbsa_7_fe  <- lm(same_cbsa_hs ~ hs_shock_avg_7 + col_shock_avg_7 + col_type +
+               #  Interaction terms
+#               + (in_state * col_type) +
+               #  Controls
+#              in_state + non_traditional + transfer + col_major + (hs_state * col_end),
+#             data = regression)
+
+texreg(list(simple_cbsa_1,simple_cbsa_3,simple_cbsa_5,simple_cbsa_7),
+       custom.model.names = c("1-Year Shock",
+                              "3-Year Average",
+                              "5-Year Average",
+                              "7-Yea Average"),
+      custom.header = list("Residing in same labor market as high school" = 1:4),
+      label = "table:simple-state",
+      caption = "Probability of returning to labor market containing high school",
+      center = TRUE,
+      digits = 3,
+      omit.coef=c('Intercept|hs_state|col_end|hs_decile|col_decile|major|control'),
+      custom.coef.map = list("hs_shock_avg_1" = "HS LD Shock",
+                              "hs_shock_avg_3" = "HS LD Shock",
+                              "hs_shock_avg_5" = "HS LD Shock",
+                              "hs_shock_avg_7" = "HS LD Shock",
+                              "col_shock_avg_1" = "College LD Shock",
+                              "col_shock_avg_3" = "College LD Shock",
+                              "col_shock_avg_5" = "College LD Shock",
+                              "col_shock_avg_7" = "College LD Shock",
+                              "col_typePrivate, For-Profit" = "Private, For Profit",
+                             "col_typePrivate, Non-Profit" = "Private, Non-Profit",
+                             "col_typeRPU, Less Selective" = "RPU, Less Selective",
+                             "col_typeRPU, More Selective" = "RPU, More Selective",
+                              "col_typePrivate, For-Profit:in_stateIn-State" = "Private, For Profit $times$ In-State",
+                              "col_typePrivate, Non-Profit:in_stateIn-State" = "Private, Non Profit $times$ In-State",
+                              "col_typeRPU, Less Selective:in_stateIn-State" = "RPU, Less Selective $times$ In-State",
+                              "col_typeRPU, More Selective:in_stateIn-State" = "RPU, More Selective $times$ In-State",
+                             "in_stateIn-State" = "College In State",
+                             "non_traditionalTraditional" = "BA by Age 24",
+                             "transferTransfer" = "Transfer Student"))
+
+```

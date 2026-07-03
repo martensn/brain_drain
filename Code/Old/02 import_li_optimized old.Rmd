@@ -1,0 +1,287 @@
+---
+title: "02_import_ed_microdata"
+author: "Nicholas Martens"
+date: "2023-06-09"
+output: html_document
+---
+## Setup
+
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+directory = "/Users/nickmartens/Dropbox (University of Michigan)/Linkedin/"
+edufilename = "raw_educ_STATES.csv"
+```
+
+Import necessary packages
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tidyverse)
+library(table.express)
+library(data.table)
+```
+
+## Declaring Functions
+Function used to compute mode of a dataset
+
+```{r mode, include=FALSE}
+Mode <- function(x, na.rm = TRUE)
+{
+  if(na.rm)
+  {
+    x = x[!is.na(x)]
+  }
+  ux <- unique(x)
+  return(ux[which.max(tabulate(match(x,ux)))])
+}
+```
+
+Declare %nin% so we can filter observations
+
+```{r negate, include=FALSE}
+`%nin%` = Negate(`%in%`)
+```
+
+## Import and Clean Education File
+Import raw education file from LinkedIN
+Complete basic string cleaning like removing dashes and making lowercase
+
+```{r import, echo=FALSE}
+ed_li = fread(file.path(directory,"Data/02",edufilename),
+              drop = c('world_rank'))
+# Adding the information from the position file doesn't increase matches
+# For now it can be skipped
+#ed_pos = fread(file.path(directory,"Data/03",posfilename),
+#            select = c('user_id','educ_startdate','university_name','educ_enddate',
+#                'degree','field','university_country'),
+#            colClasses=list(character=c('educ_startdate','university_name',
+#                                        'educ_enddate','degree','field',
+#                                        'university_country'),
+#                            integer=c('user_id'))) %>%
+#  distinct(university_name,user_id,degree) %>%
+  #filter(university_country == "United States") %>%
+#  table.express::filter(is.na(university_name)==FALSE)
+# Combine attainment data from educational and position files
+#ed_li = rbind(ed_li,ed_pos)
+# Remove redundant intermediate objects to save memory
+#rm(ed_pos)
+# Filter out associates degrees
+ed_li = ed_li[degree != "Associate"]
+# Filter universities outside US
+# Simplifies encoding by removing institutions with foreign accents
+ed_li = ed_li[university_country %in% c("United States","\\N")]
+# I convert to ASCII because it avoids headaches associated with non-English characters
+# Since my analysis focuses on American educational institutions,
+# foreign names are not very prevalent
+ed_li$university_name = iconv(ed_li$university_name, from = "UTF-8", to = "ASCII", sub = "")
+
+# Remove extra spaces and punctuation from institution names
+ed_li = ed_li[, alt_name := str_trim(str_to_lower(gsub("[[:punct:]]"," ",university_name)))]
+# Remove observations with empty institution name
+ed_li = ed_li[-which(ed_li$alt_name == ""), ]
+# Remove "main campus" to improve matches
+ed_li = ed_li[, alt_name := gsub("main campus","",alt_name)]
+
+```
+
+## Extract High School Diplomas
+
+```{r hs split, echo=FALSE}
+li_hs = ed_li %>%
+  table.express::filter(degree == "High School") %>%
+  # Remove any observations that match to a postsecondary institution
+  table.express::left_join(all_col, "alt_name") %>%
+  table.express::distinct(user_id,INSTNM, .keep = TRUE)
+
+# Reclassifies observations Revelio misidentified
+li_hs_misclassified = li_hs %>%
+  table.express::filter(is.na(barrons)==FALSE)
+
+# Standardize columns to ease rbind later on
+li_hs_misclassified = li_hs_misclassified[,c("user_id","educ_startdate",
+                                             "educ_enddate","university_name","degree",
+                                             "field","alt_name","col_state","CONTROL",
+                                             "C21UGPRF","CARNEGIE","HBCU","TRIBAL","LANDGRNT",
+                                             "cbsa_code","CBSATYPE","barrons")]
+
+# High schools correctly classified by Revelio
+li_hs_correct = li_hs %>%
+  table.express::filter(is.na(barrons)==TRUE) %>%
+  table.express::distinct(user_id,university_name, .keep = TRUE)
+li_hs_correct[,(names(li_hs_correct)[3:18]):=NULL]
+li_hs_correct = li_hs_correct[all_hs, on = "alt_name", allow.cartesian=TRUE] %>%
+  table.express::filter(is.na(user_id)==FALSE) %>%
+  table.express::distinct(user_id,NAME)
+
+# Delete columns to avoid confusion
+li_hs_correct[, c("NAME","degree"):=NULL] %>%
+  # Rename to columns to appease to rbind gods
+  setnames(c("i.degree.1","STATE"),c("degree","hs_state"))
+
+# Standardize columns to ease rbind later on
+li_hs_correct = li_hs_correct[,c("user_id","educ_startdate","educ_enddate",
+                                 "university_name","degree","field","alt_name",
+                                 "hs_state","cbsa_code")]
+  
+```
+
+## Extract Unknown Degrees
+
+```{r hs split, echo=FALSE}
+
+# Users with unknown degrees
+# Currently matches based on first institution listed
+# Eventually I will hone the matching based on workhistory
+li_unknown = ed_li %>%
+  table.express::filter(degree == "empty")
+
+# Delete degree column from user-inputted data and merge
+# We will merge with institutional data for imputed degree 
+li_unknown[,c("degree"):=NULL]
+li_unknown_col = li_unknown[all_col, on = "alt_name"] %>%
+  table.express::distinct(user_id,INSTNM) %>%
+  table.express::filter(is.na(user_id)==FALSE)
+
+# Standardize columns to ease rbind later on
+li_unknown_col = li_unknown_col[,c("user_id","educ_startdate","educ_enddate",
+                                   "university_name","degree","field",
+                                   "alt_name","col_state","CONTROL","C21UGPRF",
+                                   "CARNEGIE", "HBCU", "TRIBAL", "LANDGRNT",
+                                   "cbsa_code","CBSATYPE","barrons")]
+
+# Identify high schools among institutions with no degree marked
+li_unknown_hs = li_unknown[all_hs, on = "alt_name"] %>%
+  table.express::distinct(user_id,university_name) %>%
+  filter(is.na(user_id)==FALSE) %>%
+  setnames("STATE","hs_state")
+
+# Standardize columns to ease rbind later on
+li_unknown_hs = li_unknown_hs[,c("user_id","educ_startdate","educ_enddate",
+                                 "university_name","degree","field","alt_name",
+                                 "hs_state","cbsa_code")]
+```
+
+## Extract College Degrees
+
+```{r col split, echo=FALSE}
+
+# College groups bachelor's and master's degrees together
+li_col = ed_li %>%
+  table.express::filter(degree %nin% c("empty","High School"))
+
+# Remove any observations that match to a secondary institution
+li_col_misclassified = li_col[all_hs, on = "alt_name"] %>%
+  table.express::filter(is.na(user_id)==FALSE) %>%
+  # Marks any graduates of the New School as high schoolers unless corrected
+  table.express::filter(alt_name != "the new school")
+
+# Reclassifies observations Revelio misidentified
+li_col_misclassified[, c("degree") := NULL] %>%
+  table.express::mutate(degree = "High School") %>%
+  setnames(c("i.degree","STATE"),c("degree","hs_state"))
+
+# Standardize columns to ease rbind later on
+li_col_misclassified = li_col_misclassified[,c("user_id","educ_startdate",
+                                               "educ_enddate","university_name",
+                                               "degree","field","alt_name",
+                                               "hs_state","cbsa_code")]
+
+# Colleges correctly classified by Revelio
+li_col_correct = li_col[all_col, on = "alt_name"] %>%
+  table.express::filter(is.na(degree)==FALSE) %>%
+  # For now I will filter out all graduate degrees
+  table.express::filter(degree == "Bachelor") %>%
+  # Remove duplicate entries from the same institution for the same user_id
+  distinct(user_id,INSTNM)
+# Standardize columns to ease rbind later on
+li_col_correct = li_col_correct[,c("user_id","educ_startdate","educ_enddate","university_name",
+                  "degree","field","alt_name","col_state","CONTROL","C21UGPRF",
+                  "CARNEGIE","HBCU","TRIBAL","LANDGRNT","cbsa_code","CBSATYPE","barrons")]
+
+```
+
+
+## Consolidated and Simplified
+
+```{r col split, echo=FALSE}
+
+hs_match = ed_li[all_hs, on = "alt_name"]
+not_hs = ed_li[!all_hs, on = "alt_name"]
+col_match = not_hs[all_col, on = "alt_name"] %>%
+  table.express::filter(is.na(university_name)==FALSE)
+
+# Extract user IDs for people listing baccalaureate institution on LI
+col_users = col_match %>% table.express::select(user_id)
+
+# Extract user IDs for people listing high school on LI
+hs_users = hs_match %>% table.express::select(user_id)
+
+# Create list of people listing both high school and baccalaureate institutions
+# Wait on creating both until data extracted from position file
+both = as.data.table(intersect(col_users$user_id,hs_users$user_id)) %>%
+  setnames("V1","user_id")
+
+# Find users with multiple baccalaureate institutions
+transfer = both[col_match, on = "user_id"] %>%
+  # Remove users who listed the same baccalaureate institution twice
+  distinct(user_id,alt_name)
+
+# Create list of users with multiple users
+transfer = transfer[, .(count = .N), by = user_id] %>%
+  table.express::filter(count > 1)
+
+# Remove extra column
+transfer = transfer[,c("count"):=NULL]
+
+transfer = intersect(both$user_id,transfer$user_id)
+
+# Remove redundant intermediate objects to save memory
+rm(li_col_correct,li_hs_misclassified,li_unknown_col)
+
+```
+
+
+
+##    Combine Correct + Incorrect
+
+```{r combine, echo=FALSE}
+
+# Remove redundant intermediate objects to save memory
+rm(ed_li,li_col,li_hs)
+
+# Create unified list of users with bachelors degrees
+#col = rbind(li_col_correct, li_hs_misclassified, li_unknown_col)
+
+# Create unified list of users with high schools listed
+#hs = rbind(li_hs_correct, li_col_misclassified, li_unknown_hs) 
+
+# Remove redundant intermediate objects to save memory
+rm(li_hs_correct,li_col_misclassified,li_unknown_hs)
+
+# Extract user IDs for people listing baccalaureate institution on LI
+col_users = col_match %>% table.express::select(user_id)
+
+# Extract user IDs for people listing high school on LI
+hs_users = hs_match %>% table.express::select(user_id)
+
+# Create list of people listing both high school and baccalaureate institutions
+# Wait on creating both until data extracted from position file
+both = as.data.table(intersect(col_users$user_id,hs_users$user_id)) %>%
+  setnames("V1","user_id")
+
+# Find users with multiple baccalaureate institutions
+transfer = both[col, on = "user_id"] %>%
+  # Remove users who listed the same baccalaureate institution twice
+  distinct(user_id,alt_name)
+
+# Create list of users with multiple users
+transfer = transfer[, .(count = .N), by = user_id] %>%
+  table.express::filter(count > 1)
+
+# Remove extra column
+transfer = transfer[,c("count"):=NULL]
+
+# Remove redundant intermediate objects to save memory
+rm(li_col_correct,li_hs_misclassified,li_unknown_col)
+
+```

@@ -1,0 +1,520 @@
+---
+title: "03_ed_pos_optimized"
+author: "Nicholas Martens"
+date: "2024-01-05"
+output: html_document
+---
+
+# Setup
+
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+
+directory = "/nfs/turbo/lsa-areynoso"
+posfilename1 = "cleaned_pos_educ_STATES_AK-MD.csv"
+posfilename2 = "cleaned_pos_educ_STATES_MI-WY.csv"
+posfilename3 = "cleaned_pos_educ_sample.csv"
+msastringfilename = "msa_string_cleaning.csv"
+zipcodefilename = "zipcodes.csv"
+
+# Variables user can control
+# Time range for work history
+work_history_start = 1975
+work_history_end = 2023
+# Number of years after college graduation to include in data
+max_post_grad = 50
+min_post_grad = 0
+
+```
+
+Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(educationdata)
+#library(zipcodeR)
+library(geodist)
+library(stringi)
+library(data.table)
+```
+
+##    Import Position File
+fread is faster and more effective for large .csv files
+```{r pos import, include=FALSE}
+pos1 = fread(file.path(directory,"Data/03",posfilename1),
+            # Only important columns necessary to know where people live
+            # In the future, maybe I will look more at occupations
+            select = c('user_id','country','state','msa','startdate','enddate','seniority',
+                       'company_cleaned','mapped_role','role_k1000','onet_code','onet_title'))
+pos2 = fread(file.path(directory,"Data/03",posfilename2),
+            # Only important columns necessary to know where people live
+            # In the future, maybe I will look more at occupations
+            select = c('user_id','country','state','msa','startdate','enddate','seniority',
+                       'company_cleaned','mapped_role','role_k1000','onet_code','onet_title'))
+pos = rbind(pos1,pos2)
+rm(pos1,pos2)
+gc()
+
+```
+
+##    Trim Position File
+Remove extra columns
+Compute number of unique users represented in file with pos_keys
+```{r pos trim, include=FALSE}
+
+# Match position file to users with high school and college degrees
+position = both[pos, on = "user_id", nomatch = NULL] %>%
+  table.express::filter(country == "United States") %>%
+  table.express::mutate(user_id = as.character(user_id))
+
+full_position = col_users[pos, on = "user_id", nomatch = NULL, allow.cartesian = TRUE] %>%
+  table.express::filter(country == "United States") %>%
+  table.express::mutate(user_id = as.character(user_id))
+
+
+# Remove redundant intermediate objects to save memory
+rm(pos)  
+gc()
+
+# Used to make figures; counts ONET codes 
+pos_summary <- position[, .(n = .N), by = .(onet_code, onet_title)] %>%
+  as.data.frame() %>%
+  mutate(shr_li = n/sum(n)) %>%
+  mutate(socp = sub("\\..*$", "",onet_code)) %>%
+  select(-c("onet_code","n","onet_title")) %>%
+  group_by(socp) %>%
+  summarize(shr_li = sum(shr_li))
+
+write.csv(pos_summary,file.path(directory,"Data/07","soc_li_distribution.csv"))
+
+```
+
+
+##    Filtering to Include HS + College
+
+```{r filter, include=FALSE}
+# Merging high school and college experiences into one file
+both_col = both[col_match, on = "user_id"]
+both_hs = both[hs_match, on = "user_id"]
+merge_col_hs = both_col[both_hs, on = "user_id"] %>%
+  # Remove rows that only include high school 
+  table.express::filter(is.na(university_name)==FALSE) %>%
+  # Rename merged columns to avoid confusion between hs and col data
+  setnames(c("user_id","educ_startdate","educ_enddate","university_name","field","alt_name",
+             "unitid","opeid","super_opeid",
+             "i.educ_startdate","i.educ_enddate","i.university_name",
+             "i.clean_name","i.alt_name","stripped_name2"),
+           c("user_id","col_start","col_end","col_name","col_major","col_alt_name",
+             "col_unitid","col_opeid","col_super_opeid",
+             "hs_start","hs_end","hs_name","hs_clean_name","hs_alt_name",
+             "hs_stripped_name2"), skip_absent = TRUE) %>%
+  # Compress college and high school start and end dates into numeric year instead of character date
+  table.express::mutate(col_start = as.numeric(str_sub(col_start, start = 1, end = 4)),
+                        col_end = as.numeric(str_sub(col_end, start = 1, end = 4)),
+                        hs_start = as.numeric(str_sub(hs_start, start = 1, end = 4)),
+                        hs_end = as.numeric(str_sub(hs_end, start = 1, end = 4))) %>%
+  table.express::mutate(col_length = col_end - col_start)
+
+# Remove unnecessary columns
+merge_col_hs = merge_col_hs[,c("i.university_country","i.degree","i.field") := NULL]
+
+
+rm(col_match,hs_match,hs_users,both_col,both_hs) 
+gc()
+```
+
+##   Transfer Student Dummy
+
+```{r merge hs col, include=FALSE}
+
+# Convert transfer to a data.table for anti-join below
+transfer = as.data.table(transfer) %>%
+  setnames("transfer","user_id",skip_absent=TRUE)
+
+# Users who only list one baccalaureate institution 
+no_trans_merge_col_hs = merge_col_hs[!transfer, on = "user_id"] %>%
+  table.express::mutate(transfer = 0) %>%
+  table.express::filter(is.na(col_length)==FALSE)
+
+# Identify transfer students in merge_col_hs
+# 334014269
+trans_merge_col_hs = merge_col_hs[transfer, on = "user_id", nomatch=NULL] %>%
+  table.express::filter(is.na(col_name)==FALSE) %>%
+  table.express::mutate(transfer = 1) %>%
+  # Calculate length of time spent at each institution
+  table.express::mutate(col_length = col_end - col_start) 
+
+# Aggregating to see total number of years spent baccalaureate institutions
+trans_length = trans_merge_col_hs[, .(col_length = sum(col_length)), by = user_id] %>%
+  table.express::filter(is.na(col_length)==FALSE)
+
+# Select the latest baccalaureate institution 
+trans_latest = trans_merge_col_hs[trans_merge_col_hs[, .I[which.max(col_end)], by=user_id]$V1]
+
+# Preserve earliest recorded baccalaureate institution for age imputation
+trans_earliest = trans_merge_col_hs[trans_merge_col_hs[, .I[which.min(col_start)], by=user_id]$V1]
+trans_earliest = trans_earliest[,c("user_id","col_start")]  
+
+# Remove single-institution data
+trans_latest = trans_latest[,c("col_start","col_length"):=NULL]
+
+# Replace col_length with measure across all institutions
+trans_latest = trans_latest[trans_length, on = "user_id"]
+trans_merge_col_hs = trans_latest[trans_earliest, on = "user_id"]
+
+# Re-combine with transfer variables
+merge_col_hs = rbind(trans_merge_col_hs,no_trans_merge_col_hs) %>%
+  table.express::filter(is.na(col_name)==FALSE)
+
+# Remove redundant intermediate objects to save memory
+rm(no_trans_merge_col_hs, trans_merge_col_hs, trans_latest, trans_length, trans_earliest)
+gc()  
+```
+
+##    Extract Earliest Job
+
+```{r earliest job, include=FALSE}
+
+# Transform position file into wide data
+# To start, we only need to know the earliest latest start dates
+# For users with no graduation date we can use it to estimate graduation year
+#work_latest = position[position[, .I[which.max(enddate)], by=user_id]$V1]
+#work_latest = work_latest[,c("user_id","enddate")] 
+work_earliest = position[position[, .I[which.min(startdate)], by=user_id]$V1]
+work_earliest = work_earliest[,c("user_id","startdate")] %>%
+  table.express::mutate(user_id = as.integer(user_id))
+
+merge_col_hs = merge_col_hs[work_earliest, on = "user_id"] %>%
+  setnames(c("startdate"),
+           c("work_start"))
+
+# Obtain list of college zip codes from IPEDS
+inst_zip <- get_education_data(
+    level = "college-university",
+    source = "ipeds",
+    topic = "directory",
+    filters = list(year = 2021),
+    add_labels = TRUE) %>%
+  select(c("unitid","zip")) %>%
+  mutate(col_zip = str_extract(zip, "^.{5}"),
+         unitid = as.character(unitid))
+
+merge_col_hs <- merge(merge_col_hs, inst_zip, by.x = "col_unitid", by.y = "unitid", all.x = TRUE)
+
+
+#work_extent = work_earliest[work_latest, on = "user_id"]
+
+#rm(work_latest,work_earliest)
+```
+##    Selecting Correct High School CBSA
+
+```{r}
+
+duplicated_hs_name = unique(duplicated_hs$stripped_name2)
+nondup <- merge_col_hs %>%
+  table.express::filter(!hs_stripped_name2 %in% duplicated_hs_name)
+nd = merge(nondup, nces_alt_name, by.x = "hs_stripped_name2", by.y = "stripped_name2")
+anti_nd = nondup[!nces_alt_name, on = .(hs_stripped_name2 = stripped_name2)]
+anti_nd_freq = anti_nd[, .N, by = hs_clean_name]
+nd[,c("LON","LAT") := NULL]
+
+dup <- merge_col_hs %>%
+  table.express::filter(hs_stripped_name2 %in% duplicated_hs_name)
+d = merge(dup, nces_alt_name, by.x = "hs_stripped_name2", by.y = "stripped_name2", allow.cartesian = TRUE)
+
+# https://stackoverflow.com/questions/55408526/r-find-the-distance-between-two-us-zipcode-columns
+## Convert the zip codes to data.table so we can join on them
+## using the centroid of the zipcodes (lng and lat).
+dt_zips <- as.data.table(read.csv(file.path(directory,"Data/03",zipcodefilename),
+                                  colClasses = c("character","numeric","numeric")))
+
+dt_zips[,c("X") := NULL]
+# Ensure ZIP code for educational institution is standard five digits
+d[
+  , `:=`(
+    #col_zip = str_sub(col_zip,1,5),
+    hs_zip = str_sub(ZIP,1,5)
+  )
+]
+
+## Attach origin lon & lat using a join
+d[
+  dt_zips
+  , on = .(col_zip = zipcode)
+  , `:=`(
+    lng_start = lng
+    , lat_start = lat
+  )
+]
+
+## Attach destination lon & lat using a join
+#d[
+#  dt_zips
+#  , on = .(hs_zip = zipcode)
+#  , `:=`(
+#    lng_end = lng
+#    , lat_end = lat
+#  )
+#]
+
+## Calculate the distance
+d[
+  , distance_metres := geodist::geodist_vec(
+    x1 = lng_start
+    , y1 = lat_start
+    , x2 = LON
+    , y2 = LAT
+    , paired = TRUE
+    , measure = "haversine"
+  )
+]
+
+# Select the closest college
+d = d[d[, .I[which.min(distance_metres)], by=user_id]$V1]
+
+# Remove columns from distance calculation to ease rbind
+d[,c("lng_start","lat_start","LON","LAT","distance_metres","hs_zip") := NULL]
+
+merge_col_hs = rbind(d,nd)
+
+merge_col_hs[, `:=`(user_id = user_id, hs_unitid = hs_unitid,hs_name = hs_name,
+           hs_start = hs_start,hs_end = hs_end,hs_state = STATE,hs_cnty = GeoFIPS,
+           hs_cbsa = cbsa_code,col_unitid = col_unitid,col_opeid = col_opeid,
+           col_super_opeid = col_super_opeid,col_name = col_name,col_start = col_start,
+           col_end = col_end,col_major = col_major,transfer = transfer,work_start = work_start,
+           hs_stripped_name2 = NULL, clean_name.x = NULL, col_alt_name = NULL,
+           degree.x = NULL, university_country = NULL, hs_clean_name = NULL, hs_alt_name = NULL,
+           CITY = NULL, ZIP = NULL, NMCNTY= NULL, cbsa_code = NULL, degree.y = NULL, alt_name = NULL,
+           clean_name.y = NULL, stripped_name1 = NULL, NAME = NULL, STATE = NULL, 
+           GeoFIPS = NULL, zip = NULL)]
+
+rm(d,nd,dup,nondup,frequent_names,duplicated_hs_name,name_counts,nces_alt_name,li_alt_name)
+gc()
+
+```
+
+##    Calculating Birth Year
+
+```{r birth year, include=FALSE}
+# Convert graduation and start years from character to numeric
+merge_col_hs$col_start = as.numeric(merge_col_hs$col_start)
+merge_col_hs$col_end = as.numeric(merge_col_hs$col_end)
+merge_col_hs$hs_end = as.numeric(merge_col_hs$hs_end)
+
+# Calculating birth date based on high school graduation if available, 
+# then college start date, then college graduation if the first two aren't available
+# finally work start date if the other three are unavailable
+merge_col_hs = merge_col_hs %>%
+  table.express::mutate(birth1 = ifelse(is.na(hs_end)==FALSE, hs_end - 18,0),
+                        birth2 = ifelse(is.na(col_start)==FALSE, col_start - 18,0),
+                        birth3 = ifelse(is.na(col_end)==FALSE, col_end - 22,0),
+                        # Use work history if no dates provided 
+                        birth4 = ifelse(is.na(work_start)==FALSE,
+                                        year(work_start)-22,0)) %>%
+  table.express::mutate(birth = ifelse(birth1 > 0, birth1,
+                                       ifelse(birth2 > 0, birth2,
+                                              ifelse(birth3 > 0, birth3,
+                                                     ifelse(birth4 > 0, birth4,0))))) %>%
+  # Use estimated birth years to fill in missing graduation or start dates
+  table.express::mutate(col_end = ifelse(is.na(col_end)==FALSE, col_end, birth + 22))
+
+#merge_col_hs[,c("birth1","birth2","birth3","birth4") := NULL]
+```
+
+##    Checking for Position in nth Year
+Creates binary variable with a 1 if LI profile includes a position within nth year
+```{r return binary, include=FALSE}
+
+position[, user_id := as.integer(user_id)]
+
+# Merge education and position files
+birth_position = merge_col_hs[position, on = "user_id", allow.cartesian = TRUE] %>%
+  setnames(c("state"),c("cbsa_state")) %>%
+  table.express::mutate(startdate = as.character(startdate),
+                        enddate = as.character(enddate)) %>%
+  # If no end date listed, make it date Ian finished pulling data in July 2023
+  table.express::mutate(enddate = ifelse(is.na(enddate)==TRUE,"2023-07-17",enddate)) %>%
+  table.express::mutate(cbsa_core = str_replace(msa,"-.*","")) %>%
+  table.express::mutate(cbsa_core = str_replace_all(cbsa_core," [A-Z]{2} MSA$| MSA$","")) %>%
+  table.express::mutate(cbsa_core = str_replace_all(cbsa_core," [A-Z]{2}$", ""))
+
+msa = table(birth_position$msa)
+cbsa_core = table(birth_position$cbsa_core)
+
+  #table.express::mutate(cbsa_city = str_extract(cbsa_clean,'(^.{1,}-(?=([A-Z][a-z].*)))|(^.{1,} (?=([A-Z][A-Z].*)))')) %>%
+  #table.express::mutate(cbsa_city = str_replace_all(cbsa_city, '-'," "))
+
+# Import list of string corrections to ease merge with CBSA file
+string_cleaning = fread(file.path(directory,"Data/03",msastringfilename))
+patterns = string_cleaning$Lookup
+replacements = string_cleaning$Rename
+
+# Make replacements on birth_position
+birth_position = birth_position[, cbsa_core := stri_replace_all_fixed(cbsa_core, patterns, replacements, vectorize_all=FALSE)]
+
+#unique_in_both <- unique(birth_position$user_id[birth_position$user_id %in% both$user_id])
+#in_both_count <- length(unique_in_both)
+#na_in_both_count <- sum(birth_position$user_id %i% both & !is.na(birth_position$col_name))
+
+li_core = unique(birth_position$cbsa_core)
+
+rm(string_cleaning,patterns,replacements)
+gc()
+
+#birth_position_sample = birth_position[sample(.N,10000)]
+birth_position = merge(birth_position,cbsa_li_crosswalk, by = c("cbsa_core","cbsa_state"), all.x = TRUE)  %>%
+  table.express::filter(!is.na(col_name) & msa != "empty")
+gc()
+
+no_work_location = length(unique(birth_position$user_id))
+
+non_chronological_work = birth_position %>% 
+  # Convert start and end dates to data.table's date format
+  mutate(startdate = as.IDate(startdate)) %>%
+  # Remove observations with no startdate
+  filter(is.na(startdate)==FALSE)
+
+no_work_date = non_chronological_work %>%
+  # Filter out jobs where end date precedes start_date
+  mutate(weird = ifelse((startdate <= enddate)==TRUE,0,1)) %>%
+  #mutate(num_cbsa = as.numeric(cbsa_code)) %>%
+  filter(weird == 0)
+
+non_chronological_work = length(unique(non_chronological_work$user_id))
+no_work_date = length(unique(no_work_date$user_id))
+gc()
+
+birth_position = birth_position %>% 
+  #filter(col_name == "Jackson College") %>%
+  # Convert start and end dates to data.table's date format
+  table.express::mutate(startdate = as.IDate(startdate),
+         enddate = as.IDate(enddate)) %>%
+  # Remove observations with no startdate
+  table.express::filter(is.na(startdate)==FALSE) %>%
+  # Filter out jobs where end date precedes start_date
+  #table.express::mutate(weird = ifelse(,0,1)) %>%
+  #mutate(num_cbsa = as.numeric(cbsa_code)) %>%
+  table.express::filter((startdate <= enddate)==TRUE)
+
+startdate_before_enddate = length(unique(birth_position$user_id))
+# Since the next steps are among the most memory-intensive in the entire codebase
+# Remove some particularly large objects that aren't necessary
+rm(still_hs,work_earliest,full_position,ed_li_sample,position)
+gc()
+
+# Create list of non-overlapping intervals representing year between the start
+# and end defined by the user
+start = ymd(rep(work_history_start:work_history_end),truncated=2L)
+end = start + years(1) - days(1)
+interval = year(start)
+work_hist = data.table(interval = interval,
+                       start = as.IDate(start),
+                       end = as.IDate(end))
+
+# Standardizing time intervals on LI profiles as years since college graduation
+# Reference list (just intervals from Jan 1 to Dec 31 of every year)
+setkey(work_hist, start, end)
+# Detecting overlaps
+std_pos = foverlaps(birth_position,
+                work_hist,
+                by.x=c("startdate","enddate"),
+                by.y=c("start","end"),
+                type = "any") %>%
+  # Converting overlaps into years since graduation
+  table.express::mutate(yrs_graduated = interval - col_end) %>%
+  # Removing jobs prior to college graduation
+  # Approximately 15 percent of users only list jobs prior to their college graduation
+  table.express::filter(min_post_grad <= yrs_graduated  & yrs_graduated <= max_post_grad)
+
+#rm(work_history_start,work_history_end,interval,work_hist,start,end)
+gc()
+
+# If multiple jobs listed, selects the most common CBSA for employment
+std_pos_geo = dcast(std_pos, user_id ~ yrs_graduated, 
+             value.var = c("cbsa_code","cbsa_state"),
+             fun.aggregate = function(x, na.rm = TRUE)
+               {
+               if(na.rm)
+                 {
+                 x = x[!is.na(x)]
+                 }
+               ux <- unique(x)
+               return(ux[which.max(tabulate(match(x,ux)))])
+               })
+std_pos_soc = dcast(std_pos, user_id ~ yrs_graduated, 
+             value.var = c("onet_code"),
+             fun.aggregate = function(x, na.rm = TRUE)
+               {
+               if(na.rm)
+                 {
+                 x = x[!is.na(x)]
+                 }
+               ux <- unique(x)
+               return(ux[which.max(tabulate(match(x,ux)))])
+               })
+
+
+almost_completed = merge_col_hs[std_pos_geo, on = "user_id",all=TRUE]
+almost_completed = almost_completed[std_pos_soc, on = "user_id", all = TRUE]
+
+# Calculate number of merges for observation accounting
+no_work_hist = length(unique(almost_completed$user_id))
+
+# Get states for all colleges
+col_state <- get_education_data(
+    level = "college-university",
+    source = "ipeds",
+    topic = "directory",
+    filters = list(year = 2021),
+    add_labels = TRUE) %>%
+  select(c("unitid","state_abbr")) %>%
+  mutate(unitid = as.character(unitid)) %>%
+  rename(col_state = state_abbr)
+
+completed = almost_completed %>% 
+  # Filter out remaining incomplete observations (3% of mass)
+  table.express::filter(is.na(col_name)==FALSE)
+
+completed <- merge(completed, col_state, by.x = "col_unitid", by.y = "unitid", all.x = TRUE)
+
+# Filter out users with multiple entries
+completed <- completed[, .SD[which.min(col_end)], by = "user_id"]
+
+college_dne = length(unique(completed$user_id))
+
+# Should not be necessary if properly filtered
+#extra_cols = c(paste("cbsa_code",c(-577:-1,51:123),sep = "_"),paste("cbsa_state",c(-577:-1,51:123),sep = "_"),c(-577:-1,51:123),"NA")
+#new_names = c("user_id","col_unitid",names(almost_completed)[3:24],paste0("cbsa_code_",0:50),paste0("cbsa_state_",0:50),paste0("soc_code_",0:50),"col_state")
+
+setnames(completed, old = as.character(c(0:50)), new = paste0("soc_code_",0:50))
+
+rm(std_pos_geo,std_pos,birth_position)
+gc()
+```
+##    Calculate Users per Year x CBSA
+
+```{r numerator, include=FALSE}
+
+cols = c("user_id","col_end","birth","hs_state","col_state",paste0("cbsa_code_",min_post_grad:max_post_grad))
+completed_melt = completed[, ..cols] %>%
+    table.express::filter(col_end > 1981 & col_end < 2023 & birth > 1929 & birth > 1929 & birth < 2003) %>%
+  table.express::filter(!hs_state %in% c("GU","PR","AS","VI")) %>%
+  table.express::filter(!col_state %in% c("GU","PR","AS","VI")) %>%
+  table.express::mutate_sd(c("col_end","birth","hs_state","col_state"),NULL) %>%
+  melt(id=c("user_id"), na.rm=TRUE)
+  
+numerator = completed_melt[, .(count = .N), by = c("value","variable")]
+
+write.csv(numerator,file.path(directory,"Data/07/numerator.csv"))
+write.csv(completed,file.path(directory,"Data/05/raw_microdata.csv"))
+
+
+rm(position,all_col_unrated,almost_completed,barrons,barrons_chetty,big_chungus,both,
+   cbsa_fips,cbsa_na,cbsa_code_name,chetty,chetty_raw,col_users,completed_neither,
+   ed_li,full_position,merge_col_hs,not_hs,position,postsec,private,private_hs,
+   public,public_hs,raw_county,tiered_barrons,tiered_chetty,transfer,unified_cbsa_name,
+   unoriginal_hs,work_earliest)
+gc()
+```
+

@@ -1,0 +1,313 @@
+---
+title: "04_dummies_optimized"
+author: "Nicholas Martens"
+date: "2024-01-15"
+output: html_document
+---
+
+# Setup
+
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+#directory = "/Volumes/lsa-areynoso"
+directory = "/nfs/turbo/lsa-areynoso"
+eckertcbpfilename = "efsy_panel_naics.csv"
+cbp19filename = "cbp19co.txt"
+cbp20filename = "cbp20co.txt"
+cbp21filename = "cbp21co.txt"
+cbp22filename = "cbp22co.txt"
+
+```
+
+Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(table.express)
+library(DescTools)
+library(data.table)
+
+options(scipen=999)
+
+# Use shares from a single year to avoid the shares affecting the shifts
+share_year = 2020
+
+```
+
+#    Import Eckert CBP (1975-2018)
+
+```{r eckert cbp import, include=FALSE}
+
+# Import County Business Patterns data downloaded from:
+# https://fpeckert.me/cbp/ 
+cbp = fread(file.path(directory,"Data/04",eckertcbpfilename),
+            # Ensure state and county codes are characters
+            colClasses=list(character=1:3),
+            # Omit last column to save memory
+            drop=c("v1"))
+
+# Select appropriate columns to ensure consistent merge with recent CBP
+cbp_cols = c('fipstate','fipscty','naics','emp')
+colnames(cbp) = c(cbp_cols,"year")
+
+# Standardize formatting of county and state FIPS to simplify future merges
+cbp = cbp %>% 
+  table.express::mutate(fipstate = str_pad(fipstate, width=2, side="left", pad="0"),
+                        fipscty = str_pad(fipscty, width=3, side = "left", pad = "0"))
+
+```
+
+#    Import Census CBP (2019-2021)
+
+```{r census cbp import, include=FALSE}
+
+# Import CBP from Census website
+# Starting in 2018, the Census added random noise
+# So none of the cells are missing
+cbp22 = fread(file.path(directory,"Data/04",cbp22filename),
+              select = cbp_cols,
+              # Ensure state and county codes are characters
+              colClasses=list(character=1:3)) %>%
+  table.express::mutate(year = 2022)
+cbp21 = fread(file.path(directory,"Data/04",cbp21filename),
+              select = cbp_cols,
+              # Ensure state and county codes are characters
+              colClasses=list(character=1:3)) %>%
+  table.express::mutate(year = 2021)
+cbp20 = fread(file.path(directory,"Data/04",cbp20filename),
+              select = cbp_cols,
+              # Ensure state and county codes are characters
+              colClasses=list(character=1:3)) %>%
+  table.express::mutate(year = 2020)
+cbp19 = fread(file.path(directory,"Data/04",cbp19filename),
+              select = cbp_cols,
+              # Ensure state and county codes are characters
+              colClasses=list(character=1:3)) %>%
+  table.express::mutate(year = 2019)
+
+# Combine 2018-21 CBP into single file
+cbp_census = rbind(cbp21,cbp20,cbp19)
+
+# Remove total and subtotal columns
+cbp_census = cbp_census[grepl("-",naics)==FALSE]
+
+# Remove all but three-digit NAICS
+# Keeping other columns would result in double, triple, and quadruple counting
+cbp_census = cbp_census[grepl("///",naics)==TRUE]
+
+# Remove intermediate objects to save memory
+rm(cbp19,cbp20,cbp21,cbp22)
+
+```
+
+#    Clean CBP Data
+
+```{r clean cbp, include=FALSE}
+
+# Merge Eckert and recent CBP data into single series
+cbp = rbind(cbp,cbp_census)
+
+cbp[, fips_county := do.call(paste0, .SD), .SDcols = c("fipstate","fipscty")]
+# Remove original geo-code data, which could be reconstructed from fips_county
+cbp = cbp[,c("fipstate", "fipscty") := NULL]
+
+# Merge with cbsa codes
+cbp_cbsa = cbp[unified_cbsa, on = c(fips_county = "GeoFIPS")] %>%
+  # Group into three digit NAICS codes
+  table.express::mutate(naics3 = str_sub(naics, start = 1, end = 3))
+
+# Summarize table by cbsa, to ease memory constraints
+cbp_cbsa = cbp_cbsa[,.(cbsa_total=sum(emp)),.(naics3,year,cbsa_code)]
+
+# Remove intermediate objects to save memory
+rm(cbp,cbp_census)
+gc()
+```
+
+#   Calculating National Employment Growth
+
+```{r cbp national, include=FALSE}
+
+# Calculate national employment by 3-digit NAICS code
+cbp_nat = cbp_cbsa[,.(nat_total=sum(cbsa_total)),.(naics3,year)]
+
+# Reorder columns to ensure net change calculations behave
+setorder(cbp_nat, cols = "naics3","year")
+
+# Merge total national changes by industry in local changes
+cbp_cbsa = merge(cbp_cbsa,cbp_nat, on=c("year","naics3"))
+cbp_cbsa[,loo_total := nat_total - cbsa_total]
+
+
+# Define annual change function
+# https://stackoverflow.com/questions/29055597/data-table-operation-with-sd-calculating-percentage-change-concisely 
+# Importantly, to project 1976 we need multiply local 1975 emp by national 1975-76 growth
+# So quite a bit of shifting occurs
+pct_change <- function(x) shift((x - shift(x))/shift(x) + 1, type="lead")
+raw_change <- function(x) x - shift(x)
+
+# Specify column for calculating annual change
+cols <- c("loo_total")
+
+# Calculate annual change by 3-digit NAICS code
+cbp_nat_chg = cbp_cbsa[, paste("chg", cols, sep = "_") := lapply(.SD, function(x) as.numeric(pct_change(x))), 
+                       by = c("naics3", "cbsa_code"), .SDcols = cols][]
+
+write.csv(shifts,file.path(directory,"Data/04","shifts.csv"),row.names = FALSE)
+
+# Subset for cleaner merge
+shift_cols = c('naics3','year','cbsa_code','cbsa_total','chg_loo_total')
+shifts = cbp_nat_chg[, ..shift_cols]
+
+
+```
+
+#   Projecting Local Growth with Fixed Shares
+
+```{r fixed, include=FALSE}
+
+w_share <- cbp_cbsa[year == share_year,  # Filter rows where year equals share_year
+                   .(cbsa_total = sum(cbsa_total)),  # Calculate shr and select columns
+                   by = cbsa_code]
+write.csv(w_share,file.path(directory,"Data/04","w_share.csv"),row.names = FALSE)
+
+
+# All subsequent years will use the same shares
+# Holding shares constant is a recommendation of BHJ (2024)
+shares <- cbp_cbsa[year == share_year,  # Filter rows where year equals share_year
+                   .(shr = cbsa_total / sum(cbsa_total), naics3),  # Calculate shr and select columns
+                   by = cbsa_code]
+write.csv(shares,file.path(directory,"Data/04","shares.csv"),row.names = FALSE)
+
+
+
+# Merging shares (which don't vary over time) with shifts
+# which vary by time and location
+cbsa_shock = merge(shifts,shares,by=c("naics3","cbsa_code"),all.x=TRUE) %>%
+  table.express::filter(!is.na(year)) %>% # Remove NAs
+  table.express::mutate(ss_component = chg_loo_total * shr) %>%
+  group_by(cbsa_code,year) %>%
+  summarize(cbsa_proj_change = sum(ss_component,na.rm=TRUE), #  Sum across industry x cbsa shocks
+            cbsa_total = sum(cbsa_total, na.rm=TRUE)) %>%
+  group_by(cbsa_code) %>%
+  table.express::mutate(cbsa_proj = cbsa_total * cbsa_proj_change,
+                        cbsa_actual = shift(cbsa_total,type="lead")) %>%
+  # Remove years that require years with unavailable data
+  table.express::filter(!is.na(cbsa_actual)) %>%
+  # Adjust year column to year of predicted shock (n+1), not the base year (n)
+  table.express::mutate(year = year+1) %>%
+  # Compute labor demand shock and endogenous growth
+  table.express::mutate(cbsa_shock = log(cbsa_actual) - log(cbsa_proj),
+                        cbsa_growth = log(cbsa_actual) - log(cbsa_total))
+
+```
+
+#   Lagging
+
+```{r lagging, include=FALSE}
+
+# Replace values with NA in specific columns when year == 2017
+# Eckert et al's documentation recommends treating 2016-2017 comparisons with caution
+# Shifting from suppression to noised cells leads to over-estimates in large MSAs 
+# and undercounts in small ones.
+cbsa_shock[year == 2017, `:=`(
+  cbsa_shock = NA,
+  cbsa_growth = NA
+)]
+
+# Reorder columns to ensure net change calculations behave
+setorder(cbsa_shock, cols = "cbsa_code","year")
+
+# Lag appropriate data for calculation of average shocks
+shock_cols <- c("cbsa_shock")
+growth_cols <- c("cbsa_growth")
+ 
+for ( i in 1:6 ) { # update for the number of shifts
+  shock_lag_names <- paste("shock_lag", i, sep = "_")
+  growth_lag_names <- paste("growth_lag", i, sep = "_")
+  cbsa_shock[, (shock_lag_names) := lapply(.SD, shift, i, type = "lag"), by = c("cbsa_code"), .SDcols = shock_cols]
+  cbsa_shock[, (growth_lag_names) := lapply(.SD, shift, i, type = "lag"), by = c("cbsa_code"), .SDcols = growth_cols]
+}
+
+# Remove intermediate objects to save memory
+#rm(cbp_cbsa,cbp_cbsa_actual,cbp_cbsa_proj)
+```
+
+#   Calculate Averages
+
+```{r shock averages, include=FALSE}
+
+# One-year average is just cbsa_shock
+# I call it one-year average to keep names consistent 
+cbsa_shock = cbsa_shock %>%
+  table.express::mutate(shock_avg_1 = cbsa_shock,
+                        growth_avg_1 = cbsa_growth) %>%
+  # Remove observation for 2022 because CBP data stops in 2021
+  table.express::filter(is.na(cbsa_actual)==FALSE)
+
+# Identify columns used for each average
+shock_avg_3_cols = c('cbsa_shock',paste0("shock_lag_",c(1:2)))
+shock_avg_5_cols = c('cbsa_shock',paste0("shock_lag_",c(1:4)))
+shock_avg_7_cols = c('cbsa_shock',paste0("shock_lag_",c(1:6)))
+growth_avg_3_cols = c('cbsa_growth',paste0("growth_lag_",c(1:2)))
+growth_avg_5_cols = c('cbsa_growth',paste0("growth_lag_",c(1:4)))
+growth_avg_7_cols = c('cbsa_growth',paste0("growth_lag_",c(1:6)))
+
+# Calculate averages
+cbsa_shock[, shock_avg_3 := rowMeans(.SD, na.rm = TRUE), .SDcols = shock_avg_3_cols] 
+cbsa_shock[, shock_avg_5 := rowMeans(.SD, na.rm = TRUE), .SDcols = shock_avg_5_cols] 
+cbsa_shock[, shock_avg_7 := rowMeans(.SD, na.rm = TRUE), .SDcols = shock_avg_7_cols] 
+cbsa_shock[, growth_avg_3 := rowMeans(.SD, na.rm = TRUE), .SDcols = growth_avg_3_cols] 
+cbsa_shock[, growth_avg_5 := rowMeans(.SD, na.rm = TRUE), .SDcols = growth_avg_5_cols] 
+cbsa_shock[, growth_avg_7 := rowMeans(.SD, na.rm = TRUE), .SDcols = growth_avg_7_cols] 
+
+# Remove unnecessary columns
+cbsa_shock = cbsa_shock[,c(growth_avg_7_cols,shock_avg_7_cols) := NULL]
+```
+
+# Standardize Shocks
+```{r shock percentiles, include=FALSE}
+
+# Calculate weighted quantile for the one-year average, which has no NAs
+# Every other average isn't fully available at the start of the period
+cbsa_shock_ptile = cbsa_shock[, ptile_shock_avg_1 := (shock_avg_1 - weighted.mean(shock_avg_1, w = cbsa_actual))/sd(shock_avg_1), by = c("year")]
+cbsa_shock_ptile[, ptile_growth_avg_1 := (growth_avg_1 - weighted.mean(growth_avg_1, w = cbsa_actual))/sd(growth_avg_1), by = c("year")]
+
+# Since wtd.quantile doesn't want to behave, we will filter then re-merge
+avg_3 = cbsa_shock_ptile[,c("cbsa_code","year","cbsa_actual","shock_avg_3","growth_avg_3")] %>%
+  table.express::filter(is.na(shock_avg_3)==FALSE)
+avg_5 = cbsa_shock_ptile[,c("cbsa_code","year","cbsa_actual","shock_avg_5","growth_avg_5")] %>%
+  table.express::filter(is.na(shock_avg_5)==FALSE)
+avg_7 = cbsa_shock_ptile[,c("cbsa_code","year","cbsa_actual","shock_avg_7","growth_avg_7")] %>%
+  table.express::filter(is.na(shock_avg_7)==FALSE)
+
+# Calculate quantiles weighted by size of labor force as measured by CBP
+avg_3[, ptile_shock_avg_3 := (shock_avg_3 - weighted.mean(shock_avg_3, w = cbsa_actual))/sd(shock_avg_3), by = c("year")]
+avg_3[, ptile_growth_avg_3 := (growth_avg_3 - weighted.mean(growth_avg_3, w = cbsa_actual))/sd(growth_avg_3), by = c("year")]
+avg_5[, ptile_shock_avg_5 := (shock_avg_5 - weighted.mean(shock_avg_5, w = cbsa_actual))/sd(shock_avg_5), by = c("year")]
+avg_5[, ptile_growth_avg_5 := (growth_avg_5 - weighted.mean(growth_avg_5, w = cbsa_actual))/sd(growth_avg_5), by = c("year")]
+avg_7[, ptile_shock_avg_7 := (shock_avg_7 - weighted.mean(shock_avg_7, w = cbsa_actual))/sd(shock_avg_7), by = c("year")]
+avg_7[, ptile_growth_avg_7 := (growth_avg_7 - weighted.mean(growth_avg_7, w = cbsa_actual))/sd(growth_avg_7), by = c("year")]
+
+# Re-merge normalized into cbsa_shock
+# I'm not sure why I lose pre-1982 observations but they're not essential to my analysis
+cbsa_shock_ptile = cbsa_shock_ptile[avg_3, 
+                                    on = c("cbsa_code","year","cbsa_actual","shock_avg_3","growth_avg_3"), 
+                                    nomatch = NA]
+cbsa_shock_ptile = cbsa_shock_ptile[avg_5, 
+                                    on = c("cbsa_code","year","cbsa_actual","shock_avg_5","growth_avg_5"), 
+                                    nomatch = NA]
+cbsa_shock_ptile = cbsa_shock_ptile[avg_7, 
+                                    on = c("cbsa_code","year","cbsa_actual","shock_avg_7","growth_avg_7"), 
+                                    nomatch = NA]
+
+# Some glitch in wtd.quantile added NAs for 3 cbsa x year observations
+# All observations fall within the top decile in their respective year distributions
+avg_names = c(paste0("ptile_growth_avg_",c(1,3,5,7)),paste0("ptile_shock_avg_",c(1,3,5,7)))
+setDT(cbsa_shock_ptile)[, (avg_names) := lapply(.SD, nafill, fill = 10), .SDcols = avg_names]
+
+write.csv(cbsa_shock_ptile,file.path(directory,"Data/04","cbsa_shock.csv"),row.names = FALSE)
+
+rm(cbp_cbsa_actual,cbp_cbsa_proj,cbp_cbsa)
+
+```

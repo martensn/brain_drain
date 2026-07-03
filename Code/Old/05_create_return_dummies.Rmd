@@ -1,0 +1,75 @@
+---
+title: "05_create_return_dummies"
+author: "Nicholas Martens"
+date: "2023-06-12"
+output: html_document
+---
+
+##    Setup
+Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(tidyverse)
+```
+
+##    Creating Return Dummies
+Determines whether individual resided in HS CBSA or state within ten years of college graduation
+```{r return dummies}
+# Transform data from long to wide
+binary = completed_tiered %>%
+  pivot_longer(cols = starts_with("cbsa_"), names_to = "cbsa_year", values_to = "cbsa_code") %>%
+  left_join(y = cbsa_state, by = "cbsa_code") %>%
+  rename(cbsa_n_state = STATE) %>%
+  # Determine if individual resided in same CBSA as their high school
+  # Determine if individual (possibly) resides in same state as CBSA
+  # Since work location isn't precisely known, it is possible to graduate from
+  # high in school in NJ but work in NY
+  mutate(same_cbsa = case_when(str_detect(cbsa_code,hs_cbsa)==TRUE ~ 1,
+                               str_detect(cbsa_code,hs_cbsa)==FALSE ~ 0,
+                               TRUE ~ NA),
+         same_state = case_when(str_detect(cbsa_n_state,hs_state)==TRUE ~ 1,
+                              str_detect(cbsa_n_state,hs_state)==FALSE ~ 0,
+                              TRUE ~ NA),
+         #  Determine if individual attended college in same state
+         in_state_col = case_when(col_state == hs_state ~ 1,
+                                  col_state != hs_state ~ 0)
+  ) %>%
+  # Calculate year of return if applicable
+  mutate(year = str_replace_all(cbsa_year, "cbsa_","")) %>%
+  mutate(year = as.double(year)) %>%
+  mutate(year = year + col_end)
+```
+
+##    Compressing to Wide Datra
+Create data frame with one row per user indicating whether the person returned for any year within first ten 
+```{r tidying data}
+# Transform data from long to wide
+microdata = binary %>%
+  # Removes years with no employment thus no geography
+  filter(is.na(cbsa_code)==FALSE) %>%
+  # Creates interaction between same_cbsa and year
+  mutate(return_cbsa = case_when(same_cbsa == 1 ~ year,
+                                 TRUE ~ NA),
+         #  Interaction between same_state and year
+         return_state = case_when(same_state == 1 ~ year,
+                                  TRUE ~ NA)
+         ) %>%
+  group_by(user_id,cbsa_n_state) %>%
+  # The max feature catches any return to home at the earliest possible year
+  # Grouped by cbsa_n_state because some CBSAs cover multiple states
+  # As a result, return to state varies by which constitutative state you're using
+  mutate(same_cbsa = max(same_cbsa),
+            same_state = max(same_state),
+            in_state_col = max(in_state_col),
+            yr_return_cbsa = min(return_cbsa),
+            yr_return_state = min(return_state)) %>%
+  # If user returned to one of the states in the CBSA, remove other states in CBSA
+  filter(!(is.na(yr_return_cbsa)==FALSE & is.na(yr_return_state)==TRUE)) %>%
+  # Delete the "long" columns in data (rest of df only varies by user_id)
+  select(-c(cbsa_year,year,return_cbsa,return_state)) %>%
+  distinct() %>%
+  ungroup(cbsa_n_state) %>%
+  # If user lives in multistate CBSA without returning home, randomly selects state
+  slice_sample(n=1)
+```

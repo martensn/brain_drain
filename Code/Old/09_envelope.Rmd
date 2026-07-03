@@ -1,0 +1,721 @@
+---
+title: "09_envelope"
+output: html_document
+date: "2024-07-17"
+---
+
+##    Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(educationdata)
+library(blsAPI)
+library(jsonlite)
+library(readxl)
+library(data.table)
+library(tidyverse)
+
+options(digits = 1)
+options(scipen = 999)
+```
+
+##    Setup
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+
+#directory = "/nfs/turbo/lsa-areynoso"
+directory = "/Volumes/lsa-areynoso"
+
+aaufilename = "AAU.xlsx"
+mobilityfilename = "mrc_table2.xlsx"
+
+# Choose a base year (e.g., 2020) for CPI
+cpi_base_year <- 2020
+
+```
+
+##    Import LI Microdata
+```{r}
+
+# Import microdata file 
+microdata = fread(file.path(directory,"Data/06/regression_data.csv"),
+                  colClasses = c("control" = "character",
+                                 "col_zip" = "character",
+                                 "col_cbsa_code" = "character",
+                                 "hs_cbsa_code"= "character"
+                                 ))
+
+```
+##    Import IPEDS + Chetty Data
+```{r pull}
+
+# List of members of the American Association of Universities
+aau = read_excel(file.path(directory,"Data/06",aaufilename),
+                 col_types = "text") %>%
+  mutate(unitid = as.integer(unitid),
+         aau = as.integer(aau)) %>%
+  select(c(unitid,aau)) %>%
+  as.data.table()
+
+# Pull directory of basic information about institutions
+raw_institutions = get_education_data(level = "college-university",
+                                   source = "ipeds",
+                                   topic = "directory",
+                                   filters = list(year = 2021)
+                   ) %>%
+  filter(inst_category == 2) %>%
+  select(c(unitid,state_abbr,inst_name,inst_control,land_grant,county_fips))
+
+# Pull acceptance rate data
+acceptance = get_education_data(level = "college-university",
+                                   source = "ipeds",
+                                   topic = "admissions-enrollment",
+                                   filters = list(sex = 99)
+                   ) %>%
+  #select(c(unitid,year,fips,number_applied,number_admitted)) %>%
+  filter(!is.na(number_applied)) %>%
+  mutate(acceptance_rate = case_when(is.na(number_admitted > number_applied)==TRUE ~ 1,
+                                     number_applied == 0 ~ 1,
+                                     TRUE ~ number_admitted/number_applied)) %>%
+  # Remove cohort x institution combinations where no students enroll
+  filter(number_enrolled_total != 0)
+
+# Pull degrees awarded data
+raw_deg_award = get_education_data(level = "college-university",
+                                   source = "ipeds",
+                                   topic = "completions-cip-2",
+                                   filters = list(award_level = 7,
+                                                  year = c(2000:2021),
+                                                  #fips = 26,
+                                                  race = 99,
+                                                  sex = 99,
+                                                  majornum = 1)
+                                   )
+
+# Import Table 2:  Baseline Cross-Sectional Estimates by College
+# https://opportunityinsights.org/wp-content/uploads/2018/04/Codebook-MRC-Table-2.pdf
+raw_mobility = read_excel(file.path(directory,"Data/06",mobilityfilename))
+
+# Import appropriations data
+# https://nces.ed.gov/ipeds/survey-components/2#glossary  
+raw_finance = get_education_data(level = "college-university",
+                   source = "ipeds",
+                   topic = "finance",
+                   filters = list(year = c(2002:2017)),
+                   add_labels = TRUE)
+
+# Estimate cohort's share of undergraduate student body in given year
+raw_grad_rates = get_education_data(level = "college-university",
+                   source = "ipeds",
+                   topic = "grad-rates-200pct",
+                   #filters = list(year = 2017),
+                   add_labels = TRUE) %>%
+  filter(institution_level == "Four or more years") %>%
+  mutate(still_enrolled_200pct = if_else(is.na(still_enrolled_200pct)==TRUE,0,still_enrolled_200pct),
+         non_completers = cohort_rev - still_enrolled_200pct - completers_200pct,
+         non_completion_rate = non_completers/cohort_rev) %>%
+  # Distributes costs evenly across between enrollment and graduation
+  mutate(yr_1_to_4_complete = (completion_rate_100pct/4)+((completion_rate_150pct-completion_rate_100pct)/6)+((completion_rate_200pct-completion_rate_150pct)/8),
+         yr_4_to_6_complete = ((completion_rate_150pct-completion_rate_100pct)/6)+((completion_rate_200pct-completion_rate_150pct)/8),
+         yr_6_to_8_complete = (completion_rate_200pct-completion_rate_150pct)/8) 
+
+
+```
+
+##    Import CPI Data
+
+```{r cpi}
+
+# Request CPI data for All Urban Consumers (CPI-U) for the U.S.
+payload1 <- list(
+  'seriesid' = 'CUUR0000SA0',  # CPI-U, All items
+  'startyear' = '2000',  # Specify the start year
+  'endyear' = '2009',
+  'annualaverage' = 'true' # Specify the end year
+)
+payload2 <- list(
+  'seriesid' = 'CUUR0000SA0',  # CPI-U, All items
+  'startyear' = '2010',  # Specify the start year
+  'endyear' = '2019',
+  'annualaverage' = 'true' # Specify the end year
+)
+payload3 <- list(
+  'seriesid' = 'CUUR0000SA0',  # CPI-U, All items
+  'startyear' = '2020',  # Specify the start year
+  'endyear' = '2024',
+  'annualaverage' = 'true' # Specify the end year
+)
+
+response1 <- blsAPI(payload1, api_version = 2)
+deflator1 <- fromJSON(response1)$Results$series$data
+response2 <- blsAPI(payload2, api_version = 2)
+deflator2 <- fromJSON(response2)$Results$series$data
+response3 <- blsAPI(payload3, api_version = 2)
+deflator3 <- fromJSON(response3)$Results$series$data
+# Combine the deflator data from all responses
+deflator_combined <- bind_rows(deflator1, deflator2, deflator3)
+
+# Convert to a data frame and filter for annual averages
+cpi_annual <- deflator_combined %>%
+  as.data.frame() %>%
+  filter(periodName == "Annual") %>%  # Keep only annual data
+  select(year, value) %>%  # Select relevant columns
+  arrange(desc(year))  %>%
+  mutate(across(everything(), as.numeric))
+  # Order by year
+
+# Extract the CPI value for the base year
+base_cpi <- cpi_annual %>% filter(year == cpi_base_year)
+
+# Create the deflator by dividing each year's CPI by the base year CPI
+cpi_annual <- cpi_annual %>%
+  mutate(base_cpi = case_when(year == cpi_base_year ~ value,
+                              TRUE ~ base_cpi$value)) %>%
+  mutate(deflator = base_cpi / value) %>%
+  select(c(year,deflator))
+```
+
+
+##    Create Institutional Groupings
+```{r groupings}
+
+# Calculate average acceptance rate as a mean of acceptance rates between 2001-2021
+# Weighted by number of enrolled students in each class
+acceptance_grouped = acceptance %>%
+  group_by(unitid) %>%
+  summarize(avg_acceptance = 100*weighted.mean(acceptance_rate, na.rm = TRUE, w = number_enrolled_total),
+            total_enrolled = sum(number_enrolled_total))
+
+institutional_characteristics = raw_institutions %>%
+  mutate(GeoFIPS = as.character(str_pad(county_fips,5,side="left","0"))) %>%
+  left_join(unified_cbsa, by = "GeoFIPS") %>%
+  select(-c(GeoFIPS,county_fips)) %>%
+  left_join(acceptance_grouped, by = "unitid") %>%
+  mutate(avg_acceptance = if_else(is.na(avg_acceptance),99,avg_acceptance)) %>%
+  left_join(aau, by = "unitid") %>%
+  mutate(aau = if_else(is.na(aau),0,aau),
+         inst_group = case_when(inst_control == 1 & (land_grant == 1 | aau == 1) ~ "PF",
+                                inst_control == 1 & land_grant == 2 & aau == 0 ~ "RPU",
+                                inst_control == 2 ~ "Private, Non-Profit",
+                                inst_control == 3 ~ "Private, For-Profit"))
+
+
+# Filter for the RPU group and calculate cumulative enrollment
+rpu_group <- institutional_characteristics %>%
+  filter(inst_group == "RPU") %>%
+  arrange(avg_acceptance,total_enrolled) %>%
+  mutate(cum_enrolled = cumsum(total_enrolled))
+
+# Find the total number of degrees awarded for the RPU group
+total_degrees_rpu <- sum(rpu_group$total_enrolled, na.rm = TRUE)
+
+# Create two bins based on cumulative enrollment for the RPU group
+rpu_group <- rpu_group %>%
+  mutate(bin = cut(cum_enrolled, 
+                   breaks = c(0, total_degrees_rpu / 2, total_degrees_rpu),
+                   labels = c("RPU, More Selective", "RPU, Less Selective"),
+                   include.lowest = TRUE))
+
+# Combine the binned RPU group back with the original data
+institutional_characteristics <- institutional_characteristics %>%
+  left_join(rpu_group %>% select(unitid, bin), by = "unitid") %>%
+  mutate(inst_group = case_when(inst_group == "RPU" & !is.na(bin) ~ bin,
+                                inst_group == "RPU" & is.na(bin) ~ "RPU, Less Selective",
+                                TRUE ~ inst_group
+                                )) %>%
+  select(-bin)
+```
+
+##    Merge Degree Awarded
+
+```{r groupings}
+deg_award_total = raw_deg_award %>%
+  filter(cipcode == 990000 | cipcode == 99) %>%
+  #rename(total = awards) %>%
+  group_by(unitid) %>%
+  summarize(total_deg_awarded = sum(awards))
+  #select(c(unitid,total)) 
+
+# List of major names here:
+# https://educationdata.urban.org/documentation/colleges.html#ipeds-awards-by-2-digit-cip-code 
+deg_award_detail = raw_deg_award %>%
+  filter(cipcode != 99) %>%
+  filter(cipcode != 990000) %>%
+  mutate(category = case_when(
+    cipcode %in% c(950000, -1, -2, -3) ~ "unavailable",
+    cipcode %in% c(10000, 20000, 30000) ~ "agriculture",
+    cipcode %in% c(40000, 100000, 110000, 140000, 150000) ~ "engineering",
+    cipcode %in% c(50000, 230000, 240000, 250000, 380000, 500000, 540000) ~ "humanities",
+    cipcode %in% c(130000, 160000, 190000, 200000) ~ "education",
+    cipcode %in% c(260000, 270000, 400000, 410000) ~ "physical_sciences",
+    cipcode %in% c(90000, 420000, 440000, 450000) ~ "social_sciences",
+    cipcode %in% c(120000, 290000, 310000, 430000) ~ "services",
+    cipcode %in% c(460000, 470000, 480000, 490000) ~ "other", # trades
+    cipcode %in% c(510000,512001) ~ "healthcare",
+    cipcode %in% c(80000,520000) ~ "business",
+    cipcode %in% c(220000, 220101) ~ "other",
+    cipcode %in% c(390000, 390602, 390603, 390605) ~ "other", # religion
+    cipcode == 300000 ~ "other", #  interdisciplinary
+    TRUE ~ "other"
+  )) %>%
+  group_by(unitid,category) %>%
+  summarize(field = sum(awards)) %>%
+  pivot_wider(names_from = category, values_from = field, values_fill = list(field=0)) %>%
+  left_join(deg_award_total, by = "unitid") 
+
+# Merge in IPEDS data on degrees awarded
+institutional_characteristics = deg_award_detail %>%
+  #group_by(unitid) %>%
+  #summarize(deg_awarded = sum(total)) %>%
+  right_join(institutional_characteristics, by = "unitid")
+  
+```
+
+##    Institution-Level Return Statistics
+
+```{r institution}
+
+# Count total number of graduates per year by college
+deg_award_coverage = microdata %>%
+  filter(col_end > 1999) %>%
+  count(unitid,col_end) %>%
+  rename(year = col_end) %>%
+  mutate(unitid = as.numeric(unitid))
+
+# Measure individual outcomes
+recruitment = microdata %>%
+  mutate(in_state = if_else(hs_state == col_state, "In-State", "Out-of-State")) %>%
+  mutate(recruited = case_when(in_state == "Out-of-State" & same_state_col == 1 ~ "Recruited",
+                               in_state == "Out-of-State" & same_state_col == 0 ~ "Not_Recruited",
+                               in_state == "In-State" & same_state_col == 1 ~ "Retained",
+                               in_state == "In-State" & same_state_col == 0 ~ "Not_Retained"
+                               ),
+         unitid = as.integer(unitid)
+         ) %>%
+  #select(user_id,col_name,col_end,transfer,recruited) %>%
+  count(unitid,recruited) %>%
+  pivot_wider(names_from = "recruited", values_from = "n", values_fill = list(n=0)) %>%
+  select(-c("NA")) %>%
+  mutate(total = Recruited + Not_Recruited + Retained + Not_Retained) %>%
+  mutate(shr_recruited = Recruited/total,
+         shr_not_recruited = Not_Recruited/total,
+         shr_retained = Retained/total,
+         shr_not_retained = Not_Retained/total)
+
+```
+##    Merge Chetty Mobility Data
+
+```{r chetty}
+
+unitid_super_opeid_crosswalk = institution_crosswalk %>% 
+  select(unitid,super_opeid) %>%
+  mutate(unitid = as.integer(unitid)) %>%
+  filter(super_opeid > 0) %>% 
+  distinct()
+
+# Count degrees awarded by super_opeid
+# OI could not aggregate every superope_id into a single unitid
+# We will weight super_opeid characteristics propprtionate to the degrees awarded
+# by each unitid in the super_opeid
+deg_award_super_opeid = deg_award_total %>% 
+  left_join(unitid_super_opeid_crosswalk, by = "unitid") %>%
+  group_by(super_opeid) %>%
+  summarize(total_deg_awarded_opeid = sum(total_deg_awarded))
+
+# Calculate weights for each unitid in super_opeid
+unit_super_opeid_weights = unitid_super_opeid_crosswalk %>%
+  left_join(deg_award_total, by = "unitid") %>%
+  left_join(deg_award_super_opeid, by = "super_opeid") %>%
+  filter(!is.na(total_deg_awarded) & !is.na(total_deg_awarded_opeid)) %>%
+  mutate(unitid_shr = total_deg_awarded/total_deg_awarded_opeid) %>%
+  select(unitid,super_opeid,unitid_shr)
+
+# Extract necessary columns and calculate institution-level measures of income distribution
+mobility = raw_mobility %>%
+  # Merge on a cleaned version of the crosswalk
+  left_join(unit_super_opeid_weights, by = "super_opeid") %>%
+  # Remove missing data
+  filter(!is.na(unitid) & !is.na(count) & !is.na(unitid_shr)) %>%
+  # Reweight mobility estimates to the unitid level 
+  mutate(mobility_n = count * unitid_shr,
+         par_bottom60 = (par_q1 + par_q2 + par_q3) * mobility_n,
+         par_top20 = par_q4 * mobility_n,
+         par_top01 = par_top1pc * mobility_n,
+         k_bottom60 = (k_q1 + k_q2 + k_q3) * mobility_n,
+         k_top20 = k_q4 * mobility_n,
+         k_top01 = k_top1pc * mobility_n,
+         ) %>%
+  rename(mobility_rate = mr_kq5_pq1) %>%
+  select(c("super_opeid","unitid","mobility_n","par_mean","par_bottom60","par_top20","par_top01",
+           "mobility_rate","k_mean","k_bottom60","k_top20","k_top01"))
+
+institutional_characteristics <- institutional_characteristics %>%
+  left_join(mobility, by = "unitid")
+
+rm(unitid_super_opeid_crosswalk,deg_award_super_opeid)
+```
+
+
+##    Merge Finance 
+
+```{r finance}
+
+finance_recode = finance_raw %>%
+  left_join(cpi_annual, by = "year") %>%
+  # Adjust prices for changes in purchasing power 
+  # I excluded grants based on IPEPS documentation
+  # While grants might be either operating or non-operating, generally they entail
+  # exchange of some service. By contrast, appropriations fund day-to-day operations
+  # of an institution
+  # https://nces.ed.gov/ipeds/survey-components/2#glossary
+  mutate(rev_appropriations_state = if_else(is.na(rev_appropriations_state)==TRUE,0,rev_appropriations_state * deflator),
+         rev_tuition_fees =  if_else(is.na(rev_tuition_fees_net)==TRUE,0,rev_tuition_fees_net * deflator),
+         rev_total_current = if_else(is.na(rev_total_current)==TRUE,0,rev_total_current * deflator)) %>%
+  select(c(year,unitid,rev_appropriations_state,rev_tuition_fees,rev_total_current)) %>%
+  # Cot analysis requires a yearly panel 
+  rename(year_in_school = year)
+
+# I aggregate yearly data for the summary statistics
+finance = finance_recode %>%
+  group_by(unitid) %>%
+  summarize(rev_appropriations_state = sum(rev_appropriations_state),
+            rev_tuition_fees = sum(rev_tuition_fees),
+            rev_total_current = sum(rev_total_current)) %>%
+  mutate(state_approp_shr = rev_appropriations_state/rev_total_current,
+         tuition_shr = rev_tuition_fees/rev_total_current,
+         state_approp_tuition_shr = state_approp_shr + tuition_shr)
+        
+institutional_characteristics <- institutional_characteristics %>%
+  left_join(finance, by = "unitid")
+
+```
+
+##    Merge Graduation Rates
+
+```{r gradrate}
+
+grad_rates = raw_grad_rates %>% 
+  # Instead of taking weighted average of rates, I take cohort size and completions
+  select(c("unitid",starts_with("completers"),starts_with("cohort_adj"),"unitid")) %>%
+  group_by(unitid) %>%
+  summarize(across(everything(), sum))
+
+institutional_characteristics <- institutional_characteristics %>%
+  left_join(grad_rates, by = "unitid")
+  
+```
+
+##    Summary Statistics Table
+
+```{r sumstat}
+majors = names(institutional_characteristics)[2:11]
+
+sumstat_major = institutional_characteristics %>%
+  ungroup(unitid) %>%
+  filter(!is.na(total_deg_awarded)) %>%
+  select(c(majors,"inst_group","total_deg_awarded")) %>%
+  group_by(inst_group) %>%
+  summarize(across(everything(), ~ sum(.x, na.rm = TRUE))) %>%
+  mutate(across(all_of(majors), ~ (.x / total_deg_awarded) * 100, .names = "{col}")) %>%
+  select(-c(total_deg_awarded)) %>%
+  pivot_longer(majors, names_to = "metric", values_to = "shr") %>%
+  pivot_wider(names_from = inst_group, values_from = shr)
+
+sumstat_acceptance = institutional_characteristics %>%
+  ungroup(unitid) %>%
+  group_by(inst_group) %>%
+  filter(!is.na(total_deg_awarded)) %>%
+  select(c("inst_group","avg_acceptance","total_deg_awarded")) %>%
+  summarize(acceptance_rate = weighted.mean(avg_acceptance, w = total_deg_awarded)) %>%
+  pivot_longer(!inst_group, names_to = "metric", values_to = "shr") %>%
+  pivot_wider(names_from = inst_group, values_from = shr)
+
+quantile_cols = c("par_bottom60","par_top20","par_top01","k_bottom60","k_top20","k_top01")
+
+sumstat_mobility = institutional_characteristics %>%
+  ungroup(unitid) %>%
+  group_by(inst_group) %>%
+  filter(!is.na(mobility_n)) %>%
+  summarize(mobility_rate = weighted.mean(mobility_rate, w = mobility_n) * 100,
+            par_mean = weighted.mean(par_mean, w = mobility_n),
+            k_mean = weighted.mean(k_mean, w = mobility_n),
+            mobility_n = sum(mobility_n),
+            across(all_of(quantile_cols), ~ sum(.x / mobility_n, na.rm = TRUE) * 100)) %>%
+  pivot_longer(!inst_group, names_to = "metric", values_to = "value") %>%
+  filter(metric != "mobility_n") %>%
+  pivot_wider(names_from = inst_group, values_from = value)
+
+sumstat_finance = institutional_characteristics %>%
+  ungroup(unitid) %>%
+  group_by(inst_group) %>%
+  filter(!is.na(rev_total_current)) %>%
+  summarize(rev_appropriations_state = sum(rev_appropriations_state),
+            rev_tuition_fees = sum(rev_tuition_fees),
+            rev_total_current = sum(rev_total_current)) %>%
+  mutate(appropriations_shr = (rev_appropriations_state / rev_total_current) * 100,
+         tuition_shr = (rev_tuition_fees / rev_total_current) * 100) %>%
+  select(-c(starts_with("rev"))) %>%
+  pivot_longer(!inst_group, names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = inst_group, values_from = value)
+
+gradrate_cols = c("completers_100pct","completers_150pct","completers_200pct",
+                  "cohort_adj_150pct","cohort_adj_200pct")
+
+sumstat_gradrate = institutional_characteristics %>%
+  ungroup(unitid) %>%
+  group_by(inst_group) %>%
+  filter(!is.na(cohort_adj_150pct)) %>%
+  summarize(across(all_of(gradrate_cols) , ~ sum(.x, na.rm = TRUE))) %>%
+  mutate(completed_100pct = (completers_100pct / cohort_adj_150pct) * 100,
+         completed_150pct = (completers_150pct / cohort_adj_150pct) * 100,
+         completed_200pct = (completers_200pct / cohort_adj_200pct) * 100) %>%
+  select(-c(starts_with("completers"),starts_with("cohort"))) %>%
+  pivot_longer(!inst_group, names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = inst_group, values_from = value)
+
+sumstat = rbind(sumstat_major,sumstat_acceptance,sumstat_mobility,sumstat_finance,sumstat_gradrate)
+```
+
+##    Institution-Level Migration Outcomes
+
+```{r}
+
+recruitment_institutional = microdata %>%
+  mutate(in_state = if_else(hs_state == col_state, "In-State", "Out-of-State")) %>%
+  mutate(recruited = case_when(in_state == "Out-of-State" & same_state_col == 1 ~ "Recruited",
+                               in_state == "Out-of-State" & same_state_col == 0 ~ "Not_Recruited",
+                               in_state == "In-State" & same_state_col == 1 ~ "Retained",
+                               in_state == "In-State" & same_state_col == 0 ~ "Not_Retained"
+                               )) %>%
+  #select(user_id,col_name,col_end,transfer,recruited) %>%
+  count(unitid,recruited) %>%
+  filter(!is.na(recruited)) %>%
+  pivot_wider(names_from = "recruited", values_from = "n",values_fill = 0) %>%
+  table.express::mutate(total = Not_Recruited + Not_Retained + Recruited + Retained,
+                        recruit_shr = Recruited/total,
+                        not_recruit_shr = Not_Recruited/total,
+                        retained_shr = Retained/total,
+                        not_retained_shr = Not_Retained/total) %>%
+  mutate(unitid = as.integer(unitid))
+
+write.csv(recruitment_institutional,file.path(directory,"Data/06/recruitment.csv"))
+```
+
+##    Estimating Cohort-Level Prevalence by Year
+
+```{r}
+
+grad_rates_cohort = grad_rates_raw %>%
+  # Assume non-completers quit at a linear rate over eight years
+  mutate(yr_1 = yr_1_to_4_complete + non_completion_rate,
+         yr_2 = yr_1_to_4_complete + (non_completion_rate * 0.875),
+         yr_3 = yr_1_to_4_complete + (non_completion_rate * 0.75),
+         yr_4 = yr_1_to_4_complete + (non_completion_rate * 0.625),
+         yr_5 = yr_4_to_6_complete + (non_completion_rate * 0.5),
+         yr_6 = yr_4_to_6_complete + (non_completion_rate * 0.375),
+         yr_7 = yr_6_to_8_complete + (non_completion_rate * 0.25),
+         yr_8 = yr_6_to_8_complete + (non_completion_rate * 0.125),
+         sum = yr_1 + yr_2 + yr_3 + yr_4 + yr_5 + yr_6 + yr_7 + yr_8) %>%
+  select(-c(ends_with("complete"))) %>%
+  select(c(unitid,year,cohort_year,cohort_rev,fips,starts_with("yr"))) %>%
+  pivot_longer(
+    cols = starts_with("yr_"),      # Select columns that start with "yr_"
+    names_to = "year_in_school",    # Name of the new column that will contain the original column names
+    names_prefix = "yr_",           # Remove the "yr_" prefix from the column names
+    values_to = "shr"               # Name of the new column that will contain the values
+  ) %>%
+  mutate(year_in_school = as.numeric(year_in_school)+cohort_year-1,
+         shr_hc_adj = shr * cohort_rev)
+
+denominators = grad_rates_cohort %>%
+  group_by(year_in_school,unitid) %>%
+  summarize(annual_shr = sum(shr_hc_adj))
+
+cohort_enrollments = grad_rates_cohort %>%
+  left_join(denominators, by = c("year_in_school","unitid")) %>%
+  mutate(norm_shr = shr_hc_adj/annual_shr) %>%
+  select(-c(year,shr_hc_adj,annual_shr,shr)) %>%
+  filter(year_in_school %in% c(2002:2015))
+
+cohort_non_completes = grad_rates_raw %>%
+  # Assume non-completers quit at a linear rate over eight years
+  mutate(yr_1 = non_completion_rate,
+         yr_2 = non_completion_rate * 0.875,
+         yr_3 = non_completion_rate * 0.75,
+         yr_4 = non_completion_rate * 0.625,
+         yr_5 = non_completion_rate * 0.5,
+         yr_6 = non_completion_rate * 0.375,
+         yr_7 = non_completion_rate * 0.25,
+         yr_8 = non_completion_rate * 0.125,
+         sum = yr_1 + yr_2 + yr_3 + yr_4 + yr_5 + yr_6 + yr_7 + yr_8) %>%
+  select(-c(ends_with("complete"))) %>%
+  select(c(unitid,year,cohort_year,cohort_rev,fips,starts_with("yr"))) %>%
+  pivot_longer(
+    cols = starts_with("yr_"),      # Select columns that start with "yr_"
+    names_to = "year_in_school",    # Name of the new column that will contain the original column names
+    names_prefix = "yr_",           # Remove the "yr_" prefix from the column names
+    values_to = "shr"               # Name of the new column that will contain the values
+  ) %>%
+  mutate(year_in_school = as.numeric(year_in_school)+cohort_year-1,
+         shr_non_complete_adj = shr * cohort_rev) %>%
+  left_join(denominators, by = c("year_in_school","unitid")) %>%
+  mutate(non_complete_shr = shr_non_complete_adj / annual_shr) %>%
+  select(c(unitid,cohort_year,year_in_school,non_complete_shr)) %>%
+  filter(year_in_school %in% c(2002:2015))
+
+unified_cohort = cohort_enrollments %>%
+  left_join(cohort_non_completes, by = c("unitid","cohort_year","year_in_school"))
+
+```
+
+##    Calculcate ROI
+
+```{r roi}
+
+## Select necessary columns from grad_rates_raw
+completers <- grad_rates_raw %>% 
+  select(unitid, cohort_year, completion_rate_200pct)
+
+# Calculate cohort-level costs and join with completers data
+merged <- unified_cohort %>%
+  # Merge with finance data by unitid and year_in_school
+  left_join(finance_recode, by = c("unitid", "year_in_school")) %>%
+  # Filter out rows with missing revenue data
+  filter(!is.na(rev_total_current)) %>%
+  # Calculate state and tuition costs and their non-completion shares
+  mutate(state_cost = norm_shr * rev_appropriations_state,
+         tuition_cost = norm_shr * rev_tuition_fees,
+         state_cost_non_complete = non_complete_shr * state_cost,
+         tuition_cost_non_complete = non_complete_shr * tuition_cost) %>%
+  # Summarize costs at the cohort level (by cohort_year and unitid)
+  group_by(cohort_year, unitid) %>%
+  summarize(state_cohort_cost = sum(state_cost, na.rm = TRUE),
+            non_complete_state_cost = sum(state_cost_non_complete, na.rm = TRUE),
+            tuition_cohort_cost = sum(tuition_cost, na.rm = TRUE),
+            non_complete_tuition_cost = sum(tuition_cost_non_complete, na.rm = TRUE),
+            cohort_rev = first(cohort_rev),  # Get the first value of cohort_rev for each group
+            .groups = 'drop') %>%  # Drop grouping after summarization
+  # Merge with completion rate data
+  left_join(completers, by = c("unitid", "cohort_year"))
+
+# Calculate ROI metrics at the institution level
+roi <- merged %>%
+  # Merge with recruitment and retention data
+  left_join(recruitment_institutional, by = "unitid") %>%
+  # Calculate in-state completions and costs per graduate
+  mutate(in_state = (recruit_shr + retained_shr) * completion_rate_200pct * cohort_rev,
+         state_cost_per_grad = state_cohort_cost / in_state,
+         state_cost_less_nc = (state_cohort_cost - non_complete_state_cost) / in_state,
+         tuition_cost_per_grad = tuition_cohort_cost / in_state,
+         tuition_cost_less_nc = (tuition_cohort_cost - non_complete_tuition_cost) / in_state) %>%
+  # Filter out rows with missing or invalid in_state data
+  filter(!is.na(in_state) & in_state > 0 & !is.na(state_cost_per_grad)) %>%
+  # Summarize at the institution level, consolidating sums
+  group_by(unitid) %>%
+  summarize(across(c(state_cost_less_nc, state_cost_per_grad, tuition_cost_less_nc, tuition_cost_per_grad), 
+                   ~ weighted.mean(.x, w = cohort_rev, na.rm = TRUE)),
+            total_cohort = sum(cohort_rev, na.rm = TRUE),
+            total_grads = sum(Not_Recruited, Not_Retained, Recruited, Retained, na.rm = TRUE),
+            not_recruited = sum(Not_Recruited, na.rm = TRUE),
+            not_retained = sum(Not_Retained, na.rm = TRUE),
+            recruited = sum(Recruited, na.rm = TRUE),
+            retained = sum(Retained, na.rm = TRUE))
+
+# Group by institutional group and calculate weighted metrics
+roi_group <- roi %>%
+  # Merge with institutional characteristics to get institutional groupings
+  inner_join(institutional_characteristics %>% select(unitid, inst_group,state_abbr), by = "unitid") %>%
+  mutate(inst_group = case_when(inst_group == "RPU, More Selective" ~ "RPU",
+                              inst_group == "RPU, Less Selective" ~ "RPU",
+                               TRUE ~ inst_group)) %>%
+  # Summarize at the institutional group level
+  #group_by(inst_group,state_abbr) %>%
+  group_by(inst_group) %>%
+  summarize(across(c(state_cost_per_grad, state_cost_less_nc, tuition_cost_per_grad, tuition_cost_less_nc), 
+                   ~ weighted.mean(.x, w = total_cohort, na.rm = TRUE)),
+            total_grads = sum(total_grads, na.rm = TRUE),
+            not_recruited_shr = (sum(not_recruited, na.rm = TRUE) / total_grads) * 100,
+            not_retained_shr = (sum(not_retained, na.rm = TRUE) / total_grads) * 100,
+            recruited_shr = (sum(recruited, na.rm = TRUE) / total_grads) * 100,
+            retained_shr = (sum(retained, na.rm = TRUE) / total_grads) * 100) %>%
+  mutate(grad_per_state_100 = round(100000/state_cost_per_grad,2),
+         grad_per_state_less_nc_100 = round(100000/state_cost_less_nc,2),
+         grad_per_tuition_100 = round(100000/tuition_cost_per_grad,2),
+         grad_per_tuition_less_nc_100 = round(100000/tuition_cost_less_nc,2)) %>%
+  # Reshape data for final output
+  #pivot_longer(-c(inst_group,state_abbr), names_to = "metric", values_to = "shr") %>%
+  pivot_longer(-c(inst_group), names_to = "metric", values_to = "shr") %>%
+  filter(inst_group != "Private, For-Profit") %>%
+  pivot_wider(names_from = inst_group, values_from = shr) %>%
+  mutate(metric = c(
+    "State Cost per Graduate",
+    "State Cost Less Non-Completers",
+    "Tuition Cost per Graduate",
+    "Tuition Cost Less Non-Completers",
+    "Total Graduates",
+    "Not Recruited Share",
+    "Not Retained Share",
+    "Recruited Share",
+    "Retained Share",
+    "Graduates per \$100k in Appopriations",
+    "Graduates per \$100k in Appopriations Less Non-Completers",
+    "Graduates per \$100k in Tuition",
+    "Graduates per \$100k in Tuition Less Non-Completers0"))
+
+
+# Convert to xtable for LaTeX export
+roi_table <- xtable(roi_group, caption = "Summary Statistics", label = "tab:summary_statistics")
+
+# Print the LaTeX table with labels and caption
+print(roi_table, include.rownames = FALSE, hline.after = c(-1, 0, nrow(roi_group)), caption.placement = "top")
+```
+
+##    Coverage by College x Year x Cohort
+
+
+```{r}
+
+coverage = institutional_characteristics %>%
+  left_join(recruitment_institutional %>% select(unitid,total), by = "unitid") %>%
+  filter(total_deg_awarded > 0) %>%
+  mutate(total_li_users = case_when(!is.na(total) ~ total,
+                                    is.na(total) ~ 0),
+         li_user_shr = (total_li_users/total_deg_awarded) * 100,
+         log_total_deg_awarded = log(total_deg_awarded),
+         log_k_mean = log(k_mean),
+         log_par_mean = log(par_mean)) %>%
+  filter(li_user_shr < 100) %>%
+  mutate(across(all_of(majors), ~ (.x / total_deg_awarded) * 100, .names = "{col}")) %>%
+  # Filter out For-Profit Colleges
+  filter(inst_group != "Private, For-Profit" | li_user_shr < 100)
+  
+major_model = lm(li_user_shr ~ business + education + engineering + social_sciences + healthcare + physical_sciences,
+     data = coverage, weights = total_deg_awarded)
+
+inst_char_model  = lm(li_user_shr ~ inst_group + log_total_deg_awarded + log_k_mean,
+     data = coverage, weights = total_deg_awarded)
+```
+
+
+
+##    Return by Acceptance Rate
+
+```{r}
+
+recruitment_acceptance = recruitment %>%
+  left_join(acceptance_grouped, by = "unitid") %>%
+  mutate(factor_acceptance = factor(avg_acceptance)) %>%
+  group_by(avg_acceptance) %>%
+  summarize(Not_Recruited = sum(Not_Recruited,na.rm = TRUE),
+            Not_Retained = sum(Not_Retained, na.rm = TRUE),
+            Retained = sum(Retained, na.rm = TRUE),
+            Recruited = sum(Recruited, na.rm = TRUE)) %>%
+  mutate(factor_acceptance = as.numeric(avg_acceptance),
+         total = Recruited + Not_Recruited + Retained+ Not_Retained,
+         recruit_shr = Recruited/total,
+         not_recruit_shr = Not_Recruited/total,
+         retained_shr = Retained/total,
+         not_retained_shr = Not_Retained/total) %>%
+  select(-factor_acceptance)
+
+```
+

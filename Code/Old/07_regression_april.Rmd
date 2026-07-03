@@ -1,0 +1,118 @@
+---
+title: "07_regression_april"
+author: "Nicholas Martens"
+date: "2023-06-14"
+output: html_document
+---
+
+##    Setup
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+directory = "/Users/nickmartens/Dropbox (University of Michigan)/Linkedin"
+```
+
+Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(texreg)
+library(tidyverse)
+```
+
+##    Selectivity Recode
+```{r final clean, include=FALSE}
+regression_data = all_binary_final %>%
+  # Rename "999" and "9" as selectivity rating 6
+  mutate(barrons = case_when(barrons > 5 ~ 6,
+                             TRUE ~ barrons),
+         selective_binary = case_when(barrons < 3 ~ 1,
+                                      TRUE ~ 0) 
+  )
+```
+
+##    Regressions!
+```{r regression, include=FALSE}
+# Standard specification
+attempt1 = lm(data = regression_data, same_cbsa ~ hs_shock + col_shock + (hs_shock * col_hs_diff_cbsa) + (col_shock * col_hs_diff_cbsa) + barrons + col_end)
+attempt2 = lm(data = regression_data, same_cbsa ~ hs_shock + col_shock + (hs_shock * col_hs_diff_cbsa) + (col_shock * col_hs_diff_cbsa) + barrons + col_end + major)
+attempt3 = lm(data = regression_data, same_state ~ hs_shock + col_shock + (hs_shock * col_hs_diff_cbsa) + (col_shock * col_hs_diff_cbsa) + barrons + col_end)
+attempt4 = lm(data = regression_data, same_state ~ hs_shock + col_shock + (hs_shock * col_hs_diff_cbsa) + (col_shock * col_hs_diff_cbsa) + barrons + col_end + major)
+attempt5 = lm(data = regression_data, same_cbsa ~ hs_shock + col_shock + (hs_shock * col_hs_diff_cbsa) + (col_shock * col_hs_diff_cbsa) + selective_binary + col_end)
+attempt6 = lm(data = regression_data, same_state ~ hs_shock + col_shock + (hs_shock * col_hs_diff_cbsa) + (col_shock * col_hs_diff_cbsa) + selective_binary + col_end)
+```
+
+##    Exporting Regression Result
+```{r regression, include=FALSE}
+texreg(list(attempt1,attempt3), 
+       digits = 4,  
+       stars = c(0.01, 0.05, 0.1),
+       custom.model.names = c("Same CBSA",
+                              "Same State"),
+       custom.coef.names = c("Intercept",
+                             "High School CBSA Shock",
+                             "College CBSA Shock",
+                             "Different CBSA for College and High School",
+                             "Selectivity",
+                             "Year-Fixed Effects",
+                             "High School CBSA Shock for Leavers"),
+       caption = "Preliminary results using standard Barron's ratings",
+       label = "Attempt1",
+       caption.above = TRUE)
+
+
+texreg(list(attempt5,attempt6), 
+       digits = 4,  
+       stars = c(0.01, 0.05, 0.1),
+       custom.model.names = c("Same CBSA",
+                              "Same State"),
+       custom.coef.names = c("Intercept",
+                             "High School CBSA Shock",
+                             "College CBSA Shock",
+                             "Different CBSA for College and High School",
+                             "Selective Binary",
+                             "Year-Fixed Effects",
+                             "High School CBSA Shock for Leavers"),
+       caption = "Preliminary results using Selective Binary",
+       label = "Attempt2",
+       caption.above = TRUE)
+#       siunitx = TRUE,
+#       booktabs = TRUE,
+#       use.packages = FALSE)
+
+
+texreg(list(attempt2,attempt4), 
+       digits = 4,  
+       stars = c(0.01, 0.05, 0.1),
+       custom.model.names = c("Same State",
+                              "Same State with Major"),
+       custom.coef.names = c("Intercept",
+                             "High School CBSA Shock",
+                             "College CBSA Shock",
+                             "Different CBSA for College and High School",
+                             "Selectivity",
+                             "Year-Fixed Effects",
+                             "High School CBSA Shock for Leavers",
+                             "Architecture major",
+                             "Biology major",
+                             "Business major",
+                             "Chemistry major",
+                             "Economics major",
+                             "Education major",
+                             "empty major",
+                             "Engineering major",
+                             "Finannce major",
+                             "Information Technology major",
+                             "Law major",
+                             "Marketing major",
+                             "Mathematics major",
+                             "Medicine major",
+                             "Nursing major",
+                             "Physics major",
+                             "Statistics major"),
+       caption = "Preliminary results",
+       label = "ContReg",
+       caption.above = TRUE,
+       siunitx = TRUE,
+       booktabs = TRUE,
+       use.packages = FALSE)
+# If you go to an elite school in your CBSA, are you still less likely to stay
+```

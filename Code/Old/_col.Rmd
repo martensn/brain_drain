@@ -1,0 +1,392 @@
+---
+title: "01_import_nces"
+author: "Nicholas Martens"
+date: "2023-06-09"
+output: html_document
+---
+This script imports institution-level characteristics on secondary and post-secondary institution from EDGE and IPEDS
+Then it merges selectivity data with institutional data
+
+## Setup
+
+Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tidyverse)
+library(data.table)
+```
+
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+directory = "/nfs/turbo/lsa-areynoso"
+#directory = "/Volumes/lsa-areynoso"
+
+pubfilename = "Public.csv"
+privfilename = "Private.csv"
+postfilename = "ipeds_hd2021.csv"
+cbsafilename = "msa_2020.csv"
+countyfilename = "counties.xlsx"
+ctcountyfilename = "ct_counties.xlsx"
+chettyfilename = "chetty_college.xlsx"
+barronsfilename = "barrons_mod.xlsx"
+```
+
+## Declaring Functions
+Function used to compute mode of a dataset
+
+```{r mode, include=FALSE}
+Mode <- function(x, na.rm = TRUE)
+{
+  if(na.rm)
+  {
+    x = x[!is.na(x)]
+  }
+  ux <- unique(x)
+  return(ux[which.max(tabulate(match(x,ux)))])
+}
+```
+
+Declare %nin% so we can filter observations
+
+```{r negate, include=FALSE}
+`%nin%` = Negate(`%in%`)
+```
+
+
+## Import Files
+
+```{r import, include=FALSE}
+# Import CBSA Conversion File
+cbsa = read_csv(file.path(directory,"Data/01",cbsafilename),
+                col_types = "cccccccccccc")
+
+# Read in county list
+raw_county = read_excel(file.path(directory,"Data/01",countyfilename)) %>%
+  # Remove extraneous columns to simplify merge with ct_county
+  select(-c('Geo Point','Geo Shape','Year','Iso 3166-3 Area Code',"Type",'County GNIS Code','Official Name County')) %>%
+  rename('state_code' = 'Official Code State',
+         'state_name' = 'Official Name State',
+         'GeoFIPS' = 'Official Code County',
+         'county_name' = 'Name with legal/statistical area description',
+         'county_code' = 'County FIPS Code') %>%
+  # Remove new CT counties, which aren't used in any other data
+  #filter(state_name != "CT") %>%
+  # DC miscoded as part of Delaware in original data
+  mutate(state_name = ifelse(county_name == "District of Columbia","DC",state_name)) %>%
+  # In 2019, Alaska formed two Census areas from one
+  # Add Chugach Census Area, Alaska (FIPS 02063) to 02261
+  # Add Copper River, Alaska (FIPS 02066) to 02999
+  mutate(GeoFIPS = case_when(GeoFIPS %in% c("02063","02066") ~ "02261",
+                             #  Oglala Lakota County (formerly Shannon), 
+                             #  South Dakota (FIPS 46102) to 46113
+                             GeoFIPS == "46102" ~ "46113",
+                             #  Kusilvak Census Area (formerly Wade Hampton),
+                             #  Alaska (FIPS 0) to 02270
+                             GeoFIPS == "02158" ~ "02270",
+                             .default = GeoFIPS))
+
+
+# Connecticut changed counties, so most data uses old boundaries
+# Must append county dataset with old county codes
+ct_county = read_excel(file.path(directory,"Data/01",ctcountyfilename)) %>%
+  # Remove extraneous columns to simplify merge with county
+  select(-c('COUNTYNS','CLASSFP','FUNCSTAT')) %>%
+  rename('state_code' = 'STATEFP',
+         'state_name' = 'STATE',
+         #'GeoFIPS' = 'Official Code County',
+         'county_name' = 'COUNTYNAME',
+         'county_code' = 'COUNTYFP') %>%
+  mutate(GeoFIPS = paste0(state_code,county_code))
+# Merge Connecticut and raw county data together
+county = rbind(ct_county,raw_county)
+
+# Import lists of (public + private) high schools and colleges
+public = read_delim(file.path(directory,"Data/01",pubfilename))
+private = read_delim(file.path(directory,"Data/01",privfilename))
+postsec = read_delim(file.path(directory,"Data/01",postfilename))
+
+# Import selectivity ratings from Chetty and Barron's
+chetty_raw = read_xlsx(file.path(directory,"Data/01",chettyfilename))
+barrons_raw = read_xlsx(file.path(directory,"Data/01",barronsfilename))
+```
+
+## String Cleaning
+Cleaning strings on CBSA file
+```{r cbsa string clean, include=FALSE}
+# Pad FIPS county code
+cbsa$`FIPS County Code` = str_pad(cbsa$`FIPS County Code`, width = 3, side = "left", pad = "0")
+cbsa$`FIPS State Code` = str_pad(cbsa$`FIPS State Code`, width = 2, side = "left", pad = "0")
+cbsa$`CBSA Code` = as.character(cbsa$`CBSA Code`)
+```
+
+## Creating Crosswalk
+Unifying pseudo-CBSA and actual CBSAs
+```{r crosswalk, include=FALSE}
+# Paste state code 
+cbsa_fips = cbsa %>%
+  mutate(GeoFIPS = paste0(`FIPS State Code`,`FIPS County Code`)) %>%
+  select(c(`CBSA Code`,`GeoFIPS`)) %>%
+  rename(cbsa_code = `CBSA Code`)
+
+# Add Litchfield County to cbsa_na table to 09999
+addendum = data.frame(GeoFIPS = c("09005"),
+                      cbsa_code = c("09999"))
+
+# Filter counties to only include counties outside of CBSAs
+# Create psuedo-CBSA code for non-CBSA counties by adding "999" to the end
+cbsa_na = county %>%
+  mutate(noncbsa_code = paste0(county$state_code,"999")) %>%
+  filter(GeoFIPS %nin% cbsa_fips$GeoFIPS) %>%
+  # filter(is.na(cbsa_code)==TRUE) %>%
+  mutate(cbsa_code = noncbsa_code) %>%
+  select(c(GeoFIPS,noncbsa_code)) %>%
+  rename(cbsa_code = noncbsa_code)
+  
+
+# Join counties with CBSA codes and psuedo-coded non-CBSA counties
+unified_cbsa = rbind(cbsa_fips,cbsa_na) %>%
+  as.data.table()
+
+write.csv(unified_cbsa,file.path(directory,"Data/01/unified_cbsa.csv"))
+
+cbsa_code_name = cbsa[c(1,4)] %>%
+  rename("cbsa_code" = `CBSA Code`,
+         "cbsa_name" = `CBSA Title`) %>%
+  distinct() %>%
+  as.data.table()
+unified_cbsa_name = unified_cbsa[cbsa_code_name, on = "cbsa_code"] 
+```
+
+## Creating Full County Name Files
+Necessary for merging everything
+
+```{r county, include=FALSE}
+# Create column combining county name and state abbreviation
+county_full = county %>%
+  mutate(full_name = paste0(county_name,", ",state_name)) %>%
+  select(c(GeoFIPS,full_name))
+
+# Create expanded county object for crosswalking positions to CBSA codes
+county_expanded = county %>%
+  mutate(full_name = paste0(county_name,", ",state_name)) %>%
+  select(c(state_code,state_name,GeoFIPS,full_name))
+
+# Unifying state abbreviation and MSA codes to automate construction of non-metro labels
+big_chungus = county_expanded %>%
+  left_join(unified_cbsa_name, by = "GeoFIPS") %>%
+  mutate(cbsa_name = ifelse(is.na(cbsa_name)==TRUE,
+                            paste(state_name,"NONMETROPOLITAN AREA"),
+                            cbsa_name)) %>%
+  mutate(cbsa_name =str_replace_all(cbsa_name, ",","")) %>%
+  rename("cbsa_state"=state_name) %>%
+  mutate(cbsa_code = ifelse(is.na(cbsa_code)==TRUE,paste0(state_code,"999"),cbsa_code))
+
+name_match = big_chungus %>%
+  select(c(cbsa_code,cbsa_name,cbsa_state)) %>%
+  distinct() %>%
+  mutate(cbsa_city = str_extract(cbsa_name,'(^.{1,}-(?=([A-Z][a-z].*)))|(^.{1,} (?=([A-Z][A-Z].*)))'),
+         cbsa_city = str_replace_all(cbsa_city, '-'," ")) %>%
+  #separate(cbsa_name, into = c(NA,"cbsa_state"), sep = (' (?=([A-Z][A-Z].*))')) %>%
+  as.data.table()
+```
+
+
+##    Cleaning Secondary School File
+
+```{r hs clean, include=FALSE}
+# For some reason public school data includes weird geographic information
+public_hs = public %>%
+  # Filter to only include institutions offering 12th grade
+  filter(G12 > 0) %>%
+  # Remove extra columns
+  select(c(SCH_NAME:LZIP,NMCNTY)) %>%
+  select(-LSTREET2) %>%
+  # Doña Ana County, New Mexico didn't render correctly so it needs to be corrected
+  mutate(NMCNTY = ifelse(NMCNTY=="DoÃ±a Ana County","Doña Ana County",NMCNTY)) %>%
+  mutate(full_name = paste0(NMCNTY,", ",LSTATE)) %>%
+  # Match to county FIPS code
+  left_join(y = county_full, by = "full_name") %>%
+  # Match to CBSA codes using county-CBSA crosswalk
+  left_join(y = unified_cbsa, by = "GeoFIPS") %>%
+  # Remove unnecessary columns
+  select(-full_name) %>%
+  # Rename columns to ensure harmonious merge with private school data
+  rename(NAME = SCH_NAME,
+         STREET = LSTREET1,
+         CITY = LCITY,
+         STATE = LSTATE,
+         ZIP = LZIP)
+
+
+private_hs = private %>% 
+  # Removing columns to ensure harmonious merge with K12 data
+  select(c(NAME:NMCNTY)) %>%
+  select(-c(STFIP)) %>%
+  # Rename columns to ensure harmonious merge with K12 data
+  rename(GeoFIPS = CNTY) %>%
+  #  Recode Oglala Lakota County (formerly Shannon), 
+  #  South Dakota (FIPS 46102) to 46113
+  mutate(GeoFIPS = ifelse(GeoFIPS=="46102","46113",GeoFIPS)) %>%
+  # Match to CBSA codes using county-CBSA crosswalk
+  left_join(y = unified_cbsa, by = "GeoFIPS")
+
+leading_zero_zip = c("ME","NH","VT","MA","RI","CT","NJ")
+
+# Combine public and private high schools and add column for degree type
+all_hs = rbind(public_hs, private_hs) %>%
+  mutate(degree = "High School",
+         NAME = str_to_lower(NAME),
+         NAME = str_trim(NAME),
+         alt_name = str_replace_all(NAME, "[[:punct:]]"," "),
+         alt_name = str_replace_all(alt_name, "main campus",""),
+         #        alt_name = str_replace_all(alt_name,"^the ",""),
+         alt_name = str_trim(alt_name)) %>%
+  mutate(clean_name = alt_name) %>%
+  # Some New England + NJ ZIP codes omit the leading one, which systematically messes
+  # up distance calculations. If ZIP lacks leading zero, missing one added.
+  mutate(ZIP = 
+           ifelse(STATE %in% leading_zero_zip & str_starts(ZIP, "0", negate=TRUE),
+                  str_sub(str_pad(ZIP,6,side="left",pad="0"),1,5),
+                  ZIP) ) %>%
+  # Fix typos in ZIP codes (zip code doesn't actually exist)
+  # I expect to encounter more errors like this
+  # Arkansas High School in Texarkana appears to have mistyped ZIP code
+  mutate(ZIP = case_when(ZIP == "70488" ~ "70448",
+                         # Lakeshore High Schol in St. Tammany Parish, LA
+                         ZIP == "71875" ~ "71854",
+                         #  Community High in Beaverton, OR
+                         ZIP == "97003" ~ "97006",
+                         TRUE ~ ZIP)) %>%
+  filter(is.na(cbsa_code)==FALSE) %>%
+  as.data.table()
+
+```
+
+##    Cleaning College File
+
+```{r col clean, include=FALSE}
+all_col_unrated = postsec %>%
+  # Remove institutions that don't offer bachelor's degrees
+  filter(HLOFFER > 4) %>%
+  # Removing columns to ensure harmonious merge with K12 data
+  select(c(UNITID:FIPS,CONTROL,C21UGPRF,CARNEGIE,HBCU,TRIBAL,LANDGRNT,CBSA,CBSATYPE)) %>%
+  # Rename columns to ensure harmonious merge with K12 data
+#  rename(GeoFIPS = CNTY) %>%
+  # Match to CBSA codes using county-CBSA crosswalk
+  mutate(FIPS = str_replace_all(FIPS," ","0"),
+         CBSA = ifelse(CBSATYPE != 1,paste0(FIPS,999),CBSA),
+         degree = "Bachelor's",
+         alt_name = str_to_lower(INSTNM),
+         alt_name = str_trim(alt_name),
+         alt_name = str_replace_all(alt_name, "[[:punct:]]"," "),
+         alt_name = str_replace_all(alt_name, "main campus",""),
+         alt_name = str_replace_all(alt_name," at "," "),
+         #  Manual recodes for large universities
+         #  We can do more cleaning later
+#         alt_name = str_replace_all(alt_name, "the pennsylvania state","penn state"),
+#         alt_name = str_replace_all(alt_name, "at raleigh",""),
+#         alt_name = str_replace_all(alt_name, "fort collins",""),
+#         alt_name = str_replace_all(alt_name, "campus immersion",""),
+#         alt_name = str_replace_all(alt_name, "and agricultural & mechanical college",""),
+#         alt_name = str_replace_all(alt_name, "university oxford",""),
+         alt_name = str_replace_all(alt_name, "the university of","university of"),
+#         alt_name = str_replace_all(alt_name, "university carbondale","university"),
+         alt_name = str_replace_all(alt_name, "a&m","agricultural and mechanical"),
+         alt_name = str_replace_all(alt_name, "a & m","agricultural and mechanical"),
+         alt_name = str_trim(alt_name),
+         alt_name = str_squish(alt_name)) %>%
+  rename("cbsa_code" = "CBSA",
+         "col_state" = "STABBR")
+```
+
+##    Cleaning Chetty File
+File will evenutally merge LI instituions with Chetty's selectivity data, which doesn't include all institutions 
+Problem is particularly bad for institutions with multiple campuses
+String cleaning occurs in chunk below
+```{r chetty, include=FALSE}
+# Merge selectivity rating with geographic data so there's only big merge with LI
+# First use the data from Chetty (2019) found at
+# https://opportunityinsights.org/wp-content/uploads/2018/04/mrc_table10.csv
+chetty = chetty_raw %>%
+  select(name,barrons) %>%
+  rename(col_name = name) %>%
+  mutate(alt_name = str_to_lower(col_name),
+         alt_name = str_trim(alt_name),
+         alt_name = str_replace_all(alt_name, "[[:punct:]]"," "),
+         alt_name = str_replace_all(alt_name, "main campus",""),
+         alt_name = str_replace_all(alt_name, " at "," "),
+         alt_name = str_replace_all(alt_name, "the university of","university of"),
+         alt_name = str_replace_all(alt_name, "a&m","agricultural and mechanical"),
+         alt_name = str_replace_all(alt_name, "a & m","agricultural and mechanical"),
+         alt_name = str_trim(alt_name),
+         alt_name = str_squish(alt_name))
+```
+
+##    Cleaning Barron's File
+File will eventually link institutions with no match in Chetty's data
+Relies in 2001 Barron's data
+String cleaning occurs in chunk below
+```{r barrons, include=FALSE}
+# Since their data collapses multiple branches of some universities into a
+# single entry, I supplement with Barron's 2001 data available in the UMich library
+barrons = barrons_raw %>%
+  rename(col_name = name,
+         col_state = state) %>%
+  mutate(alt_name = str_to_lower(col_name),
+         alt_name = str_trim(alt_name),
+         alt_name = str_replace_all(alt_name, "[[:punct:]]"," "),
+         alt_name = str_replace_all(alt_name, "main campus",""),
+         alt_name = str_replace_all(alt_name, " at "," "),
+         alt_name = str_replace_all(alt_name, "the university of","university of"),
+         alt_name = str_replace_all(alt_name, "a&m","agricultural and mechanical"),
+         alt_name = str_replace_all(alt_name, "a & m","agricultural and mechanical"),
+         alt_name = str_trim(alt_name),
+         alt_name = str_squish(alt_name))
+```
+
+##    Merging Selectivity and LI Data
+
+```{r barrons, include=FALSE}
+# Begin by matching Chetty to all_col
+# Chetty includes 913 2-year schools that shouldn't show up in our data
+# The remaining 1,550 should show up
+tiered_chetty = all_col_unrated %>%
+  left_join(chetty, by = "alt_name") %>%
+  filter(is.na(col_name)==FALSE) %>%
+  # To appease the rbind gods
+  select(-c(col_name))
+
+# Create crosswalk with 2001 Barron's ratings
+tiered_barrons = all_col_unrated %>%
+  left_join(chetty, by = "alt_name") %>%
+  filter(is.na(col_name)==TRUE) %>%
+  select(-c(col_name:barrons)) %>%
+  left_join(barrons, by = c("alt_name","col_state")) %>%
+  select(-col_name) %>%
+  filter(is.na(barrons)==FALSE)
+
+barrons_chetty = rbind(tiered_chetty,tiered_barrons) %>%
+  select(c(alt_name,cbsa_code,barrons)) %>%
+  distinct()
+#  rename(col_name = NAME)
+```
+
+
+##    Creating Outputs
+all_col will be passed onto step 2
+completed_neither helps me find problematic institutions without selectivity ratings
+```{r output, include=FALSE}
+all_col = all_col_unrated %>%
+  left_join(barrons_chetty, by = c("alt_name","cbsa_code")) %>%
+  mutate(barrons = ifelse(is.na(barrons)==TRUE,"Unrated",barrons)) %>%
+  as.data.table()
+
+completed_neither = all_col_unrated %>%
+  left_join(chetty, by = "alt_name") %>%
+  filter(is.na(col_name)==TRUE) %>%
+  select(-c(col_name:barrons)) %>%
+  left_join(barrons, by = c("alt_name","col_state")) %>%
+  select(-col_name) %>%
+  filter(is.na(barrons)==TRUE)
+```

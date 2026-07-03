@@ -1,0 +1,561 @@
+---
+title: "06_import_WholeData"
+author: "Nicholas Martens"
+date: "2023-06-13"
+output: html_document
+---
+
+##    Setup
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+directory = "/Users/nickmartens/Dropbox (University of Michigan)/Linkedin"
+wholedata98filename = "wholedata1998_2012terms_v12.dta"
+wholedata99filename = "wholedata1999_2012terms_v12.dta"
+wholedata00filename = "wholedata2000_2012terms_v12.dta"
+wholedata01filename = "wholedata2001_2012terms_v12.dta"
+wholedata02filename = "wholedata2002_2012terms_v12.dta"
+wholedata03filename = "wholedata2003_2012terms_v12.dta"
+wholedata04filename = "wholedata2004_2012terms_v12.dta"
+wholedata05filename = "wholedata2005_2012terms_v12.dta"
+wholedata06filename = "wholedata2006_2012terms_v12.dta"
+wholedata07filename = "wholedata2007_2012terms_v12.dta"
+wholedata08filename = "wholedata2008_2012terms_v12.dta"
+wholedata09filename = "wholedata2009_2012terms_v12.dta"
+wholedata10filename = "wholedata2010_2012terms_v12.dta"
+wholedata11filename = "wholedata2011_2012terms_v12.dta"
+wholedata12filename = "wholedata2012_v12.dta"
+wholedata13filename = "wholedata2013_v12.dta"
+wholedata14filename = "wholedata2014_v12.dta"
+wholedata15filename = "wholedata2015_v12.dta"
+wholedata16filename = "wholedata2016_v12.dta"
+```
+
+Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(foreign)
+library(tidyverse)
+```
+
+##    Import WholeData
+```{r import wholedata, include=FALSE}
+wholedata98 <- read.dta(file.path(directory,"Data",wholedata98filename)) %>%
+  select(c(area:naics,emp))
+wholedata99 <- read.dta(file.path(directory,"Data",wholedata99filename)) %>%
+  select(c(area:naics,emp))
+wholedata00 <- read.dta(file.path(directory,"Data",wholedata00filename)) %>%
+  select(c(area:naics,emp))
+wholedata01 <- read.dta(file.path(directory,"Data",wholedata01filename)) %>%
+  select(c(area:naics,emp))
+wholedata02 <- read.dta(file.path(directory,"Data",wholedata02filename)) %>%
+  select(c(area:naics,emp))
+wholedata03 <- read.dta(file.path(directory,"Data",wholedata03filename)) %>%
+  select(c(area:naics,emp))
+wholedata04 <- read.dta(file.path(directory,"Data",wholedata04filename)) %>%
+  select(c(area:naics,emp))
+wholedata05 <- read.dta(file.path(directory,"Data",wholedata05filename)) %>%
+  select(c(area:naics,emp))
+wholedata06 <- read.dta(file.path(directory,"Data",wholedata06filename)) %>%
+  select(c(area:naics,emp))
+wholedata07 <- read.dta(file.path(directory,"Data",wholedata07filename)) %>%
+  select(c(area:naics,emp))
+wholedata08 <- read.dta(file.path(directory,"Data",wholedata08filename)) %>%
+  select(c(area:naics,emp))
+wholedata09 <- read.dta(file.path(directory,"Data",wholedata09filename)) %>%
+  select(c(area:naics,emp))
+wholedata10 <- read.dta(file.path(directory,"Data",wholedata10filename)) %>%
+  select(c(area:naics,emp))
+wholedata11 <- read.dta(file.path(directory,"Data",wholedata11filename)) %>%
+  select(c(area:naics,emp))
+wholedata12 <- read.dta(file.path(directory,"Data",wholedata12filename)) %>%
+  select(c(area:naics,emp))
+wholedata13 <- read.dta(file.path(directory,"Data",wholedata13filename)) %>%
+  select(c(area:naics,emp))
+wholedata14 <- read.dta(file.path(directory,"Data",wholedata14filename)) %>%
+  select(c(area:naics,emp))
+wholedata15 <- read.dta(file.path(directory,"Data",wholedata15filename)) %>%
+  select(c(area:naics,emp))
+wholedata16 <- read.dta(file.path(directory,"Data",wholedata16filename)) %>%
+  select(c(area:naics,emp))
+
+wholedata = rbind(wholedata98,
+                      wholedata99,
+                      wholedata00,
+                      wholedata01,
+                      wholedata02,
+                      wholedata03,
+                      wholedata04,
+                      wholedata05,
+                      wholedata06,
+                      wholedata07,
+                      wholedata08,
+                      wholedata09,
+                      wholedata10,
+                      wholedata11,
+                      wholedata12,
+                      wholedata13,
+                      wholedata14,
+                      wholedata15,
+                      wholedata16)
+```
+
+##    Clean WholeData
+Filter to 3-digit NAICS code and calculate national employment growth
+```{r clean wholedata, include=FALSE}
+# Filter to 3 digit FIPS code
+cbp_all = wholedata %>%
+  mutate(len = str_length(naics)) %>%
+  filter(len == 3)
+
+naics = unique(cbp_all$naics)
+# Calculate national employment growth
+nat_cbp = cbp_all %>%
+  filter(fipstate == 0 & fipscty == 0) %>%
+  pivot_wider(names_from = "year", values_from = "emp") %>%
+  mutate(ch99 = ((`1999` - `1998`)/`1998`) + 1,
+         ch00 = ((`2000` - `1999`)/`1999`) + 1,
+         ch01 = ((`2001` - `2000`)/`2000`) + 1,
+         ch02 = ((`2002` - `2001`)/`2001`) + 1,
+         ch03 = ((`2003` - `2002`)/`2002`) + 1,
+         ch04 = ((`2004` - `2003`)/`2003`) + 1,
+         ch05 = ((`2005` - `2004`)/`2004`) + 1,
+         ch06 = ((`2006` - `2005`)/`2005`) + 1,
+         ch07 = ((`2007` - `2006`)/`2006`) + 1,
+         ch08 = ((`2008` - `2007`)/`2007`) + 1,
+         ch09 = ((`2009` - `2008`)/`2008`) + 1,
+         ch10 = ((`2010` - `2009`)/`2009`) + 1,
+         ch11 = ((`2011` - `2010`)/`2010`) + 1,
+         ch11 = ((`2012` - `2011`)/`2011`) + 1,
+         ch12 = ((`2013` - `2012`)/`2012`) + 1,
+         ch13 = ((`2014` - `2013`)/`2013`) + 1,
+         ch14 = ((`2015` - `2014`)/`2014`) + 1,
+         ch15 = ((`2016` - `2015`)/`2015`) + 1) %>%
+  select(ch99:ch15)
+```
+
+##    Crosswalk WholeData to CBSA
+```{r crosswalk, include=FALSE}
+# Crosswalk to CBSAs
+cbp_cbsa = cbp_all %>%
+  filter(fipscty != 0) %>%
+  mutate(state_code = str_pad(fipstate,2,"left",pad = "0"),
+         county_code = str_pad(fipscty,3,"left",pad = "0"),
+         GeoFIPS = paste0(state_code,county_code)) %>%
+  select(-c(area,fipstate,fipscty,len,state_code,county_code)) %>%
+  left_join(unified_cbsa, by = "GeoFIPS") %>%
+  # For now filter out observations that aren't assigned a county
+  # We can deal with them later on
+  filter(is.na(cbsa_code)==FALSE) %>%
+  group_by(year,naics,cbsa_code) %>%
+  summarize(total_emp = sum(emp)) %>%
+  pivot_wider(names_from = "naics", values_from = "total_emp", values_fill = 0) %>%
+  ungroup(year) %>%
+  arrange(cbsa_code)
+```
+
+##    Calculating Demand Shocks
+```{r shock, include=FALSE}
+cbsa_98 = cbp_cbsa %>%
+  filter(year == 1998) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_98 = as.matrix(nat_cbp["ch99"])
+proj_99 = cbsa_98 %*% cbp_98
+
+cbsa_99 = cbp_cbsa %>%
+  filter(year == 1999) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_99 = as.matrix(nat_cbp["ch00"])
+proj_00 = cbsa_99 %*% cbp_99
+
+cbsa_00 = cbp_cbsa %>%
+  filter(year == 2000) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_00 = as.matrix(nat_cbp["ch01"])
+proj_01 = cbsa_00 %*% cbp_00
+
+cbsa_01 = cbp_cbsa %>%
+  filter(year == 2001) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_01 = as.matrix(nat_cbp["ch02"])
+proj_02 = cbsa_01 %*% cbp_01
+
+cbsa_02 = cbp_cbsa %>%
+  filter(year == 2002) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_02 = as.matrix(nat_cbp["ch03"])
+proj_03 = cbsa_02 %*% cbp_02
+
+cbsa_03 = cbp_cbsa %>%
+  filter(year == 2003) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_03 = as.matrix(nat_cbp["ch04"])
+proj_04 = cbsa_03 %*% cbp_03
+
+cbsa_04 = cbp_cbsa %>%
+  filter(year == 2004) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_04 = as.matrix(nat_cbp["ch05"])
+proj_05 = cbsa_04 %*% cbp_04
+
+cbsa_05 = cbp_cbsa %>%
+  filter(year == 2005) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_05 = as.matrix(nat_cbp["ch06"])
+proj_06 = cbsa_05 %*% cbp_05
+
+cbsa_06 = cbp_cbsa %>%
+  filter(year == 2006) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_06 = as.matrix(nat_cbp["ch07"])
+proj_07 = cbsa_06 %*% cbp_06
+
+cbsa_07 = cbp_cbsa %>%
+  filter(year == 2007) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_07 = as.matrix(nat_cbp["ch08"])
+proj_08 = cbsa_07 %*% cbp_07
+
+cbsa_08 = cbp_cbsa %>%
+  filter(year == 2008) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_08 = as.matrix(nat_cbp["ch09"])
+proj_09 = cbsa_08 %*% cbp_08
+
+cbsa_09 = cbp_cbsa %>%
+  filter(year == 2009) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_09 = as.matrix(nat_cbp["ch10"])
+proj_10 = cbsa_09 %*% cbp_09
+
+cbsa_10 = cbp_cbsa %>%
+  filter(year == 2010) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_10 = as.matrix(nat_cbp["ch11"])
+proj_11 = cbsa_10 %*% cbp_10
+
+cbsa_11 = cbp_cbsa %>%
+  filter(year == 2011) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_11 = as.matrix(nat_cbp["ch12"])
+proj_12 = cbsa_11 %*% cbp_11
+
+cbsa_12 = cbp_cbsa %>%
+  filter(year == 2012) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_12 = as.matrix(nat_cbp["ch13"])
+proj_13 = cbsa_12 %*% cbp_12
+
+cbsa_13 = cbp_cbsa %>%
+  filter(year == 2013) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_13 = as.matrix(nat_cbp["ch14"])
+proj_14 = cbsa_13 %*% cbp_13
+
+cbsa_14 = cbp_cbsa %>%
+  filter(year == 2014) %>%
+  select(-c(year,cbsa_code)) %>%
+  as.matrix()
+cbp_14 = as.matrix(nat_cbp["ch15"])
+proj_15 = cbsa_14 %*% cbp_14
+
+#cbsa_15 = cbp_cbsa %>%
+#  filter(year == 2015) %>%
+#  select(-c(year,cbsa_code)) %>%
+#  as.matrix()
+#cbp_15 = as.matrix(nat_cbp["ch16"])
+#proj_16 = cbsa_15 %*% cbp_15
+
+# List of CBSA codes to reattach to matrix
+cbsa_list = cbp_cbsa %>%
+  filter(year == 2016) %>%
+  distinct(cbsa_code)
+
+# Projections produces by interacting local industrial mix with national trends
+proj = cbind(cbsa_list,
+             proj_99,
+             proj_00,
+             proj_01,
+             proj_02,
+             proj_03,
+             proj_04,
+             proj_05,
+             proj_06,
+             proj_07,
+             proj_08,
+             proj_09,
+             proj_10,
+             proj_11,
+             proj_12,
+             proj_13,
+             proj_14,
+             proj_15)
+
+actual = cbp_cbsa %>%  
+  mutate(total = rowSums(select(.,
+                                 "113":"813")
+                        )
+        ) %>%
+  select(-c("113":"813")) %>%
+  pivot_wider(names_from = "year", values_from = "total") %>%
+  left_join(proj, by = "cbsa_code") %>%
+  mutate(shk_99 = (`1999` - `ch99`)/`1999`,
+         shk_00 = (`2000` - `ch00`)/`2000`,
+         shk_01 = (`2001` - `ch01`)/`2001`,
+         shk_02 = (`2002` - `ch02`)/`2002`,
+         shk_03 = (`2003` - `ch03`)/`2003`,
+         shk_04 = (`2004` - `ch04`)/`2004`,
+         shk_05 = (`2005` - `ch05`)/`2005`,
+         shk_06 = (`2006` - `ch06`)/`2006`,
+         shk_07 = (`2007` - `ch07`)/`2007`,
+         shk_08 = (`2008` - `ch08`)/`2008`,
+         shk_09 = (`2009` - `ch09`)/`2009`,
+         shk_10 = (`2010` - `ch10`)/`2010`,
+         shk_11 = (`2011` - `ch11`)/`2011`,
+         shk_12 = (`2012` - `ch12`)/`2012`,
+         shk_13 = (`2013` - `ch13`)/`2013`,
+         shk_14 = (`2014` - `ch14`)/`2014`,
+         shk_15 = (`2015` - `ch15`)/`2015`
+         ) %>%
+  select(-c(`1998`:`ch15`))
+
+# CBSAs with suspicious demand behavior  
+# 21420: random spike in 2012 only
+# 26140: more volatile in general, perhaps reliant on energy or auto industry
+# 28100: huge drop in 2001
+# 33100: huge bump in 2002
+# 42700: huge drop in 2001
+# I think issues with 5/430 isn't so bad
+
+# Average previous 3 years
+# We will use the average of the three years before college graduation
+# as a proxy for local economic conditions
+actual_cohort = actual %>%
+  mutate(coh_02 = (shk_99 + shk_00 + shk_01)/3,
+         coh_03 = (shk_00 + shk_01 + shk_02)/3,
+         coh_04 = (shk_01 + shk_02 + shk_03)/3,
+         coh_05 = (shk_02 + shk_03 + shk_04)/3,
+         coh_06 = (shk_03 + shk_04 + shk_05)/3,
+         coh_07 = (shk_04 + shk_05 + shk_06)/3,
+         coh_08 = (shk_05 + shk_06 + shk_07)/3,
+         coh_09 = (shk_06 + shk_07 + shk_08)/3,
+         coh_10 = (shk_07 + shk_08 + shk_09)/3,
+         coh_11 = (shk_08 + shk_09 + shk_10)/3,
+         coh_12 = (shk_09 + shk_10 + shk_11)/3,
+         coh_13 = (shk_10 + shk_11 + shk_12)/3,
+         coh_14 = (shk_11 + shk_12 + shk_13)/3,
+         coh_15 = (shk_12 + shk_13 + shk_14)/3,
+         coh_16 = (shk_13 + shk_14 + shk_15)/3
+  ) %>%
+  select(-c(shk_99:shk_15))
+
+
+# Rename columns to ease merging
+col_shock = actual_cohort %>%
+  rename(col_cbsa = cbsa_code)
+hs_shock = actual_cohort %>%
+  rename(hs_cbsa = cbsa_code)
+```
+
+##    Merge Shocks with Microdata
+```{r merge, include=FALSE}
+# Filter by college graduation year and attach shock data for hs and college CBSA
+all_binary02 = microdata %>%
+  filter(col_end == 2002) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_03":"coh_16")) %>%
+  rename(col_shock = coh_02) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_03":"coh_16")) %>%
+  rename(hs_shock = coh_02) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary03 = microdata %>%
+  filter(col_end == 2003) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02","coh_04":"coh_16")) %>%
+  rename(col_shock = coh_03) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02","coh_04":"coh_16")) %>%
+  rename(hs_shock = coh_03) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary04 = microdata %>%
+  filter(col_end == 2004) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_03","coh_05":"coh_16")) %>%
+  rename(col_shock = coh_04) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_03","coh_05":"coh_16")) %>%
+  rename(hs_shock = coh_04) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary05 = microdata %>%
+  filter(col_end == 2005) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_04","coh_06":"coh_16")) %>%
+  rename(col_shock = coh_05) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_04","coh_06":"coh_16")) %>%
+  rename(hs_shock = coh_05) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary06 = microdata %>%
+  filter(col_end == 2006) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_05","coh_07":"coh_16")) %>%
+  rename(col_shock = coh_06) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_05","coh_07":"coh_16")) %>%
+  rename(hs_shock = coh_06) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary07 = microdata %>%
+  filter(col_end == 2007) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_06","coh_08":"coh_16")) %>%
+  rename(col_shock = coh_07) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_06","coh_08":"coh_16")) %>%
+  rename(hs_shock = coh_07) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary08 = microdata %>%
+  filter(col_end == 2008) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_07","coh_09":"coh_16")) %>%
+  rename(col_shock = coh_08) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_07","coh_09":"coh_16")) %>%
+  rename(hs_shock = coh_08) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary09 = microdata %>%
+  filter(col_end == 2009) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_08","coh_10":"coh_16")) %>%
+  rename(col_shock = coh_09) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_08","coh_10":"coh_16")) %>%
+  rename(hs_shock = coh_09) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary10 = microdata %>%
+  filter(col_end == 2010) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_09","coh_11":"coh_16")) %>%
+  rename(col_shock = coh_10) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_09","coh_11":"coh_16")) %>%
+  rename(hs_shock = coh_10) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary11 = microdata %>%
+  filter(col_end == 2011) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_10","coh_12":"coh_16")) %>%
+  rename(col_shock = coh_11) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_10","coh_12":"coh_16")) %>%
+  rename(hs_shock = coh_11) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary12 = microdata %>%
+  filter(col_end == 2012) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_11","coh_13":"coh_16")) %>%
+  rename(col_shock = coh_12) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_11","coh_13":"coh_16")) %>%
+  rename(hs_shock = coh_12) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary13 = microdata %>%
+  filter(col_end == 2013) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_12","coh_14":"coh_16")) %>%
+  rename(col_shock = coh_13) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_12","coh_14":"coh_16")) %>%
+  rename(hs_shock = coh_13) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary14 = microdata %>%
+  filter(col_end == 2014) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_13","coh_15":"coh_16")) %>%
+  rename(col_shock = coh_14) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_13","coh_15":"coh_16")) %>%
+  rename(hs_shock = coh_14) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary15 = microdata %>%
+  filter(col_end == 2015) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_14","coh_16")) %>%
+  rename(col_shock = coh_15) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_14","coh_16")) %>%
+  rename(hs_shock = coh_15) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary16 = microdata %>%
+  filter(col_end == 2016) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_15")) %>%
+  rename(col_shock = coh_16) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_15")) %>%
+  rename(hs_shock = coh_16) %>%
+  relocate(hs_shock, .before = "col_start")
+# Rejoin individual graduation years
+# Add binary variable to check if individual left hs CBSA for college
+all_binary_final = rbind(all_binary02,
+                         all_binary03,
+                         all_binary04,
+                         all_binary05,
+                         all_binary06,
+                         all_binary07,
+                         all_binary08,
+                         all_binary09,
+                         all_binary10,
+                         all_binary11,
+                         all_binary12,
+                         all_binary13,
+                         all_binary14,
+                         all_binary15,
+                         all_binary16) %>%
+  ungroup() %>%
+  group_by(user_id) %>%
+  mutate(col_hs_diff_cbsa = ifelse(col_cbsa == hs_cbsa,0,1))
+```
+
+##    Remove Individual Years
+```{r delete}
+rm(wholedata00, wholedata01, wholedata02, wholedata03, wholedata04, wholedata05,
+   wholedata06, wholedata07, wholedata08, wholedata09, wholedata10, wholedata11,
+   wholedata12, wholedata13, wholedata14, wholedata15, wholedata16)
+```
+
+##   Export Output Data
+```{r export}
+write.csv(all_binary_final,paste0(directory,"/Data/regression_data.csv"))
+write.csv(actual_cohort,paste0(directory,"/Data/actual_cohort.csv"))
+```

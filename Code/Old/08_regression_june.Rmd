@@ -1,0 +1,794 @@
+---
+title: "08_regression_june"
+author: "Nicholas Martens"
+date: "2023-06-14"
+output: html_document
+---
+
+##    Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(texreg)
+library(tidyverse)
+
+options(digits = 1)
+```
+
+##    Setup
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+directory = "/Users/nickmartens/Dropbox (University of Michigan)/Linkedin"
+```
+
+##    Import Microdata
+Avoid rerunning previous eight steps and saving ~6 hours
+```{r import, include=FALSE}
+#microdata_1 = microdata
+all_binary_final = read.csv(file.path(directory,"Data/regression_data.csv"))
+actual_cohort = read.csv(file.path(directory,"Data/actual_cohort.csv"))
+```
+
+
+##    Convert Shock to Decile
+On the advice of Shane Reed to "fully saturate" linear probability model
+```{r saturation, include=FALSE}
+actual_cohort$coh_02 = ntile(actual_cohort$coh_02, n = 10)
+actual_cohort$coh_03 = ntile(actual_cohort$coh_03, n = 10)
+actual_cohort$coh_04 = ntile(actual_cohort$coh_04, n = 10)
+actual_cohort$coh_05 = ntile(actual_cohort$coh_05, n = 10)
+actual_cohort$coh_06 = ntile(actual_cohort$coh_06, n = 10)
+actual_cohort$coh_07 = ntile(actual_cohort$coh_07, n = 10)
+actual_cohort$coh_08 = ntile(actual_cohort$coh_08, n = 10)
+actual_cohort$coh_09 = ntile(actual_cohort$coh_09, n = 10)
+actual_cohort$coh_10 = ntile(actual_cohort$coh_10, n = 10)
+actual_cohort$coh_11 = ntile(actual_cohort$coh_11, n = 10)
+actual_cohort$coh_12 = ntile(actual_cohort$coh_12, n = 10)
+actual_cohort$coh_13 = ntile(actual_cohort$coh_13, n = 10)
+actual_cohort$coh_14 = ntile(actual_cohort$coh_14, n = 10)
+actual_cohort$coh_15 = ntile(actual_cohort$coh_15, n = 10)
+actual_cohort$coh_16 = ntile(actual_cohort$coh_16, n = 10)
+
+# Rename columns to ease merging
+col_shock = actual_cohort %>%
+  rename(col_cbsa = cbsa_code)
+hs_shock = actual_cohort %>%
+  rename(hs_cbsa = cbsa_code)
+```
+
+##    Merge Shocks with Microdata
+```{r merge, include=FALSE}
+# Filter by college graduation year and attach shock data for hs and college CBSA
+all_binary02 = microdata %>%
+  filter(col_end == 2002) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_03":"coh_16")) %>%
+  rename(col_shock = coh_02) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_03":"coh_16")) %>%
+  rename(hs_shock = coh_02) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary03 = microdata %>%
+  filter(col_end == 2003) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02","coh_04":"coh_16")) %>%
+  rename(col_shock = coh_03) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02","coh_04":"coh_16")) %>%
+  rename(hs_shock = coh_03) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary04 = microdata %>%
+  filter(col_end == 2004) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_03","coh_05":"coh_16")) %>%
+  rename(col_shock = coh_04) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_03","coh_05":"coh_16")) %>%
+  rename(hs_shock = coh_04) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary05 = microdata %>%
+  filter(col_end == 2005) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_04","coh_06":"coh_16")) %>%
+  rename(col_shock = coh_05) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_04","coh_06":"coh_16")) %>%
+  rename(hs_shock = coh_05) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary06 = microdata %>%
+  filter(col_end == 2006) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_05","coh_07":"coh_16")) %>%
+  rename(col_shock = coh_06) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_05","coh_07":"coh_16")) %>%
+  rename(hs_shock = coh_06) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary07 = microdata %>%
+  filter(col_end == 2007) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_06","coh_08":"coh_16")) %>%
+  rename(col_shock = coh_07) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_06","coh_08":"coh_16")) %>%
+  rename(hs_shock = coh_07) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary08 = microdata %>%
+  filter(col_end == 2008) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_07","coh_09":"coh_16")) %>%
+  rename(col_shock = coh_08) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_07","coh_09":"coh_16")) %>%
+  rename(hs_shock = coh_08) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary09 = microdata %>%
+  filter(col_end == 2009) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_08","coh_10":"coh_16")) %>%
+  rename(col_shock = coh_09) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_08","coh_10":"coh_16")) %>%
+  rename(hs_shock = coh_09) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary10 = microdata %>%
+  filter(col_end == 2010) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_09","coh_11":"coh_16")) %>%
+  rename(col_shock = coh_10) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_09","coh_11":"coh_16")) %>%
+  rename(hs_shock = coh_10) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary11 = microdata %>%
+  filter(col_end == 2011) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_10","coh_12":"coh_16")) %>%
+  rename(col_shock = coh_11) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_10","coh_12":"coh_16")) %>%
+  rename(hs_shock = coh_11) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary12 = microdata %>%
+  filter(col_end == 2012) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_11","coh_13":"coh_16")) %>%
+  rename(col_shock = coh_12) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_11","coh_13":"coh_16")) %>%
+  rename(hs_shock = coh_12) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary13 = microdata %>%
+  filter(col_end == 2013) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_12","coh_14":"coh_16")) %>%
+  rename(col_shock = coh_13) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_12","coh_14":"coh_16")) %>%
+  rename(hs_shock = coh_13) %>%
+  relocate(hs_shock, .before = "col_start") 
+all_binary14 = microdata %>%
+  filter(col_end == 2014) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_13","coh_15":"coh_16")) %>%
+  rename(col_shock = coh_14) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_13","coh_15":"coh_16")) %>%
+  rename(hs_shock = coh_14) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary15 = microdata %>%
+  filter(col_end == 2015) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_14","coh_16")) %>%
+  rename(col_shock = coh_15) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_14","coh_16")) %>%
+  rename(hs_shock = coh_15) %>%
+  relocate(hs_shock, .before = "col_start")
+all_binary16 = microdata %>%
+  filter(col_end == 2016) %>%
+  left_join(col_shock, by = "col_cbsa") %>%
+  select(-c("coh_02":"coh_15")) %>%
+  rename(col_shock = coh_16) %>%
+  relocate(col_shock, .before = "barrons") %>%
+  left_join(hs_shock, by = "hs_cbsa") %>%
+  select(-c("coh_02":"coh_15")) %>%
+  rename(hs_shock = coh_16) %>%
+  relocate(hs_shock, .before = "col_start")
+# Rejoin individual graduation years
+# Add binary variable to check if individual left hs CBSA for college
+all_binary_final = rbind(all_binary02,
+                         all_binary03,
+                         all_binary04,
+                         all_binary05,
+                         all_binary06,
+                         all_binary07,
+                         all_binary08,
+                         all_binary09,
+                         all_binary10,
+                         all_binary11,
+                         all_binary12,
+                         all_binary13,
+                         all_binary14,
+                         all_binary15,
+                         all_binary16) %>%
+  ungroup() %>%
+  group_by(user_id) %>%
+  mutate(col_hs_diff_cbsa = ifelse(col_cbsa == hs_cbsa,0,1))
+```
+
+
+##    Creating Dummies
+Binary dummies for Barron's selectivity ratings and deciles for labor demand shocks
+```{r final clean, include=FALSE}
+# Land Grant: LANDGRNT == 1
+# Not land grant: LANDGRNT == 2
+
+# Public Non-Profit CONTROL == 1
+# Private Non-Profit: CONTROL == 2
+# Private For-Profit: CONTROL == 3
+
+# Historically Black Institution: HBCU == 1
+# Primarily White Institution: HBCU == 2
+regression_data = all_binary_final %>%  
+  mutate(freq_barrons = 1,
+         freq_hs = 1,
+         freq_col = 1,
+         freq_cont = 1
+         ) %>%
+  pivot_wider(names_from = "barrons",
+              values_from = "freq_barrons",
+              names_prefix = "barrons_",
+              names_sort = TRUE,
+              values_fill = 0
+              ) %>%
+  # Combine Barron's ratings 5, 9, and 999
+  mutate(barrons_last = barrons_5 + barrons_9 + barrons_999) %>%
+  filter(is.na(col_shock)==FALSE) %>%
+  mutate(hs_decile = ntile(hs_shock, n = 10),
+         col_decile = ntile(col_shock, n = 10)) %>%
+  pivot_wider(names_from = "hs_decile", 
+              values_from = "freq_hs",
+              names_prefix = "hs_decile",
+              names_sort = TRUE,
+              values_fill = 0
+              ) %>%
+  pivot_wider(names_from = "col_decile", 
+              values_from = "freq_col",
+              names_prefix = "col_decile",
+              names_sort = TRUE,
+              values_fill = 0) %>%
+  # Convert institutional control to dummies
+  pivot_wider(names_from = "CONTROL",
+              values_from = "freq_cont",
+              names_prefix = "control",
+              names_sort = TRUE,
+              values_fill = 0) %>%
+  mutate(pub_eli = case_when(control1 == 1 & ((barrons_1 | barrons_2)==1) ~ 1,
+                             TRUE ~ 0),
+         pri_eli = case_when(control2 == 1 & ((barrons_1 | barrons_2)==1) ~ 1,
+                             TRUE ~ 0),
+         pub_sel = case_when(control1 == 1 & barrons_3 == 1 ~ 1,
+                             TRUE ~ 0),
+         pri_sel = case_when(control2 == 1 & barrons_3 == 1 ~ 1,
+                             TRUE ~ 0),
+         pub_non = case_when(control1 == 1 & barrons_4 == 1 ~ 1,
+                             TRUE ~ 0),
+         pri_non = case_when(control2 == 1 & barrons_4 == 1 ~ 1,
+                             TRUE ~ 0),
+         pub_last = case_when(control1 == 1 & barrons_last == 1 ~ 1,
+                             TRUE ~ 0),
+         pri_last = case_when(control2 == 1 & barrons_last == 1 ~ 1,
+                             TRUE ~ 0),
+         for_prof = case_when(control3 == 1 ~ 1,
+                              TRUE ~ 0)
+         )
+```
+
+##    Regressions!
+hs_state * col_end fixed effects
+Variable must be omitted for decile dummies to work
+1 is the lowest decile by default
+10 is the highest
+Strongest labor demand shocks are in decile 10
+
+```{r regression cbsa, include=FALSE}
+# Most parsimonious (no major, interactions, state-year fixed effects)
+attempt1 = lm(data = regression_data, same_cbsa ~  
+                #barrons_1 + barrons_2 + barrons_3 + barrons_4 + 
+                # Formerly Beta_1
+                hs_decile1 + hs_decile2 + hs_decile3 + hs_decile4 + hs_decile4 +
+                hs_decile5 + hs_decile6 + hs_decile7 +
+                hs_decile8 + hs_decile9 + #hs_decile10 + 
+                # Formerly Beta_2
+                col_decile1 + col_decile2 + col_decile3 + col_decile4 +
+                col_decile5 + col_decile6 + col_decile7 + col_decile8 +
+                col_decile9 +
+                # New coefficient for institutional control relative to elite public college
+                pri_eli + 
+                pub_sel + pri_sel + 
+                pub_non + pri_non +
+                pub_last + pri_last +
+                for_prof)
+
+# Include state-year fixed effects
+attempt2 = lm(data = regression_data, same_cbsa ~  
+                #barrons_1 + barrons_2 + barrons_3 + barrons_4 + 
+                # Formerly Beta_1
+                hs_decile1 + hs_decile2 + hs_decile3 + hs_decile4 + hs_decile4 +
+                hs_decile5 + hs_decile6 + hs_decile7 +
+                hs_decile8 + hs_decile9 + #hs_decile10 + 
+                # Formerly Beta_2
+                col_decile1 + col_decile2 + col_decile3 + col_decile4 +
+                col_decile5 + col_decile6 + col_decile7 + col_decile8 +
+                col_decile9 + #col_decile10 + 
+                pri_eli + 
+                pub_sel + pri_sel + 
+                pub_non + pri_non +
+                pub_last + pri_last +
+                for_prof +
+                (hs_state * col_end))
+
+# State-year fixed effects and shock decile interactions 
+# R automatically excludes the 10th decile, which are the largest labor demand shocks
+# Holding selectivity constant, individuals who attended college in weaker local labor markets are more likely to leave their hometown
+# [Beta]% more likely to leave hometown than somebody from the least selective
+# Other binaries will be relative to omitted variable 
+attempt3 = lm(data = regression_data, same_cbsa ~  
+                #barrons_1 + barrons_2 + barrons_3 + barrons_4 + 
+                # Formerly Beta_1
+                hs_decile1 + hs_decile2 + hs_decile3 + hs_decile4 + hs_decile4 +
+                hs_decile5 + hs_decile6 + hs_decile7 +
+                hs_decile8 + hs_decile9 + #hs_decile10 + 
+                # Formerly Beta_2
+                col_decile1 + col_decile2 + col_decile3 + col_decile4 +
+                col_decile5 + col_decile6 + col_decile7 + col_decile8 +
+                col_decile9 + #col_decile10 + 
+                pri_eli + 
+                pub_sel + pri_sel + 
+                pub_non + pri_non +
+                pub_last + pri_last +
+                for_prof +
+                # Formerly Beta_3
+                (hs_decile1 * col_hs_diff_cbsa) + 
+                (hs_decile2 * col_hs_diff_cbsa) +
+                (hs_decile3 * col_hs_diff_cbsa) +
+                (hs_decile4 * col_hs_diff_cbsa) +
+                (hs_decile5 * col_hs_diff_cbsa) +
+                (hs_decile6 * col_hs_diff_cbsa) +
+                (hs_decile7 * col_hs_diff_cbsa) +
+                (hs_decile8 * col_hs_diff_cbsa) +
+                (hs_decile9 * col_hs_diff_cbsa) +
+                (hs_decile10 * col_hs_diff_cbsa) +               
+                # Formerly Beta_4
+                # People who go to college in weak labor markets are
+                # more likely to stay in their hometowns 
+                (col_decile1 * col_hs_diff_cbsa) + 
+                (col_decile2 * col_hs_diff_cbsa) +
+                (col_decile3 * col_hs_diff_cbsa) +
+                (col_decile4 * col_hs_diff_cbsa) +
+                (col_decile5 * col_hs_diff_cbsa) +
+                (col_decile6 * col_hs_diff_cbsa) +
+                (col_decile7 * col_hs_diff_cbsa) +
+                (col_decile8 * col_hs_diff_cbsa) +
+                (col_decile9 * col_hs_diff_cbsa) +
+                (col_decile10 * col_hs_diff_cbsa) +
+                (hs_state * col_end))
+
+# State-year fixed effects, shock decile interactions, major fixed effects
+# Using barrons_last as basis for selectivity
+# Tenth decile of labor demand shocks in high school and college 
+attempt4 = lm(data = regression_data, same_cbsa ~  
+                #barrons_1 + barrons_2 + barrons_3 + barrons_4 +
+                # Formerly Beta_1
+                hs_decile1 + hs_decile2 + hs_decile3 + hs_decile4 + hs_decile4 +
+                hs_decile5 + hs_decile6 + hs_decile7 +
+                hs_decile8 + hs_decile9 + #hs_decile10 + 
+                # Formerly Beta_2
+                col_decile1 + col_decile2 + col_decile3 + col_decile4 +
+                col_decile5 + col_decile6 + col_decile7 + col_decile8 +
+                col_decile9 + #col_decile10 + 
+                control2 + control3 +
+                pri_eli + 
+                pub_sel + pri_sel + 
+                pub_non + pri_non +
+                pub_last + pri_last +
+                for_prof +
+                # Formerly Beta_3
+                (hs_decile1 * col_hs_diff_cbsa) + 
+                (hs_decile2 * col_hs_diff_cbsa) +
+                (hs_decile3 * col_hs_diff_cbsa) +
+                (hs_decile4 * col_hs_diff_cbsa) +
+                (hs_decile5 * col_hs_diff_cbsa) +
+                (hs_decile6 * col_hs_diff_cbsa) +
+                (hs_decile7 * col_hs_diff_cbsa) +
+                (hs_decile8 * col_hs_diff_cbsa) +
+                (hs_decile9 * col_hs_diff_cbsa) +
+    #            (hs_decile10 * col_hs_diff_cbsa) +               
+                # Formerly Beta_4
+                # People who go to college in weak labor markets are
+                # more likely to stay in their hometowns 
+                (col_decile1 * col_hs_diff_cbsa) + 
+                (col_decile2 * col_hs_diff_cbsa) +
+                (col_decile3 * col_hs_diff_cbsa) +
+                (col_decile4 * col_hs_diff_cbsa) +
+                (col_decile5 * col_hs_diff_cbsa) +
+                (col_decile6 * col_hs_diff_cbsa) +
+                (col_decile7 * col_hs_diff_cbsa) +
+                (col_decile8 * col_hs_diff_cbsa) +
+                (col_decile9 * col_hs_diff_cbsa) +
+  #              (col_decile10 * col_hs_diff_cbsa) +
+  #              (starts_with(hs_decile) * col_hs_diff_cbsa) +
+                (hs_state * col_end) +
+                major
+  ) 
+
+```
+
+
+```{r regression state, include=FALSE}
+# Most parsimonious (no major, interactions, state-year fixed effects)
+attempt5 = lm(data = regression_data, same_state ~  
+                #barrons_1 + barrons_2 + barrons_3 + barrons_4 + 
+                # Formerly Beta_1
+                hs_decile1 + hs_decile2 + hs_decile3 + hs_decile4 + hs_decile4 +
+                hs_decile5 + hs_decile6 + hs_decile7 +
+                hs_decile8 + hs_decile9 + #hs_decile10 + 
+                # Formerly Beta_2
+                col_decile1 + col_decile2 + col_decile3 + col_decile4 +
+                col_decile5 + col_decile6 + col_decile7 + col_decile8 +
+                col_decile9 +
+                # New coefficient for institutional control relative to elite public college
+                pri_eli + 
+                pub_sel + pri_sel + 
+                pub_non + pri_non +
+                pub_last + pri_last +
+                for_prof)
+
+# Include state-year fixed effects
+attempt6 = lm(data = regression_data, same_state ~  
+                #barrons_1 + barrons_2 + barrons_3 + barrons_4 + 
+                # Formerly Beta_1
+                hs_decile1 + hs_decile2 + hs_decile3 + hs_decile4 + hs_decile4 +
+                hs_decile5 + hs_decile6 + hs_decile7 +
+                hs_decile8 + hs_decile9 + #hs_decile10 + 
+                # Formerly Beta_2
+                col_decile1 + col_decile2 + col_decile3 + col_decile4 +
+                col_decile5 + col_decile6 + col_decile7 + col_decile8 +
+                col_decile9 + #col_decile10 + 
+                pri_eli + 
+                pub_sel + pri_sel + 
+                pub_non + pri_non +
+                pub_last + pri_last +
+                for_prof +
+                (hs_state * col_end))
+
+# State-year fixed effects and shock decile interactions 
+# R automatically excludes the 10th decile, which are the largest labor demand shocks
+# Holding selectivity constant, individuals who attended college in weaker local labor markets are more likely to leave their hometown
+# [Beta]% more likely to leave hometown than somebody from the least selective
+# Other binaries will be relative to omitted variable 
+attempt7 = lm(data = regression_data, same_state ~  
+                #barrons_1 + barrons_2 + barrons_3 + barrons_4 + 
+                # Formerly Beta_1
+                hs_decile1 + hs_decile2 + hs_decile3 + hs_decile4 + hs_decile4 +
+                hs_decile5 + hs_decile6 + hs_decile7 +
+                hs_decile8 + hs_decile9 + #hs_decile10 + 
+                # Formerly Beta_2
+                col_decile1 + col_decile2 + col_decile3 + col_decile4 +
+                col_decile5 + col_decile6 + col_decile7 + col_decile8 +
+                col_decile9 + #col_decile10 + 
+                pri_eli + 
+                pub_sel + pri_sel + 
+                pub_non + pri_non +
+                pub_last + pri_last +
+                for_prof +
+                # Formerly Beta_3
+                (hs_decile1 * col_hs_diff_cbsa) + 
+                (hs_decile2 * col_hs_diff_cbsa) +
+                (hs_decile3 * col_hs_diff_cbsa) +
+                (hs_decile4 * col_hs_diff_cbsa) +
+                (hs_decile5 * col_hs_diff_cbsa) +
+                (hs_decile6 * col_hs_diff_cbsa) +
+                (hs_decile7 * col_hs_diff_cbsa) +
+                (hs_decile8 * col_hs_diff_cbsa) +
+                (hs_decile9 * col_hs_diff_cbsa) +
+                (hs_decile10 * col_hs_diff_cbsa) +               
+                # Formerly Beta_4
+                # People who go to college in weak labor markets are
+                # more likely to stay in their hometowns 
+                (col_decile1 * col_hs_diff_cbsa) + 
+                (col_decile2 * col_hs_diff_cbsa) +
+                (col_decile3 * col_hs_diff_cbsa) +
+                (col_decile4 * col_hs_diff_cbsa) +
+                (col_decile5 * col_hs_diff_cbsa) +
+                (col_decile6 * col_hs_diff_cbsa) +
+                (col_decile7 * col_hs_diff_cbsa) +
+                (col_decile8 * col_hs_diff_cbsa) +
+                (col_decile9 * col_hs_diff_cbsa) +
+                (col_decile10 * col_hs_diff_cbsa) +
+                (hs_state * col_end))
+
+# State-year fixed effects, shock decile interactions, major fixed effects
+# Using barrons_last as basis for selectivity
+# Tenth decile of labor demand shocks in high school and college 
+attempt8 = lm(data = regression_data, same_state ~  
+                #barrons_1 + barrons_2 + barrons_3 + barrons_4 +
+                # Formerly Beta_1
+                hs_decile1 + hs_decile2 + hs_decile3 + hs_decile4 + hs_decile4 +
+                hs_decile5 + hs_decile6 + hs_decile7 +
+                hs_decile8 + hs_decile9 + #hs_decile10 + 
+                # Formerly Beta_2
+                col_decile1 + col_decile2 + col_decile3 + col_decile4 +
+                col_decile5 + col_decile6 + col_decile7 + col_decile8 +
+                col_decile9 + #col_decile10 + 
+                control2 + control3 +
+                pri_eli + 
+                pub_sel + pri_sel + 
+                pub_non + pri_non +
+                pub_last + pri_last +
+                for_prof +
+                # Formerly Beta_3
+                (hs_decile1 * col_hs_diff_cbsa) + 
+                (hs_decile2 * col_hs_diff_cbsa) +
+                (hs_decile3 * col_hs_diff_cbsa) +
+                (hs_decile4 * col_hs_diff_cbsa) +
+                (hs_decile5 * col_hs_diff_cbsa) +
+                (hs_decile6 * col_hs_diff_cbsa) +
+                (hs_decile7 * col_hs_diff_cbsa) +
+                (hs_decile8 * col_hs_diff_cbsa) +
+                (hs_decile9 * col_hs_diff_cbsa) +
+    #            (hs_decile10 * col_hs_diff_cbsa) +               
+                # Formerly Beta_4
+                # People who go to college in weak labor markets are
+                # more likely to stay in their hometowns 
+                (col_decile1 * col_hs_diff_cbsa) + 
+                (col_decile2 * col_hs_diff_cbsa) +
+                (col_decile3 * col_hs_diff_cbsa) +
+                (col_decile4 * col_hs_diff_cbsa) +
+                (col_decile5 * col_hs_diff_cbsa) +
+                (col_decile6 * col_hs_diff_cbsa) +
+                (col_decile7 * col_hs_diff_cbsa) +
+                (col_decile8 * col_hs_diff_cbsa) +
+                (col_decile9 * col_hs_diff_cbsa) +
+  #              (col_decile10 * col_hs_diff_cbsa) +
+  #              (starts_with(hs_decile) * col_hs_diff_cbsa) +
+                (hs_state * col_end) +
+                major
+  ) 
+
+```
+
+##    Exporting Regression Result
+```{r regression export, include=FALSE}
+
+
+texreg(list(attempt1, attempt2, attempt3, attempt4),
+       custom.model.names = c("Shock Only",
+                              "Shock \\ State-Year FE",
+                              "Shock \\ State-Year FE \\ LD Shock $\times$ Return",
+                              "Labor Shock \\ State-Year FE \\ LD Shock $\times$ Return \\ Major"),
+       custom.coef.names = c("Private Elite",
+                             "Public Selective",
+                             "Private Selective",
+                             "Public Competitve",
+                             "Private Competitive ",
+                             "Public Non-Competitive",
+                             "Private Non-Competitive",
+                             "For Profit",
+                             "Moving for College"),
+       custom.header = list("Residing in Same Labor Market as High School" = 1:4),
+      caption = "Labor market-level retention under different specifications. All of the coefficients except 'Moving for College' are dummy variables relative to public elite universities. For example, a negative 'Private Elite' coefficient indicates graduates of private elite universities are less likely to stay in their home labor market than graduates of public elite universities.",
+      center = TRUE,
+      digits = 3,
+      omit.coef=c('Intercept|barrons_1|barrons_2|barrons_3|barrons_4|hs_state|col_end|hs_decile|col_decile|major|control'))
+
+
+texreg(list(attempt5, attempt6, attempt7, attempt8),
+       custom.model.names = c("Shock Only",
+                              "Shock \\ State-Year FE",
+                              "Shock \\ State-Year FE \\ LD Shock $\times$ Return",
+                              "Labor Shock \\ State-Year FE \\ LD Shock $\times$ Return \\ Major"),
+       custom.coef.names = c("Private Elite",
+                             "Public Selective",
+                             "Private Selective",
+                             "Public Competitve",
+                             "Private Competitive ",
+                             "Public Non-Competitive",
+                             "Private Non-Competitive",
+                             "For Profit",
+                             "Moving for College"),
+       custom.header = list("Residing in Same State as High School" = 1:4),
+      caption = "State-level retention under different specifications. All of the coefficients except 'Moving for College' are dummy variables relative to public elite universities. For example, a negative 'Private Elite' coefficient indicates graduates of private elite universities are less likely to stay in their home state than graduates of public elite universities.",
+      center = TRUE,
+      digits = 3,
+      omit.coef=c('Intercept|barrons_1|barrons_2|barrons_3|barrons_4|hs_state|col_end|hs_decile|col_decile|major|control'))
+
+```
+
+##    Tables for Internal Use
+```{r internal, include=FALSE}
+# Problem: the negative effect of attending elite institution likely diluted
+# because 58 percent students in sample who attend selective universities originate 
+# in New England
+
+# Compare migration by selectivity
+elite = regression_data %>% 
+  filter(col_name == "Cornell University") %>%
+  group_by(col_name) %>%
+  summarize(n = n()) %>%
+  arrange(n)
+  mutate(shr = n/sum(n))
+
+elite_state = regression_data %>% 
+          group_by(hs_state) %>%
+          summarize(n = n()) %>%
+          mutate(shr = n/sum(n))
+
+# Are graduates of public elite universities more likely to return home than their peers at private institutions?
+cont = regression_data %>% 
+  filter(CONTROL == 3) %>%
+  group_by(col_name) %>%
+  summarize(n = n()) %>%
+  mutate(shr = n/sum(n))
+```
+
+##    Tables for Paper
+```{r external, include=FALSE}
+major_dist = all_binary_final %>% group_by(barrons,major) %>% summarize(n = n())
+sel_dist = major_dist %>% group_by(barrons) %>% summarize(total = sum(n))
+big_majors = major_dist %>% 
+  left_join(sel_dist, by = "barrons") %>% 
+  filter(major %in% c("Business","Engineering")) %>% 
+  mutate(Selectivity = case_when(barrons == 1 | barrons == 2 ~ "Elite",
+                          barrons == 3 ~ "Selective",
+                          barrons == 4 ~ "Competitive",
+                          barrons %in% c(5,9) ~ "Non-Competitive",
+                          barrons == 999 ~ "For-Profit"))
+
+big_majors$Selectivity = factor(big_majors$Selectivity,ordered = TRUE, 
+                       levels = c("Elite","Selective","Competitive","Non-Competitive","For-Profit"))
+major_sel_table = big_majors %>%  
+  group_by(Selectivity,major) %>%
+  summarize(n = sum(n),
+            total = sum(total)) %>%
+  mutate(pct = n/total) %>%
+  select(-c(n,total)) %>%
+  distinct() %>%
+  pivot_wider(names_from = major,
+              values_from = pct) %>%
+  mutate(Business = Business * 100,
+         Engineering = Engineering * 100) %>%
+  mutate(Selectivity = as.character(Selectivity))
+ 
+stargazer(major_sel_table[,1:3], 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1)
+          #covariate.labels=c("Selectivity",
+          #                   "Business",
+          #                   "Engineering"),
+          #rownames = TRUE,
+          digit.separator = ","
+          )
+
+col_inc_dist = read_xlsx(paste(directory,"Data/chetty_college_inc_dist.xlsx",sep="/"))
+dist_by_sel = col_inc_dist %>% 
+  filter(is.na(selectivity_nick)==FALSE) %>%
+  group_by(selectivity_nick) %>% 
+  summarize(par_q1_n = sum(par_q1_n),
+            par_q2_n = sum(par_q2_n),
+            par_q3_n = sum(par_q3_n),
+            par_q4_n = sum(par_q4_n),
+            par_q5_n = sum(par_q5_n)) %>%
+  mutate(total = par_q1_n + par_q2_n + par_q3_n + par_q4_n + par_q5_n) %>%
+  mutate(par_q1_pct = par_q1_n/total * 100,
+         par_q2_pct = par_q2_n/total * 100,
+         par_q3_pct = par_q3_n/total * 100,
+         par_q4_pct = par_q4_n/total * 100,
+         par_q5_pct = par_q5_n/total * 100) %>%
+  select(c(selectivity_nick,total:par_q5_pct))
+
+dist_by_sel$selectivity_nick = factor(dist_by_sel$selectivity_nick,ordered = TRUE, 
+                       levels = c("Public Elite",
+                                  "Private Elite",
+                                  "Public Selective",
+                                  "Private Selective",
+                                  "Public Competitive",
+                                  "Private Competitive",
+                                  "Public Non-Competitive",
+                                  "Private Non-Competitive",
+                                  "For Profit"))
+
+
+dist_by_sel = dist_by_sel %>% arrange(selectivity_nick) %>% mutate(selectivity_nick = as.character(selectivity_nick))
+
+
+stargazer(dist_by_sel, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = NULL,
+          digits.extra=NULL,
+          covariate.labels=c("Selectivity",
+                             "Total Graduates, 2013",
+                             "From Q1",
+                             "From Q2",
+                             "From Q3",
+                             "From Q4",
+                             "From Q5"),
+          #rownames = TRUE,
+          digit.separator = ","
+          )  
+
+
+selectivity = regression_data %>%
+  mutate(sel = case_when(barrons_1 == 1 ~ 1,
+                         barrons_2 == 1 ~ 2,
+                         barrons_3 == 1 ~ 3,
+                         barrons_4 == 1 ~ 4,
+                         barrons_last == 1 ~ 5)) %>%
+  group_by(sel) %>%
+  summarize(same_cbsa = sum(same_cbsa, na.rm = TRUE),
+            same_state = sum(same_state, na.rm = TRUE),
+            in_state_col = sum(in_state_col, na.rm = TRUE),
+            col_hs_diff_cbsa = sum(col_hs_diff_cbsa, na.rm = TRUE),
+            total = n()
+  )
+
+selectivity_control = regression_data %>%
+  mutate(sel = case_when(barrons_1 == 1 ~ 1,
+                         barrons_2 == 1 ~ 2,
+                         barrons_3 == 1 ~ 3,
+                         barrons_4 == 1 ~ 4,
+                         barrons_last == 1 ~ 5)) %>%
+  group_by(sel, control1) %>%
+  summarize(same_cbsa = sum(same_cbsa, na.rm = TRUE),
+            same_state = sum(same_state, na.rm = TRUE),
+            total = n()
+  )
+
+
+selectivity_table = selectivity %>%
+  mutate(same_cbsa_shr = (same_cbsa/total)*100,
+         same_state_shr = round((same_state/total)*100, 1),
+         in_state_col_shr = round((in_state_col/total)*100, 1),
+         col_hs_diff_cbsa_shr =  round((1-(col_hs_diff_cbsa/total))*100, 1)) %>%
+  select(-c(same_cbsa:col_hs_diff_cbsa)) %>%
+  relocate(total, .after = col_hs_diff_cbsa_shr) %>%
+  mutate(sel = case_when(sel == 1 ~ "Elite",
+                         sel == 2 ~ "More Selective",
+                         sel == 3 ~ "Selective",
+                         sel == 4 ~ "Less Selective",
+                         sel == 5 ~ "Least Selective"))
+stargazer(selectivity_table, 
+          summary = FALSE,
+          covariate.labels=c("Selectivity",
+                             "Same LM",
+                             "Same State",
+                             "In-State College",
+                             "College in Same LM"),
+          rownames = FALSE,
+          digit.separator = ",",
+          digits = 1)
+
+```
+
+##    Remove Individual Years
+```{delete}
+rm(all_binary02, all_binary03, all_binary04, all_binary05, all_binary06,
+   all_binary07, all_binary08, all_binary09, all_binary10, all_binary11,
+   all_binary12, all_binary13, all_binary14, all_binary15, all_binary16)
+```

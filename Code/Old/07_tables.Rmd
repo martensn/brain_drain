@@ -1,0 +1,523 @@
+---
+title: "05_visualizations"
+author: "Nicholas Martens"
+date: "2024-01-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(extrafont)
+library(tidyverse)
+library(tidycensus)
+library(sf)
+library(spdep)
+library(sf)
+library(texreg)
+library(scales)
+library(stargazer)
+library(tidycensus)
+library(ggplot2)
+library(data.table)
+
+# Only needs to run once
+font_import(pattern = "lmroman*")
+loadfonts()
+
+#directory = "/Volumes/lsa-areynoso"
+directory = "/nfs/turbo/lsa-areynoso"
+
+# Height, width, units, and background for maps
+hei = 3.75
+wid = 6.5
+dpi = 600
+bkgrnd = 'transparent'
+unit = "in"
+
+# Ensures stargazer tables have three digits instead of a zero after the first two
+options(digits=3)
+```
+
+Declare %nin% so we can filter observations
+```{r negate, include=FALSE}
+`%nin%` = Negate(`%in%`)
+```
+
+##    Summary Statistics Table
+
+```{r sumstat}
+majors = names(institutional_characteristics)[2:11]
+
+sumstat_major = institutional_characteristics %>%
+  ungroup(unitid) %>%
+  filter(!is.na(total_deg_awarded)) %>%
+  select(c(majors,"inst_group","total_deg_awarded")) %>%
+  group_by(inst_group) %>%
+  summarize(across(everything(), ~ sum(.x, na.rm = TRUE))) %>%
+  mutate(across(all_of(majors), ~ (.x / total_deg_awarded) * 100, .names = "{col}")) %>%
+  select(-c(total_deg_awarded)) %>%
+  pivot_longer(majors, names_to = "metric", values_to = "shr") %>%
+  pivot_wider(names_from = inst_group, values_from = shr)
+
+sumstat_acceptance = institutional_characteristics %>%
+  ungroup(unitid) %>%
+  group_by(inst_group) %>%
+  filter(!is.na(total_deg_awarded)) %>%
+  select(c("inst_group","avg_acceptance","total_deg_awarded")) %>%
+  summarize(acceptance_rate = weighted.mean(avg_acceptance, w = total_deg_awarded)) %>%
+  pivot_longer(!inst_group, names_to = "metric", values_to = "shr") %>%
+  pivot_wider(names_from = inst_group, values_from = shr)
+
+quantile_cols = c("par_bottom60","par_top20","par_top01","k_bottom60","k_top20","k_top01")
+
+sumstat_mobility = institutional_characteristics %>%
+  ungroup(unitid) %>%
+  group_by(inst_group) %>%
+  filter(!is.na(mobility_n)) %>%
+  summarize(mobility_rate = weighted.mean(mobility_rate, w = mobility_n) * 100,
+            par_mean = weighted.mean(par_mean, w = mobility_n),
+            k_mean = weighted.mean(k_mean, w = mobility_n),
+            mobility_n = sum(mobility_n),
+            across(all_of(quantile_cols), ~ sum(.x / mobility_n, na.rm = TRUE) * 100)) %>%
+  pivot_longer(!inst_group, names_to = "metric", values_to = "value") %>%
+  filter(metric != "mobility_n") %>%
+  pivot_wider(names_from = inst_group, values_from = value)
+
+sumstat_finance = institutional_characteristics %>%
+  ungroup(unitid) %>%
+  group_by(inst_group) %>%
+  filter(!is.na(rev_total_current)) %>%
+  summarize(rev_appropriations_state = sum(rev_appropriations_state),
+            rev_tuition_fees = sum(rev_tuition_fees),
+            rev_total_current = sum(rev_total_current)) %>%
+  mutate(appropriations_shr = (rev_appropriations_state / rev_total_current) * 100,
+         tuition_shr = (rev_tuition_fees / rev_total_current) * 100) %>%
+  select(-c(starts_with("rev"))) %>%
+  pivot_longer(!inst_group, names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = inst_group, values_from = value)
+
+gradrate_cols = c("completers_100pct","completers_150pct","completers_200pct",
+                  "cohort_adj_150pct","cohort_adj_200pct")
+
+sumstat_gradrate = institutional_characteristics %>%
+  ungroup(unitid) %>%
+  group_by(inst_group) %>%
+  filter(!is.na(cohort_adj_150pct)) %>%
+  summarize(across(all_of(gradrate_cols) , ~ sum(.x, na.rm = TRUE))) %>%
+  mutate(completed_100pct = (completers_100pct / cohort_adj_150pct) * 100,
+         completed_150pct = (completers_150pct / cohort_adj_150pct) * 100,
+         completed_200pct = (completers_200pct / cohort_adj_200pct) * 100) %>%
+  select(-c(starts_with("completers"),starts_with("cohort"))) %>%
+  pivot_longer(!inst_group, names_to = "metric", values_to = "value") %>%
+  pivot_wider(names_from = inst_group, values_from = value)
+
+sumstat = rbind(sumstat_major,sumstat_acceptance,sumstat_mobility,sumstat_finance,sumstat_gradrate)
+```
+
+##    Table of Institutional Group Levels
+
+```{r inst sumstat}
+
+# Order that institutions will appear in table
+col_order = c("Public Flagship","RPU, More Selective","RPU, Less Selective",
+              "Private, Non-Profit","Private, For-Profit")
+
+# Calculating return rates by institutional groups 
+inst_levels = regression %>%
+  as.data.frame() %>%
+  mutate(in_state = case_when(in_state == "In-State" ~ "is",
+                              in_state == "Out-of-State" ~ "oos"),
+         col_type = factor(col_type, ordered = TRUE,
+                           levels = col_order)) %>%
+  group_by(col_type,in_state) %>%
+  dplyr::summarise(same_cbsa_hs = sum(same_cbsa_hs),
+                   same_state_hs = sum(same_state_hs),
+                   n = n()) %>%
+  mutate(same_cbsa_prop = round((same_cbsa_hs/n) * 100,1),
+         same_state_prop = round((same_state_hs/n) * 100,1)) %>%
+  select(-c(same_cbsa_hs,same_state_hs)) %>%
+  pivot_wider(names_from = in_state,
+              values_from = c(same_cbsa_prop,same_state_prop,n)) %>%
+  mutate(cbsa_retention_gap = same_cbsa_prop_is - same_cbsa_prop_oos,
+         state_retention_gap = same_state_prop_is - same_state_prop_oos) %>%
+  relocate(c("n_is","n_oos"), .before = "same_cbsa_prop_is") %>%
+  relocate("cbsa_retention_gap", .after = "same_cbsa_prop_oos") %>%
+  # Convert institutional grouping back into character so it appears in table
+  mutate(col_type = as.character(col_type))
+
+# Splitting data into CBSA and state-level tables
+inst_levels_cbsa = inst_levels %>%
+  select(contains("cbsa"))
+inst_levels_state = inst_levels %>%
+  select(contains("state"))
+
+#inst_levels_is = inst_levels %>%
+#  select(ends_with("is"))
+#inst_levels_oos = inst_levels %>%
+#  select(ends_with("oos"))
+
+# Export tables
+stargazer(inst_levels_cbsa, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = TRUE,
+          covariate.labels = c("Institutional Grouping","Pct Returning, In-State","Pct Returning, Out-of-State","Difference"),
+          title = "Return rate to high school labor market, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"Outputs/Tables/inst-levels-cbsa.tex"),
+          digit.separator = ","
+          )
+stargazer(inst_levels_state, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = TRUE,
+          covariate.labels = c("Institutional Grouping","Pct Returning, In-State","Pct Returning, Out-of-State","Difference"),
+          title = "Return rate to high school state, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"Outputs/Tables/inst-levels-state.tex"),
+          digit.separator = ","
+          )
+
+
+median_distance = regression %>%
+  as.data.frame() %>%
+  filter(in_state == "Out-of-State") %>%
+  mutate(col_type = case_when(col_type == "RPU, More Selective" ~ "RPU",
+                              col_type == "RPU, Less Selective" ~ "RPU",
+                              TRUE ~ col_type)) %>%
+  group_by(col_type) %>%
+  summarize(pct10 = quantile(distance_mi, 0.10),
+            pct25 = quantile(distance_mi, 0.25),
+            median = median(distance_mi),
+            pct75 = quantile(distance_mi, 0.75),
+            pct90 = quantile(distance_mi, 0.90)
+            )
+
+```
+
+##    Table for Measuring Income Distribution by Institutional Group
+
+```{r chetty table}
+
+# Certain public flagships need to be manually recoded
+# pf.xlsx contains the correct names
+pffilename = "pf.xlsx"
+pf = read_excel(file.path(directory,"Data/07",pffilename),
+                 col_types = "text") %>%
+  mutate(col_type = "Public Flagship") 
+
+# Merge manually recoded Public Flagships with Chetty data  
+col_inc_dist = read_xlsx(paste(directory,"Data/chetty_college_inc_dist.xlsx",sep="/")) %>%
+  as.data.frame() %>%
+  mutate(name = str_to_lower(name)) %>%
+  left_join(pf, by = c("name"="chetty_name")) %>%
+  select(-c(institution,state.y,opeid)) %>%
+  mutate(col_type = case_when(super_opeid %in% pf$opeid ~ "Public Flagship",
+                                        type == "1" & tier %in% c("1","2","3","4") ~ "RPU, More Selective",
+                                        type == "1" & tier %in% c("5","9","999","Unrated") ~ "RPU, Less Selective",
+                                        type == "2" ~ "Private, Non-Profit",
+                                        TRUE ~ "Private, For-Profit"))
+
+inc_by_col_type = col_inc_dist %>% 
+  filter(is.na(col_type)==FALSE) %>%
+  group_by(col_type) %>% 
+  summarize(par_q1_n = sum(par_q1_n),
+            par_q2_n = sum(par_q2_n),
+            par_q3_n = sum(par_q3_n),
+            par_q4_n = sum(par_q4_n),
+            par_q5_n = sum(par_q5_n)) %>%
+  mutate(total = par_q1_n + par_q2_n + par_q3_n + par_q4_n + par_q5_n) %>%
+  mutate(par_q1_pct = round(par_q1_n/total * 100,1),
+         par_q2_pct = round(par_q2_n/total * 100,1),
+         par_q3_pct = round(par_q3_n/total * 100,1),
+         par_q4_pct = round(par_q4_n/total * 100,1),
+         par_q5_pct = round(par_q5_n/total * 100,1)) %>%
+  select(c(col_type,par_q1_pct:par_q5_pct)) %>%
+  rename("Grouping" = "col_type",
+         "Bottom" = "par_q1_pct",
+         "Lower Middle" = "par_q2_pct",
+         "Middle" = "par_q3_pct",
+         "Upper Middle" = "par_q4_pct",
+         "Top" = "par_q5_pct")
+
+stargazer(inc_by_col_type[1:6,], 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 3,
+          #style = "qje",
+          align = TRUE,
+          title = "Parental income distribution of students by institutional grouping",
+          float = TRUE,
+          #label = "table:observation",
+          digit.separator = ",",
+          out = file.path(directory,"/Outputs/Tables/income-distribution.tex")
+          )
+```
+
+##    Table for Estimating Quantiles
+
+```{r}
+
+quantifying_quantiles1 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_1) %>% 
+  dplyr::summarize(est1 = stats::weighted.mean(x = avg_1, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_1")
+quantifying_quantiles3 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_3) %>% 
+  dplyr::summarize(est3 = stats::weighted.mean(x = avg_3, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_3")
+quantifying_quantiles5 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_5) %>% 
+  dplyr::summarize(est5 = stats::weighted.mean(x = avg_5, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_5")
+quantifying_quantiles7 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_7) %>% 
+  dplyr::summarize(est7 = stats::weighted.mean(x = avg_7, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_7")
+
+quantifying_quantiles = quantifying_quantiles1 %>%
+  dplyr::left_join(quantifying_quantiles3, by = "ptile")  %>%
+  dplyr::left_join(quantifying_quantiles5, by = "ptile") %>%
+  dplyr::left_join(quantifying_quantiles7, by = "ptile") %>%
+  arrange(ptile)
+
+stargazer(quantifying_quantiles[1:10,], 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 3,
+          #style = "qje",
+          align = TRUE,
+          title = "Average employment shock by decile in 2021",
+          float = TRUE,
+          #label = "table:observation",
+          digit.separator = ",",
+          out = file.path(directory,"/Outputs/Tables/shocks.tex")
+          )
+
+```
+
+
+##    Table for Observation Accounting
+
+```{r}
+
+observation_accounting = data.table(Reason = c("All BA Completers in US",
+                      "Include HS",
+                      "Work history has geodata",
+                      "Work history has end date after start",
+                      "Work history has start or end date",
+                      paste0("Work history between 1975 and 2023"),
+                      "College appears in IPEDS",
+                      "Graduated college [1982,2021] and born [1930,2002]",
+                      "Educational institutions in 50 states or DC",
+                      "Final analytic sample"),
+           Sample = c(col_users_length,
+                      both_hs_col_length,
+                      no_work_location,
+                      non_chronological_work,
+                      no_work_date,
+                      no_work_hist,
+                      college_dne,
+                      birth_outliers,
+                      territory_hs_col,
+                      "Add later"))
+                      #nobs(models[[1]])))
+
+#tli.table <- xtable(observation_accounting[1:10, ])
+#print(tli.table, include.rownames = FALSE, booktabs = TRUE)
+
+stargazer(observation_accounting[1:10,], 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = TRUE,
+          title = "Effect of data cleaning on sample size",
+          float = TRUE,
+          out = file.path(directory,"/Outputs/Tables/observation-accounting.tex"),
+          #label = "table:observation",
+          digit.separator = ","
+          )
+          #caption = "Most LI users omit their high school, eliminating more than 90 percent of users. Imposing the requirement of at least one position with a location, start date, and end date removes users with minimal information on their profiles. Availability of County Business Patterns data resulted in the restrictions on college graduation. County-level estimates of labor demand shocks are only available until 2021. Most of the observations removed from the sample were people who graduated after 2021. The limits on estimated year of birth remove obvious outliers that likely stem from data entry errors.",
+          
+
+```
+
+
+##    Regressing Covariates 
+
+```{r}
+
+covariate = same_state %>%
+  left_join(fraction, by = "cbsa_code") %>%
+  left_join(prime_age, by = "cbsa_code") %>%
+  left_join(cbsa_dist, by = "cbsa_code") %>%
+  # NAs generated from merges should be zeroes because they stem
+  # from small sample size
+  mutate(col_hs_same_lm = if_else(is.na(col_hs_same_lm)==TRUE,0,col_hs_same_lm),
+         in_state = if_else(is.na(in_state)==TRUE,0,in_state),
+         dist = if_else(is.na(dist)==TRUE,0,dist))
+
+# Regress log LI users on hs inclusion rate to determine if people in small
+# towns are more likely to include it
+geo_analysis1 = lm(data = covariate, prime_age_prop ~ log(total), weights = total)
+geo_analysis2 = lm(data = covariate, prime_age_prop ~ log(total) + same_state + col_hs_same_lm + in_state + dist, weights = total)
+texreg(list(geo_analysis1,geo_analysis2),
+       file = paste0(directory,"/Outputs/Tables/geo_analysis.tex"),
+       custom.model.names = c("Size Only","Size and LM Characteristics"),
+       custom.coef.names = c("$log($Prime-Age College Grads Population)",
+                             "College Graduates Born in Same State",
+                             "College and HS in Same LM",
+                             "College and HS in Same State",
+                             "Attending Nearby College"
+                             ),
+      center = TRUE,
+      digits = 5,
+      align = TRUE,
+      omit.coef=c('Intercept'))
+
+
+```
+
+##    Appendix Table Measuring Distance Traveled by Out-of-State Students
+
+```{r out-of-state}
+
+oos_count = regression %>% 
+  as.data.frame() %>%
+  group_by(col_type,in_state) %>%
+  dplyr::summarize(total = n())
+
+oos_dist_long = regression %>% 
+  table.express::filter(in_state == "Out-of-State") %>%
+  as.data.frame() %>%
+  mutate(Distance = factor(dist,
+                           ordered = TRUE,
+                           levels = c("[0,50]","(50,100]","(100,150]","(150,200]",
+                              "(200,250]","(250,500]","(500,1e+03]","(1e+03,1e+04]")
+                            )) %>%
+  select(-dist)  %>%
+  group_by(Distance,col_type) %>%
+  dplyr::summarize(n = n()) 
+
+oos_totals = oos_dist_long %>%
+  group_by(col_type) %>%
+  dplyr::summarize(total = sum(n))
+
+oos_dist_wide = oos_dist_long %>%
+  dplyr::left_join(oos_totals, by = "col_type") %>%
+  mutate(pct = round((n/total)*100,1)) %>%
+  select(Distance,col_type,pct) %>%
+  pivot_wider(names_from = "col_type",
+              values_from = "pct") %>%
+  arrange(Distance) %>%
+  mutate(Distance = as.character(Distance)) %>%
+  relocate(Distance, .before = "Public Flagship")
+  
+names(oos_dist_wide) = c("Distance","Public\nFlagship","Priavate\nFor-Profit",
+                        "Priavate\nNon-Profit","RPU\nLess Selective","RPU\nMore Selective")
+
+stargazer(oos_dist_wide, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = NA,
+          #style = "qje",
+          align = TRUE,
+          #title = "Distance from high school to baccalaureate institution for out-of-state students, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"/Outputs/Tables/oos-dist-wide.tex"),
+          #label = "table:observation",
+          digit.separator = ","
+          )
+
+```
+
+##    Appendix Table Measuring Distance Traveled by In-State Students
+
+```{r in-state}
+
+is_count = regression %>% 
+  as.data.frame() %>%
+  group_by(col_type,in_state) %>%
+  dplyr::summarize(total = n())
+
+is_dist_long = regression %>% 
+  table.express::filter(in_state == "In-State")%>%
+  as.data.frame() %>%
+  mutate(Distance = factor(dist,
+                           ordered = TRUE,
+                           levels = c("[0,50]","(50,100]","(100,150]","(150,200]",
+                              "(200,250]","(250,500]","(500,1e+03]","(1e+03,1e+04]")
+                            )) %>%
+  select(-dist)  %>%
+  group_by(Distance,col_type) %>%
+  dplyr::summarize(n = n()) 
+
+is_totals = is_dist_long %>%
+  group_by(col_type) %>%
+  dplyr::summarize(total = sum(n))
+
+is_dist_wide = is_dist_long %>%
+  dplyr::left_join(is_totals, by = "col_type") %>%
+  mutate(pct = round((n/total)*100,1)) %>%
+  select(Distance,col_type,pct) %>%
+  pivot_wider(names_from = "col_type",
+              values_from = "pct") %>%
+  arrange(Distance) %>%
+  mutate(Distance = as.character(Distance)) %>%
+  relocate(Distance, .before = "Public Flagship")
+
+#names(is_dist_wide) = c("Distance","Public\nFlagship","Private\nFor-Profit",
+#                        "Private\nNon-Profit","RPU\nLess Selective","RPU\nMore Selective")
+
+stargazer(is_dist_wide, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = NA,
+          #style = "qje",
+          align = TRUE,
+          #title = "Distance from high school to baccalaureate institution for in-state students, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"/Outputs/Tables/is-dist-wide.tex"),
+          #label = "table:observation",
+          digit.separator = ","
+          )
+
+```
+
+
+##   Appendix Table of Public Flagships
+
+```{r pf}
+
+pf_table = pf %>%
+  select(c(institution,state)) %>%
+  rename(Institution = institution,
+         State = state)
+stargazer(pf_table[1:96,], 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = FALSE,
+          title = "Public Flagship Universities",
+          float = TRUE,
+          out = file.path(directory,"/Outputs/Tables/pf.tex"),
+          #label = "table:observation",
+          digit.separator = ","
+          )
+
+```

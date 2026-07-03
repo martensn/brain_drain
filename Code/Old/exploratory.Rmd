@@ -1,0 +1,112 @@
+---
+title: "undergraduate_cohort"
+author: "Nicholas Martens"
+date: "2024-07-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Setup
+
+```{r}
+library(priceR)
+library(readxl)
+library(rlang)
+library(tidycensus)
+library(tidyverse)
+library(dplyr)
+
+options(digits = 4)
+options(scipen = 999)
+
+root = "/Users/nickmartens/Dropbox (University of Michigan)/SSDAN"
+#guides = file.path(root,"Guides")
+#json = file.path(root,"JSON")
+
+```
+##    Dataset Specifications
+
+```{r}
+
+# Define states for which we want data
+#states <- 'all'
+states <- c("MI","MN")
+# Select version of ACS
+surv = "acs1"
+# Year of ACS
+yr = 2015
+
+
+acs_vars = c("SCHG","SCHL","AGEP","ST","SEX")
+```
+
+
+##    Pulling Microdata via Tidycensus
+
+```{r, warning=F}
+
+# Function to pull microdata from all 50 states and DC
+# Takes about 15 minutes
+get_pums_state <- function(st, yr) {
+  get_pums(
+    variables = acs_vars,
+    state = st,
+    survey = surv,
+    year = yr,
+    recode = TRUE
+  )
+}
+
+#raw = get_pums_state(st = states, yr)
+
+# List of years to specify
+years <- c(2010:2013)  # Replace with your desired years
+
+# Initialize an empty list to store data for each year
+all_data <- list()
+
+# Loop over each year and pull the data
+for (yr in years) {
+  data <- get_pums_state(st = states, yr)
+  data$year <- yr  # Add a column for the year
+  all_data[[as.character(yr)]] <- data
+}
+
+# Combine all data frames into one
+raw <- do.call(rbind, all_data)
+
+```
+
+##    Summarizing
+
+```{r}
+
+test = get_education_data(level = "college-university",
+                   source = "ipeds",
+                   topic = "grad-rates",
+                   filters = list(year = 2017),
+                   add_labels = TRUE) %>%
+  filter(institution_level == "Four or more years") %>%
+  filter(race == "Total" & sex == "Total" & subcohort == "Bachelor's or equivalent subcohort of four-year institutions")
+
+
+test_3 = get_education_data(level = "college-university",
+                   source = "ipeds",
+                   topic = "fall-enrollment",
+                   subtopic = "residence",
+                   filters = list(year = 2019),
+                   add_labels = TRUE)
+
+test_3 = get_education_data(level = "college-university",
+                   source = "ipeds",
+                   topic = "fall-enrollment",
+                   subtopic = c("age", "sex"),
+                   filters = list(year = 2019,
+                                  level_of_study = 'undergraduate'),
+                   add_labels = TRUE)
+```
+
+

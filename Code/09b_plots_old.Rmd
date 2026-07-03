@@ -1,0 +1,1432 @@
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(xtable)
+library(extrafont)
+library(educationdata)
+library(ggrepel)
+library(cartogram)
+library(spatstat)
+library(tidyverse)
+library(tidycensus)
+library(spdep)
+library(sf)
+library(texreg)
+library(scales)
+library(stargazer)
+library(ggplot2)
+library(data.table)
+
+# Only needs to run once
+#font_import(pattern = "lmroman*")
+#loadfonts()
+
+directory = "/Volumes/lsa-areynoso"
+#directory = "/nfs/turbo/lsa-areynoso"
+
+# Height, width, units, and background for maps
+hei = 3.75
+wid = 6.5
+dpi = 600
+bkgrnd = 'transparent'
+unit = "in"
+geos = c("cbsa","state")
+
+diverging_colors = c('#762a83','#9970ab','#c2a5cf','#e7d4e8','#f7f7f7','#d9f0d3','#a6dba0','#5aae61','#1b7837')
+prestige_bin_colors <- c("#7fc97f","#beaed4","#fdc086","#ffff99")
+inst_group_colors <- c("#F8766D","#7CAE00","#00BFC4","#C77CFF")
+monotonic_colors = c('#f7f7f7','#d9f0d3','#a6dba0','#5aae61','#1b7837') 
+return_colors = c()
+
+options(scipen = 999)
+# Ensures stargazer tables have three digits instead of a zero after the first two
+options(digits=3)
+`%nin%` = Negate(`%in%`)
+```
+
+##    ROI
+###   Plotting ROI Bar Chart
+
+```{r}
+# Bar chart data
+roi_bar <- roi %>%
+  # Merge with institutional characteristics to get institutional groupings
+  inner_join(institutional_characteristics %>% select(unitid, inst_group,state_abbr), by = "unitid") %>%
+  # Summarize at the institutional group level
+  #group_by(inst_group,state_abbr) %>%
+  filter(inst_group != "Private, For-Profit") %>%
+  group_by(inst_group) %>%
+  summarize(total_grads = sum(total_grads, na.rm = TRUE),
+            not_recruited_shr = (sum(not_recruited, na.rm = TRUE) / total_grads),
+            not_retained_shr = (sum(not_retained, na.rm = TRUE) / total_grads),
+            recruited_shr = (sum(recruited, na.rm = TRUE) / total_grads),
+            retained_shr = (sum(retained, na.rm = TRUE) / total_grads)) %>%
+  select(-c(total_grads)) %>%
+  pivot_longer(ends_with("shr"),names_to = "metric",values_to="shr") %>%
+  mutate(metric = str_replace_all(metric, "_", " ") %>%
+           str_replace_all("shr", "") %>%
+           str_to_title() %>%
+           trimws(),
+         inst_group = case_when(inst_group == "PF" ~ "Public Flagship",
+                                 TRUE ~ inst_group))
+
+custom_colors = c("Recruited" = '#d9f0d3',
+                  "Retained" = '#5aae61',
+                  "Not Retained" = '#9970ab',
+                  "Not Recruited" = '#e7d4e8') 
+
+
+# Create the bar plot
+ggplot(roi_bar, aes(x = shr, y = reorder(inst_group, shr), fill = metric)) +
+  geom_col(alpha = 0.7) +
+  labs(x = "Percent of Graduates", y = "Institutional Group") +
+  scale_fill_manual(values = custom_colors) +  # Apply custom colors
+  scale_x_continuous(labels = percent_format(),
+                     limits = c(0,1.01),
+                     expand = c(0.001,0)) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        text         = element_text(size=10, family="LM Roman 10"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank())
+ggsave(file = paste(directory,"/Outputs/","roi_bar.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+```
+
+##    Appendix 
+###   Omission
+####    Skippable Omission Cleaning
+```{r om clean, include=FALSE}
+
+in_hs_cols = paste("in_hs_cbsa",as.character(c(min_post_grad:max_post_grad)),sep="_")
+in_state_cols = paste("in_hs_state",as.character(c(min_post_grad:max_post_grad)),sep="_")
+
+survivorship = microdata[, (in_hs_cols) := lapply(.SD, `==`, hs_cbsa_code), .SDcols = paste("cbsa_code",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+survivorship[, (in_state_cols) := lapply(.SD, `==`, hs_state), .SDcols = paste("cbsa_state",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+  
+
+residence_cols = c(paste("in_hs_cbsa",as.character(c(min_post_grad:max_post_grad)),sep="_"),
+         paste("in_hs_state",as.character(c(min_post_grad:max_post_grad)),sep="_"))
+
+survivorship[, (residence_cols) :=  lapply(.SD, 
+                                 function(x) ifelse(is.na(x)==TRUE, NA, ifelse(x==TRUE,1,0))),
+             .SDcols = residence_cols]
+
+relevant_cols = c(residence_cols,"col_end","user_id")
+survivorship = survivorship[, ..relevant_cols]  
+
+#reshaped_cbsa = melt(survivorship, (in_hs_cols)) %>% 
+#  dcast((in_hs_cols) + year ~ variable)
+
+reshaped_cbsa = melt(survivorship, 
+     measure_vars = (in_hs_cols),
+     id.vars = c("user_id","col_end")) %>%
+  table.express::mutate(variable = str_remove_all(variable,"[[:punct:]]")) %>%
+  table.express::mutate(geo = str_remove_all(variable,"[[:digit:]]")) %>%
+  table.express::mutate(geo = str_remove_all(geo,"inhs")) %>%
+  table.express::mutate(n_grad = str_remove_all(variable,"[[:alpha:]]")) %>%
+  table.express::mutate(n_grad = as.numeric(n_grad)) %>%
+  table.express::mutate(year = col_end + n_grad) %>%
+  # Remove NAs that are in the future
+  # Those NAs are not valid missing data
+  table.express::filter(year <= 2023) #%>%
+  #dcast(n_grad ~ geo,
+  #      fun.aggregate = length,
+  #      value_var = "value")
+omission_plot = reshaped_cbsa %>%
+  filter(geo == "cbsa") %>%
+  # Remove missing data (years between college graduation
+  # and 2023 with no work history)
+  filter(is.na(value)==FALSE) %>%
+  as.data.frame() %>%
+  select(-c(variable,geo)) %>%
+  group_by(user_id,col_end) %>%
+  summarize(yrs_inc = n()) %>%
+  mutate(max_yrs_inc = 2023 - col_end,
+         adj_yrs_inc = case_when(yrs_inc > max_yrs_inc ~ max_yrs_inc,
+                                 TRUE ~ yrs_inc))
+
+omission_distribution = omission_plot %>%
+  group_by(col_end) %>%
+  summarize(yrs_inc_05 = quantile(adj_yrs_inc,0.05),
+            yrs_inc_25 = quantile(adj_yrs_inc,0.25),
+            yrs_inc_50 = quantile(adj_yrs_inc,0.50),
+            yrs_inc_75 = quantile(adj_yrs_inc,0.75), 
+            yrs_inc_95 = quantile(adj_yrs_inc,0.95)) #%>%
+  #pivot_longer(!col_end,
+  #             names_to = "ptile",
+  #             names_prefix = "yrs_inc_",
+  #             values_to = "yrs_inc"
+  #             )
+write.csv(omission_distribution,file.path(directory,"Outputs/omission_distribution.csv"))
+```
+####    Plotting Omission
+```{r om plot, include=FALSE}
+
+# Pulling data on the number of years of work history, by college graduation year
+# Data shows pattern of strategic omission as workers age
+omission_distribution = read_csv(file.path(directory,"Outputs/omission_distribution.csv")) %>%
+  select(c(col_end,ptile,yrs_inc)) %>%
+  pivot_wider(names_from = ptile,
+              names_prefix = "yrs_inc_",
+              values_from = yrs_inc) %>%
+  mutate(n_grad = 2023 - col_end)
+
+ggplot(omission_distribution) + 
+  geom_line(aes(x = n_grad, y = yrs_inc_50, color = "Median LI User")) +
+  geom_point(aes(x = n_grad, y = yrs_inc_50), color = "#40004b") +
+  geom_ribbon(aes(x = n_grad, ymin = yrs_inc_25, ymax = yrs_inc_75, 
+                  fill = "Interquartile Range"),
+              color = NA,
+              alpha = 0.3) +
+  geom_line(aes(x = n_grad, y = n_grad, color = "Theoretical Maximum")) +
+  scale_x_continuous(expand = c(0.001,0)) + 
+  scale_y_continuous(limits = c(0,41),
+                     expand = c(0,0)) + 
+  scale_color_manual(name='',values = c("Median LI User"="#40004b",
+                                        "Interquartile Range" = "#40004b",
+                                        "Theoretical Maximum"= "#2c7fb8")) +
+  scale_fill_manual(name='',values = c("Median LI User"="#40004b",
+                                       "Interquartile Range" = "#40004b",
+                                        "Theoretical Maximum"= "#2c7fb8")) +
+  xlab("Year Since College Graduation") +
+  ylab("Years of Work History on LI Profile") +
+  labs(title = "Omission of Work History on LI by Years Since College Graduation") +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "bottom",
+        panel.grid.major.y = element_line(color = "grey",
+                                          linewidth = 0.25),
+        panel.grid.major.x = element_blank(),
+        axis.line.x = element_line(color="black"))
+  ggsave(file = paste(directory,"/Outputs/","omission_distribution.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)      
+
+```
+
+####   Mapping Place of Birth
+
+```{r birthplace}
+
+# Pull state of residence by educational attainment from ACS
+same_state = get_acs(geography = "county",
+                 year = 2022,
+                 variables = c(same_state = "B06009_011",
+                               same_state = "B06009_012",
+                               diff_state = "B06009_017",
+                               diff_state = "B06009_018",
+                               territory = "B06009_023",
+                               territory = "B06009_024",
+                               foreign = "B06009_029",
+                               foreign = "B06009_030")) %>%
+    mutate(GEOID = case_when(GEOID %in% c("02063","02066") ~ "02261",
+                             #  Oglala Lakota County (formerly Shannon), 
+                             #  South Dakota (FIPS 46102) to 46113
+                             GEOID == "46102" ~ "46113",
+                             #  Kusilvak Census Area (formerly Wade Hampton),
+                             #  Alaska (FIPS 0) to 02270
+                             GEOID == "02158" ~ "02270",
+                             .default = GEOID)) %>%
+  left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  group_by(cbsa_code,variable) %>%
+  summarize(total = sum(estimate)) %>%
+  group_by(cbsa_code) %>%
+  mutate(prop = total/sum(total)) %>%
+  filter(variable == "same_cbsa_hs") %>%
+  select(-c(variable,total)) %>%
+  rename(same_state = prop) %>%
+  filter(is.na(same_state)==FALSE)
+
+# Linking to shapefile
+birthplace_map = map %>%
+  left_join(same_state, by = "cbsa_code")
+
+ggplot(birthplace_map, aes(fill = same_state)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "% of College Grads",
+                       labels = scales::percent,
+                       colors = color_list,
+                       #values = c(0,0.06,0.12,0.18,0.24,0.36,0.5,0.75,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       #limits=c(0,1),
+    ) +
+  labs(title = "Share of College Graduates Born in State of Residence, 2022") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","birthplace.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+
+```
+####   Map of College Nearby + In-State
+```{r dist time}  
+
+# Calculate LM-level proportions:
+# College in HS labor market
+# College less than 50 miles
+# Attended college in-state
+cbsa_dist = regression %>%
+  as.data.frame() %>%
+  select(c(user_id,in_state,col_in_not_hs_cbsa,dist)) %>%
+  left_join(as.data.frame(cbsa_mode), by = "user_id") %>%
+  mutate(in_state = case_when(in_state == "Out-of-State" ~ 0,
+                              in_state == "In-State" ~ 1),
+         dist = case_when(dist %in% c("[0,50]","(50,100]","(100,150]") ~ 1,
+                          TRUE ~ 0)
+         ) %>%
+  group_by(cbsa_code) %>%
+  summarize(col_hs_same_lm = 1-(sum(col_in_not_hs_cbsa)/n()),
+            in_state = sum(in_state)/n(),
+            dist = sum(dist)/n())
+
+dist_map = map %>%
+  left_join(cbsa_dist, by = "cbsa_code")
+
+ggplot(dist_map, aes(fill = col_hs_same_lm)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "% Attending\nCollege + HS\nIn Same LM",
+                       labels = scales::percent,
+                       colors = color_list,
+                       #values = c(0,0.06,0.12,0.18,0.24,0.36,0.5,0.75,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       #limits=c(0,0.08),
+    ) +
+  labs(title = "Share Attending College and HS in Same Labor Market") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","col_hs_same_lm.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+ggplot(dist_map, aes(fill = in_state)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "% Attending\nCollege + HS\nIn Same State",
+                       labels = scales::percent,
+                       colors = color_list,
+                       #values = c(0,0.06,0.12,0.18,0.24,0.36,0.5,0.75,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       #limits=c(0,0.08),
+    ) +
+  labs(title = "Share Attending College and HS in Same State") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","col_hs_same_state.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+```
+
+###    Coverage
+####    Regressing Covariates 
+
+```{r}
+
+covariate = same_state %>%
+  left_join(fraction, by = "cbsa_code") %>%
+  left_join(prime_age, by = "cbsa_code") %>%
+  left_join(cbsa_dist, by = "cbsa_code") %>%
+  # NAs generated from merges should be zeroes because they stem
+  # from small sample size
+  mutate(col_hs_same_lm = if_else(is.na(col_hs_same_lm)==TRUE,0,col_hs_same_lm),
+         in_state = if_else(is.na(in_state)==TRUE,0,in_state),
+         dist = if_else(is.na(dist)==TRUE,0,dist))
+
+# Regress log LI users on hs inclusion rate to determine if people in small
+# towns are more likely to include it
+geo_analysis1 = lm(data = covariate, prime_age_prop ~ log(total), weights = total)
+geo_analysis2 = lm(data = covariate, prime_age_prop ~ log(total) + same_state + col_hs_same_lm + in_state + dist, weights = total)
+texreg(list(geo_analysis1,geo_analysis2),
+       file = paste0(directory,"/Outputs/Tables/geo_analysis.tex"),
+       custom.model.names = c("Size Only","Size and LM Characteristics"),
+       custom.coef.names = c("$log($Prime-Age College Grads Population)",
+                             "College Graduates Born in Same State",
+                             "College and HS in Same LM",
+                             "College and HS in Same State",
+                             "Attending Nearby College"
+                             ),
+      center = TRUE,
+      digits = 5,
+      align = TRUE,
+      omit.coef=c('Intercept'))
+
+
+```
+
+####    Cleaning for Violin
+
+```{r hs time}  
+data(county_laea)
+
+# Pull educational attainment by age from the Census Bureau
+# Relies on the following age groups
+# 18-24, 25-34, 35-44, 45-64, 65+
+age_ed = get_acs(geography = "county",
+                 year = 2022,
+                 variables = c(ba_18 = "B15001_009",
+                               ba_18 = "B15001_010",
+                               ba_25 = "B15001_017",
+                               ba_25 = "B15001_018",
+                               ba_35 = "B15001_025",
+                               ba_35 = "B15001_026",
+                               ba_45 = "B15001_033",
+                               ba_45 = "B15001_034",
+                               ba_65 = "B15001_041",
+                               ba_65 = "B15001_042",
+                               ba_18 = "B15001_050",
+                               ba_18 = "B15001_051",
+                               ba_25 = "B15001_058",
+                               ba_25 = "B15001_059",
+                               ba_35 = "B15001_066",
+                               ba_35 = "B15001_067",
+                               ba_45 = "B15001_074",
+                               ba_45 = "B15001_075",
+                               ba_65 = "B15001_082",
+                               ba_65 = "B15001_083"      
+                               )) %>%
+    mutate(GEOID = case_when(GEOID %in% c("02063","02066") ~ "02261",
+                             #  Oglala Lakota County (formerly Shannon), 
+                             #  South Dakota (FIPS 46102) to 46113
+                             GEOID == "46102" ~ "46113",
+                             #  Kusilvak Census Area (formerly Wade Hampton),
+                             #  Alaska (FIPS 0) to 02270
+                             GEOID == "02158" ~ "02270",
+                             .default = GEOID)) %>%
+  left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  # Remove rural Puerto Rico
+  filter(cbsa_code != "72999") %>%
+  group_by(cbsa_code,variable) %>%
+  summarize(total = sum(estimate)) %>%
+  mutate(age = str_sub(variable,4,5)) %>%
+  select(-variable) 
+
+# Declare mode function used to assign single CBSA to user
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+# Calculating modal CBSA for every user
+cbsa_mode = microdata %>% 
+  select(starts_with(c("user_id","cbsa_code_"))) %>%
+  pivot_longer(cols = starts_with("cbsa_code_"),
+               names_to = "n_grad",
+               values_to = "cbsa_code",
+               values_transform = list(cbsa_code = as.character),
+               values_drop_na = TRUE) %>%
+  # CBSA codes omit leading zero so ensures all cbsa_codes include it
+  mutate(cbsa_code = str_pad(cbsa_code,5,side = "left",pad = "0")) %>%
+  filter(is.na(cbsa_code)==FALSE) %>%
+  group_by(user_id) %>%
+  summarise(cbsa_code = Mode(cbsa_code)) %>%
+  as.data.table()
+
+culled = regression[,c("user_id","birth","col_type")]
+age_cbsa = cbsa_mode[culled, on = "user_id"] %>%
+  as.data.frame() %>%
+  group_by(cbsa_code)
+
+# Calculating number of users by age group and CBSA
+cbsa18 = age_cbsa %>%
+  filter(1993 < birth) %>%
+  summarize(li18 = n())
+cbsa25 = age_cbsa %>%
+  filter(1983 < birth & birth < 1998) %>%
+  summarize(li25 = n())  
+cbsa35 = age_cbsa %>%
+  filter(1973 < birth & birth < 1988) %>%
+  summarize(li35 = n())  
+cbsa45 = age_cbsa %>%
+  filter(1953 < birth & birth < 1978) %>%
+  summarize(li45 = n())  
+cbsa65 = age_cbsa %>%
+  filter(birth < 1958) %>%
+  summarize(li65 = n())  
+
+numerator = cbsa18 %>%
+  left_join(cbsa25, by = "cbsa_code") %>%
+  left_join(cbsa35, by = "cbsa_code") %>%
+  left_join(cbsa45, by = "cbsa_code") %>%
+  left_join(cbsa65, by = "cbsa_code") %>%
+  pivot_longer(cols = starts_with("li"),
+               names_to = "age",
+               values_to = "li_total") %>%
+  mutate(age = str_sub(age,3,4)) %>%
+  # Remove non-metropolitan Puerto Rico
+  filter(cbsa_code != "72999")
+  
+fraction_long = age_ed %>%
+  left_join(numerator, by = c("cbsa_code","age")) %>%
+  # Not all CBSAs have LI users for all age groups
+  # Coerce missing data into zeroes instead of NAs
+  mutate(li_total = case_when(is.na(li_total)==TRUE ~ 0,
+                              TRUE ~ li_total),
+         li_prop = li_total/total)
+
+fraction = fraction_long %>%
+  pivot_wider(id_cols = cbsa_code,
+              values_from = li_prop,
+              names_from = age,
+              names_prefix = "age_"
+              )
+
+write.csv(fraction,file.path(directory,"Data/07/fraction.csv"))
+```
+
+####   Plotting Violin
+
+```{r violin}
+
+violin = fraction_long %>%
+  filter(age != "65") %>%
+  mutate(age = case_when(age == "18" ~ "18-24",
+            age == "25" ~ "25-34",
+            age == "35" ~ "35-44",
+            age == "45" ~ "45-64")) %>%
+  mutate(age = factor(age, 
+                      ordered = TRUE, 
+                      levels = c("45-64","35-44","25-34","18-24"))) %>%
+  mutate(age = as.factor(age),
+         cbsa_code = as.factor(cbsa_code)) 
+
+age_medians = violin %>%
+  group_by(age) %>%
+  summarize(li_prop = weighted.median(x = li_prop, w = total))
+
+
+ggplot(data = violin, aes(x = li_prop, 
+                          y = age,
+                          color = age,
+                          fill = age),
+       size = total) +
+  geom_violin(alpha=0.3,
+              trim = TRUE,
+              scale = "width") +
+  geom_point(data = age_medians,
+             shape = 9,
+             aes(x = li_prop,
+                 y = age,
+                 size = 18)) +
+  scale_x_continuous(labels = scales::percent,
+                     expand = c(0,0)) + 
+  labs(title = "LinkedIn Sample Coverage by Age Group and Labor Market") +
+  ylab("Age Group") +
+  xlab("LinkedIn Sample as a Percentage of All College Graduates in Labor Force") +
+  theme(panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_line(color = "grey",
+                                          linewidth = 0.25),
+        panel.grid.major.y = element_blank(),
+        axis.line.y = element_line(color="black"),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "none")
+ggsave(file = paste(directory,"/Outputs/","violin.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+####    Mapping Prime-Age Coverage
+
+```{r prime age}
+
+# Creating map of coverage for all 25-64 college graduates
+prime_age = fraction_long %>%
+  group_by(cbsa_code) %>%
+  filter(age %in% c("25","35","45")) %>%
+  summarize(li_total = sum(li_total),
+            total = sum(total)) %>%
+  mutate(prime_age_prop = li_total/total)
+
+# Linking to shapefile
+pa_map = map %>%
+  left_join(prime_age, by = "cbsa_code")
+
+ggplot(pa_map, aes(fill = prime_age_prop)) +
+  geom_sf(show.legend = TRUE) +
+  scale_fill_gradientn(name = "LI Share of\nCollege Grads",
+                       labels = scales::percent,
+                       colors = diverging_colors,
+                       values = c(0,0.06,0.12,0.18,0.24,0.36,0.5,0.75,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       limits=c(0,0.08),
+    ) +
+  labs(title = "LI Users as a Share of All 25-64 College Graduates, by Labor Market") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste(directory,"/Outputs/","pa_chloropleth.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+####    Mapping Dorling Cartogram
+
+```{r prime age}
+
+# Remove NAs since Dorling function doesn't accept NA weights
+dorling_data = pa_map %>%
+  filter(is.na(total)==FALSE)
+
+# Create Dorling cartogram of prime-age coverage
+pa_dorling <- cartogram_dorling(x = dorling_data,
+                                    weight = "total",
+                                    k = 1, itermax = 100)
+
+
+ggplot(data = pa_dorling, aes(fill = prime_age_prop)) +
+  geom_sf(data = pa_map, fill = NA, colour="gray", size=0.1) +
+  geom_sf(color = "grey30", size = 0.5,show.legend = TRUE) +
+  scale_fill_gradientn(name = "LI Share of\nCollege Grads",
+                       labels = scales::percent,
+                       colors = color_list,
+                       values = c(0,0.06,0.12,0.18,0.24,0.36,0.5,0.75,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       limits=c(0,0.08),
+    ) +
+  labs(title = "LI Users as a Share of All 25-64 College Graduates, by Labor Market") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5)) 
+ggsave(file = paste(directory,"/Outputs/","pa_dorling.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+
+
+###    Other
+####    Distance Traveled by Out-of-State Students
+
+```{r out-of-state}
+
+oos_count = regression %>% 
+  as.data.frame() %>%
+  group_by(col_type,in_state) %>%
+  dplyr::summarize(total = n())
+
+oos_dist_long = regression %>% 
+  table.express::filter(in_state == "Out-of-State") %>%
+  as.data.frame() %>%
+  mutate(Distance = factor(dist,
+                           ordered = TRUE,
+                           levels = c("[0,50]","(50,100]","(100,150]","(150,200]",
+                              "(200,250]","(250,500]","(500,1e+03]","(1e+03,1e+04]")
+                            )) %>%
+  select(-dist)  %>%
+  group_by(Distance,col_type) %>%
+  dplyr::summarize(n = n()) 
+
+oos_totals = oos_dist_long %>%
+  group_by(col_type) %>%
+  dplyr::summarize(total = sum(n))
+
+oos_dist_wide = oos_dist_long %>%
+  dplyr::left_join(oos_totals, by = "col_type") %>%
+  mutate(pct = round((n/total)*100,1)) %>%
+  select(Distance,col_type,pct) %>%
+  pivot_wider(names_from = "col_type",
+              values_from = "pct") %>%
+  arrange(Distance) %>%
+  mutate(Distance = as.character(Distance)) %>%
+  relocate(Distance, .before = "Public Flagship")
+  
+names(oos_dist_wide) = c("Distance","Public\nFlagship","Priavate\nFor-Profit",
+                        "Priavate\nNon-Profit","RPU\nLess Selective","RPU\nMore Selective")
+
+stargazer(oos_dist_wide, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = NA,
+          #style = "qje",
+          align = TRUE,
+          #title = "Distance from high school to baccalaureate institution for out-of-state students, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"/Outputs/Tables/oos-dist-wide.tex"),
+          #label = "table:observation",
+          digit.separator = ","
+          )
+
+```
+
+####    Distance Traveled by In-State Students
+
+```{r in-state}
+
+is_count = regression %>% 
+  as.data.frame() %>%
+  group_by(col_type,in_state) %>%
+  dplyr::summarize(total = n())
+
+is_dist_long = regression %>% 
+  table.express::filter(in_state == "In-State")%>%
+  as.data.frame() %>%
+  mutate(Distance = factor(dist,
+                           ordered = TRUE,
+                           levels = c("[0,50]","(50,100]","(100,150]","(150,200]",
+                              "(200,250]","(250,500]","(500,1e+03]","(1e+03,1e+04]")
+                            )) %>%
+  select(-dist)  %>%
+  group_by(Distance,col_type) %>%
+  dplyr::summarize(n = n()) 
+
+is_totals = is_dist_long %>%
+  group_by(col_type) %>%
+  dplyr::summarize(total = sum(n))
+
+is_dist_wide = is_dist_long %>%
+  dplyr::left_join(is_totals, by = "col_type") %>%
+  mutate(pct = round((n/total)*100,1)) %>%
+  select(Distance,col_type,pct) %>%
+  pivot_wider(names_from = "col_type",
+              values_from = "pct") %>%
+  arrange(Distance) %>%
+  mutate(Distance = as.character(Distance)) %>%
+  relocate(Distance, .before = "Public Flagship")
+
+#names(is_dist_wide) = c("Distance","Public\nFlagship","Private\nFor-Profit",
+#                        "Private\nNon-Profit","RPU\nLess Selective","RPU\nMore Selective")
+
+stargazer(is_dist_wide, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = NA,
+          #style = "qje",
+          align = TRUE,
+          #title = "Distance from high school to baccalaureate institution for in-state students, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"/Outputs/Tables/is-dist-wide.tex"),
+          #label = "table:observation",
+          digit.separator = ","
+          )
+
+```
+
+###   Plotting Shocks
+
+```{r shocks, eval=FALSE}
+# Filter to cases where post-graduation occupational data
+microdata <- raw_microdata %>%
+  filter(!is.na(cbsa_mode))
+iv_cols <- names(microdata)[grepl("^(hs|col).*[1357]$", names(microdata))]
+num_bins = 5
+bin_shares = list()
+for(col in iv_cols)
+{
+  bin_col_name <- paste0(col,"_bin")
+  microdata[, paste0(col, "_bin") := cut(get(col), 
+                                         breaks = quantile(get(col), 
+                                                           probs = seq(0,1,length.out = num_bins+1),
+                                                           na.rm=TRUE),
+                                         labels = FALSE,
+                                         include.lowest = TRUE)]
+  bin_share <- microdata[, .(same_cbsa_hs = mean(same_cbsa_hs, na.rm = TRUE),
+                             same_state_hs = mean(same_state_hs, na.rm = TRUE),
+                             same_cbsa_col = mean(same_cbsa_col, na.rm = TRUE),
+                             same_state_col = mean(same_state_col, na.rm = TRUE)),
+                             by = bin_col_name]
+  bin_share[, variable := col]
+  setnames(bin_share, bin_col_name,"bin")
+  bin_shares[[col]] <- bin_share
+}
+all_bin_shares <- rbindlist(bin_shares,use.names=TRUE,fill=TRUE) %>%
+  mutate(geo = sub("_.*","",variable),
+         avg = sub(".*_([0-9]+)$","\\1",variable),
+         var = sub("(_[0-9]+)$","", sub("^[^_]+_","",variable)))
+
+bin_shares = microdata[, .(count = .N), by = .(hs_shock_7_bin,hs_cbsa)] %>%
+bin_shares[, shr := count/sum(count), by = .(hs_shock_7_bin)]
+
+bin_composition <- dcast(bin_shares, hs_cbsa ~ hs_shock_7_bin, value.var = "shr", fill = 0)
+
+cbsa_returns <- microdata[, .(same_cbsa_hs = mean(same_cbsa_hs, na.rm = TRUE),
+                             same_state_hs = mean(same_state_hs, na.rm = TRUE),
+                             same_cbsa_col = mean(same_cbsa_col, na.rm = TRUE),
+                             same_state_col = mean(same_state_col, na.rm = TRUE)),
+                             by = hs_cbsa]
+cbsa_name = cbsa %>% 
+  select(c("CBSA Code","CBSA Title")) %>% 
+  rename(c("cbsa_code"="CBSA Code","cbsa_title"="CBSA Title")) %>%
+  mutate(hs_cbsa = as.integer(cbsa_code)) %>%
+  select(-cbsa_code) %>%
+  distinct()
+
+bin <- merge(bin_composition,cbsa_returns,by = "hs_cbsa") %>%
+  merge(cbsa_name, by = "hs_cbsa")
+
+```
+
+###   Plotting Shocks
+
+```{r shocks, eval=FALSE}
+# Filter to cases where post-graduation occupational data
+microdata <- raw_microdata %>%
+  filter(!is.na(cbsa_mode))
+iv_cols <- names(microdata)[grepl("^(hs|col).*[1357]$", names(microdata))]
+num_bins = 5
+bin_shares = list()
+for(col in iv_cols)
+{
+  bin_col_name <- paste0(col,"_bin")
+  microdata[, paste0(col, "_bin") := cut(get(col), 
+                                         breaks = quantile(get(col), 
+                                                           probs = seq(0,1,length.out = num_bins+1),
+                                                           na.rm=TRUE),
+                                         labels = FALSE,
+                                         include.lowest = TRUE)]
+  bin_share <- microdata[, .(same_cbsa_hs = mean(same_cbsa_hs, na.rm = TRUE),
+                             same_state_hs = mean(same_state_hs, na.rm = TRUE),
+                             same_cbsa_col = mean(same_cbsa_col, na.rm = TRUE),
+                             same_state_col = mean(same_state_col, na.rm = TRUE)),
+                             by = bin_col_name]
+  bin_share[, variable := col]
+  setnames(bin_share, bin_col_name,"bin")
+  bin_shares[[col]] <- bin_share
+}
+all_bin_shares <- rbindlist(bin_shares,use.names=TRUE,fill=TRUE) %>%
+  mutate(geo = sub("_.*","",variable),
+         avg = sub(".*_([0-9]+)$","\\1",variable),
+         var = sub("(_[0-9]+)$","", sub("^[^_]+_","",variable)))
+
+bin_shares = microdata[, .(count = .N), by = .(hs_shock_7_bin,hs_cbsa)] %>%
+bin_shares[, shr := count/sum(count), by = .(hs_shock_7_bin)]
+
+bin_composition <- dcast(bin_shares, hs_cbsa ~ hs_shock_7_bin, value.var = "shr", fill = 0)
+
+cbsa_returns <- microdata[, .(same_cbsa_hs = mean(same_cbsa_hs, na.rm = TRUE),
+                             same_state_hs = mean(same_state_hs, na.rm = TRUE),
+                             same_cbsa_col = mean(same_cbsa_col, na.rm = TRUE),
+                             same_state_col = mean(same_state_col, na.rm = TRUE)),
+                             by = hs_cbsa]
+cbsa_name = cbsa %>% 
+  select(c("CBSA Code","CBSA Title")) %>% 
+  rename(c("cbsa_code"="CBSA Code","cbsa_title"="CBSA Title")) %>%
+  mutate(hs_cbsa = as.integer(cbsa_code)) %>%
+  select(-cbsa_code) %>%
+  distinct()
+
+bin <- merge(bin_composition,cbsa_returns,by = "hs_cbsa") %>%
+  merge(cbsa_name, by = "hs_cbsa")
+
+```
+
+
+
+###    Table of Institutional Group Levels
+
+```{r inst sumstat}
+
+# Order that institutions will appear in table
+col_order = c("Public Flagship","RPU, More Selective","RPU, Less Selective",
+              "Private, Non-Profit","Private, For-Profit")
+
+# Calculating return rates by institutional groups 
+inst_levels = regression %>%
+  as.data.frame() %>%
+  mutate(in_state = case_when(in_state == "In-State" ~ "is",
+                              in_state == "Out-of-State" ~ "oos"),
+         col_type = factor(col_type, ordered = TRUE,
+                           levels = col_order)) %>%
+  group_by(col_type,in_state) %>%
+  dplyr::summarise(same_cbsa_hs = sum(same_cbsa_hs),
+                   same_state_hs = sum(same_state_hs),
+                   n = n()) %>%
+  mutate(same_cbsa_prop = round((same_cbsa_hs/n) * 100,1),
+         same_state_prop = round((same_state_hs/n) * 100,1)) %>%
+  select(-c(same_cbsa_hs,same_state_hs)) %>%
+  pivot_wider(names_from = in_state,
+              values_from = c(same_cbsa_prop,same_state_prop,n)) %>%
+  mutate(cbsa_retention_gap = same_cbsa_prop_is - same_cbsa_prop_oos,
+         state_retention_gap = same_state_prop_is - same_state_prop_oos) %>%
+  relocate(c("n_is","n_oos"), .before = "same_cbsa_prop_is") %>%
+  relocate("cbsa_retention_gap", .after = "same_cbsa_prop_oos") %>%
+  # Convert institutional grouping back into character so it appears in table
+  mutate(col_type = as.character(col_type))
+
+# Splitting data into CBSA and state-level tables
+inst_levels_cbsa = inst_levels %>%
+  select(contains("cbsa"))
+inst_levels_state = inst_levels %>%
+  select(contains("state"))
+
+#inst_levels_is = inst_levels %>%
+#  select(ends_with("is"))
+#inst_levels_oos = inst_levels %>%
+#  select(ends_with("oos"))
+
+# Export tables
+stargazer(inst_levels_cbsa, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = TRUE,
+          covariate.labels = c("Institutional Grouping","Pct Returning, In-State","Pct Returning, Out-of-State","Difference"),
+          title = "Return rate to high school labor market, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"Outputs/Tables/inst-levels-cbsa.tex"),
+          digit.separator = ","
+          )
+stargazer(inst_levels_state, 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 1,
+          #style = "qje",
+          align = TRUE,
+          covariate.labels = c("Institutional Grouping","Pct Returning, In-State","Pct Returning, Out-of-State","Difference"),
+          title = "Return rate to high school state, by institutional group",
+          float = TRUE,
+          out = file.path(directory,"Outputs/Tables/inst-levels-state.tex"),
+          digit.separator = ","
+          )
+
+
+median_distance = regression %>%
+  as.data.frame() %>%
+  filter(in_state == "Out-of-State") %>%
+  mutate(col_type = case_when(col_type == "RPU, More Selective" ~ "RPU",
+                              col_type == "RPU, Less Selective" ~ "RPU",
+                              TRUE ~ col_type)) %>%
+  group_by(col_type) %>%
+  summarize(pct10 = quantile(distance_mi, 0.10),
+            pct25 = quantile(distance_mi, 0.25),
+            median = median(distance_mi),
+            pct75 = quantile(distance_mi, 0.75),
+            pct90 = quantile(distance_mi, 0.90)
+            )
+
+```
+
+
+###    Table for Estimating Shock Quantiles
+
+```{r}
+
+quantifying_quantiles1 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_1) %>% 
+  dplyr::summarize(est1 = stats::weighted.mean(x = avg_1, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_1")
+quantifying_quantiles3 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_3) %>% 
+  dplyr::summarize(est3 = stats::weighted.mean(x = avg_3, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_3")
+quantifying_quantiles5 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_5) %>% 
+  dplyr::summarize(est5 = stats::weighted.mean(x = avg_5, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_5")
+quantifying_quantiles7 = cbsa_shock_ptile %>% 
+  filter(year == 2021) %>% 
+  group_by(ptile_avg_7) %>% 
+  dplyr::summarize(est7 = stats::weighted.mean(x = avg_7, w = cbsa_actual)) %>%
+  as.data.frame() %>%
+  rename("ptile" = "ptile_avg_7")
+
+quantifying_quantiles = quantifying_quantiles1 %>%
+  dplyr::left_join(quantifying_quantiles3, by = "ptile")  %>%
+  dplyr::left_join(quantifying_quantiles5, by = "ptile") %>%
+  dplyr::left_join(quantifying_quantiles7, by = "ptile") %>%
+  arrange(ptile)
+
+stargazer(quantifying_quantiles[1:10,], 
+          summary = FALSE,
+          rownames = FALSE,
+          digits = 3,
+          #style = "qje",
+          align = TRUE,
+          title = "Average employment shock by decile in 2021",
+          float = TRUE,
+          #label = "table:observation",
+          digit.separator = ",",
+          out = file.path(directory,"Outputs",specification,"shocks.tex")
+          )
+
+```
+
+###   Mapping Amenities
+
+```{r differences}
+
+differences <- read_csv(file.path(directory,"Data",specification,"local_differences.csv")) %>%
+  mutate(cbsa_code = str_pad(hs_cbsa,width=5,side="left",pad="0")) %>%
+  select(-c("hs_cbsa","...1")) %>%
+  left_join(cbsa_li_crosswalk %>% select(c("cbsa_code","cbsa_core")) %>% distinct(), by = "cbsa_code") %>%
+  mutate(difference_cbsa_alt = shr_returners_cbsa - pred_shr_returners_cbsa,
+         difference_state_alt = shr_returners_state - pred_shr_returners_state,
+         )
+differences_unfilt <- read_csv(file.path(directory,"Data/06","local_differences_unfilt.csv")) %>%
+  mutate(cbsa_code = str_pad(hs_cbsa,width=5,side="left",pad="0")) %>%
+  select(-c("hs_cbsa","...1")) %>%
+  left_join(cbsa_li_crosswalk %>% select(c("cbsa_code","cbsa_core")) %>% distinct(), by = "cbsa_code") %>%
+  mutate(difference_cbsa_alt = shr_returners_cbsa - pred_shr_returners_cbsa,
+         difference_state_alt = shr_returners_state - pred_shr_returners_state,
+         )
+# Import population weights
+lt_cbsa <- read_csv(file.path(directory,"Data",specification,"local_ties_cbsa.csv"),col_select = -`...1`) %>%
+  mutate(returners = (total *(return_col_only + return_hs_only + return_hs_col + no_ties))) %>%
+  select(c(cbsa_code,returners))
+
+# Merge into shapefile
+data(county_laea)
+diff_map = county_laea %>% 
+  dplyr::left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  group_by(cbsa_code) %>%
+  dplyr::summarize(geometry = st_union(geometry)) %>%
+  dplyr::left_join(differences_unfilt, by = "cbsa_code") %>%
+  dplyr::left_join(lt_cbsa, by = "cbsa_code") %>%
+  dplyr::filter(!is.na(returners)) %>%
+  select(c(cbsa_code,geometry,difference_cbsa_alt,difference_state_alt,returners))
+
+# NEED TO MERGE ON POPULATION WEIGHTS
+diff_dorling <- cartogram_dorling(x = diff_map,
+                                    weight = "returners",
+                                    k = 1, itermax = 100)
+
+ggplot(data = diff_dorling, aes(fill = difference_cbsa_alt)) +
+  # Second layer: outlines of CBSAs for better location context
+  geom_sf(data = diff_dorling, color = "gray", fill = NA, size = 0.3) +
+  # First layer: the Dorling cartogram (colored circles)
+  geom_sf(color = "gray30", size = 0.1, show.legend = FALSE) +  
+  #geom_sf(data = net_cbsa_dorling, colour="gray", size=0.1) +
+  #geom_sf(color = "grey30", size = 0.5,show.legend = TRUE) +
+  scale_fill_gradientn(name = "Residual on\nLM Return",
+                       labels = scales::percent,
+                       colors = diverging_colors,
+                       oob = scales::squish
+    ) +
+  labs(title = "Where Do College Graduates Return Despite Labor Demand?") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom") +
+  guides(
+    fill = guide_colorbar(
+      barwidth = 10,  # Adjust width of the color bar (in lines or points)
+      barheight = 0.5 # Adjust height of the color bar (in lines or points)
+    )
+  )
+
+ggplot(diff_map, aes(fill = difference_cbsa_alt)) +
+  geom_sf(show.legend = TRUE) +
+  #facet_wrap(~ geo, ncol = 1) + # Facet for each level of inst_group
+  scale_fill_gradientn(name = "Residual on\nLM Return",
+                       labels = scales::percent,
+                       colors = diverging_colors,
+                       #oob = scales::squish,
+                       #values = c(-1,-0.1,-0.05,-0.025,0,0.025,0.05,0.1,1),
+                       #low = "#40004b",
+                       #high = "#1b7837",
+                       limits=c(-0.3,0.3),
+    ) +
+  labs(title = "Where College Graduates Return Despite Labor Demand?") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5))
+ggsave(file = paste0(directory,"/Outputs/",specification,"/amenities.png"),
+                 width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi) 
+```
+
+
+
+####    net_cbsa.png + net_cbsa_dorling.png
+
+```{r prime age}
+
+net_cbsa <- read_csv(file.path(directory,"Data",specification,"net_cbsa.csv"),col_select = -`...1`) %>%
+  mutate(cbsa_code = str_pad(cbsa,width=5,side="left",pad="0")) %>%
+  #select(-c("origin","destination","total_destination","net")) %>%
+  #pivot_wider(names_from = "inst_group",
+  #            values_from = "net_norm") %>%
+    left_join(cbsa_li_crosswalk %>% dplyr::select(c(cbsa_code,cbsa_core)) %>% distinct(), by = "cbsa_code") %>%
+  mutate(replacement_rate = destination/origin)
+
+net_cbsa_map = county_laea %>% 
+  dplyr::left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  group_by(cbsa_code) %>%
+  dplyr::summarize(geometry = st_union(geometry)) %>%
+  dplyr::left_join(net_cbsa, by = "cbsa_code") %>%
+  # Remove NAs since Dorling function doesn't accept NA weights
+  filter(is.na(total_origin)==FALSE)
+
+ggplot(data = net_cbsa_map, aes(fill = replacement_rate)) +
+  geom_sf(data = net_cbsa_map, colour="gray", size=0.1) +
+  scale_fill_gradientn(
+    name = "Dest. Grads\nPer Orig.\nGrad  ",
+    colors = diverging_colors,
+    values = scales::rescale(c(0, 0.5, 1, 1.5, 2, 5)), # Define where colors are focused
+    limits = c(0, 2),  # Set the visible range of the color scale
+    oob = scales::squish  # Squish values outside the limits
+  ) +
+  labs(title = "Destination-to-Origin Ratio for College Graduates by Institutional Group") +
+  facet_wrap(~ inst_group, ncol = 1) + # Facet for each level of inst_group
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom") +
+  guides(
+    fill = guide_colorbar(
+      barwidth = 10,  # Adjust width of the color bar (in lines or points)
+      barheight = 0.5 # Adjust height of the color bar (in lines or points)
+    )
+  )
+ggsave(file = paste(directory,"/Outputs/",specification,"/net_cbsa.png",sep = ""),
+         width = wid, height = 3*hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+# Create Dorling cartogram of prime-age coverage
+dorling_rpu <- cartogram_dorling(x = net_cbsa_map %>% filter(inst_group == "RPU"),
+                                    weight = "total_origin",
+                                    k = 1, itermax = 100)
+dorling_pf <- cartogram_dorling(x = net_cbsa_map %>% filter(inst_group == "PF"),
+                                    weight = "total_origin",
+                                    k = 1, itermax = 100)
+dorling_private <- cartogram_dorling(x = net_cbsa_map %>% filter(inst_group == "Private, Non-Profit"),
+                                    weight = "total_origin",
+                                    k = 1, itermax = 100)
+net_cbsa_dorling = rbind(dorling_rpu,dorling_pf,dorling_private)
+
+ggplot(data = net_cbsa_dorling, aes(fill = replacement_rate)) +
+  # Second layer: outlines of CBSAs for better location context
+  geom_sf(data = net_cbsa_map, color = "gray", fill = NA, size = 0.3) +
+  # First layer: the Dorling cartogram (colored circles)
+  geom_sf(color = "gray30", size = 0.1, show.legend = FALSE) +  
+  #geom_sf(data = net_cbsa_dorling, colour="gray", size=0.1) +
+  #geom_sf(color = "grey30", size = 0.5,show.legend = TRUE) +
+  scale_fill_gradientn(
+    name = "Dest. Grads\nPer Orig.\nGrad  ",
+    colors = diverging_colors,
+    values = scales::rescale(c(0, 0.5, 1, 1.5, 2, 5)), # Define where colors are focused
+    limits = c(0, 2),  # Set the visible range of the color scale
+    oob = scales::squish  # Squish values outside the limits
+  ) +
+  labs(title = "Destination-to-Origin Ratio for College Graduates by Institutional Group") +
+  facet_wrap(~ inst_group, ncol = 1) + # Facet for each level of inst_group
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom") +
+  guides(
+    fill = guide_colorbar(
+      barwidth = 10,  # Adjust width of the color bar (in lines or points)
+      barheight = 0.5 # Adjust height of the color bar (in lines or points)
+    )
+  )
+ggsave(file = paste(directory,"/Outputs/",specification,"/net_cbsa_dorling.png",sep = ""),
+         width = wid, height = 3*hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+
+```
+####    net_state.png + net_state_dorling.png
+
+```{r prime age}
+
+net_state <- read_csv(file.path(directory,"Data",specification,"net_state.csv"),col_select = -`...1`) %>%
+  #select(-c("origin","destination","total_destination","net")) %>%
+  filter(state != "empty") %>% 
+  # Add state FIPS codes to simplify spatial merges later
+  left_join(cbsa %>% 
+              separate_wider_delim(`CBSA Title`,delim = ", ", names = c("cbsa_city","state_abbr")) %>%
+              rename(state_code = `FIPS State Code`) %>%
+              dplyr::select(state_code,state_abbr) %>%
+              filter(nchar(state_abbr)==2) %>%
+              distinct(), by = c("state"="state_abbr")) %>%
+  # Coerce DC FIPS code
+  mutate(state_code = ifelse(is.na(state_code)==TRUE,11,state_code)) %>%
+  mutate(replacement_rate = destination/origin)
+
+net_state_map = county_laea %>% 
+  dplyr::left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  dplyr::mutate(state_code = substr(GEOID,start=1,stop=2)) %>%
+  group_by(state_code) %>%
+  dplyr::summarize(geometry = st_union(geometry)) %>%
+  dplyr::left_join(net_state, by = "state_code") %>%
+  # Remove NAs since Dorling function doesn't accept NA weights
+  filter(is.na(total_origin)==FALSE)
+
+ggplot(data = net_state_map, aes(fill = replacement_rate)) +
+  geom_sf(data = net_state_map, colour="gray", size=0.1) +
+scale_fill_gradientn(
+    name = "Dest. Grads\nPer Orig.\nGrad  ",
+    colors = diverging_colors,
+    values = scales::rescale(c(0, 0.5, 1, 1.5, 2, 2.5)), # Define where colors are focused
+    limits = c(0, 2),  # Set the visible range of the color scale
+    oob = scales::squish  # Squish values outside the limits
+  ) +
+  labs(title = "Destination-to-Origin Ratio for College Graduates by Institutional Group") +
+  facet_wrap(~ inst_group, ncol = 1) + # Facet for each level of inst_group
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom") +
+  guides(
+    fill = guide_colorbar(
+      barwidth = 10,  # Adjust width of the color bar (in lines or points)
+      barheight = 0.5 # Adjust height of the color bar (in lines or points)
+    )
+  )
+ggsave(file = paste(directory,"/Outputs/",specification,"/net_state.png",sep = ""),
+         width = wid, height = 3*hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+# Create Dorling cartogram of prime-age coverage
+dorling_rpu <- cartogram_dorling(x = net_state_map %>% filter(inst_group == "RPU"),
+                                    weight = "total_origin",
+                                    k = 1, itermax = 100)
+dorling_pf <- cartogram_dorling(x = net_state_map %>% filter(inst_group == "PF"),
+                                    weight = "total_origin",
+                                    k = 1, itermax = 100)
+dorling_private <- cartogram_dorling(x = net_state_map %>% filter(inst_group == "Private, Non-Profit"),
+                                    weight = "total_origin",
+                                    k = 1, itermax = 100)
+net_state_dorling = rbind(dorling_rpu,dorling_pf,dorling_private)
+
+ggplot(data = net_state_dorling, aes(fill = replacement_rate)) +
+  # Second layer: outlines of CBSAs for better location context
+  geom_sf(data = net_state_map, color = "gray", fill = NA, size = 0.3) +
+  # First layer: the Dorling cartogram (colored circles)
+  geom_sf(color = "gray30", size = 0.1, show.legend = FALSE) +  
+  #geom_sf(data = net_cbsa_dorling, colour="gray", size=0.1) +
+  #geom_sf(color = "grey30", size = 0.5,show.legend = TRUE) +
+  scale_fill_gradientn(
+    name = "Dest. Grads\nPer Orig.\nGrad  ",
+    colors = diverging_colors,
+    values = scales::rescale(c(0, 0.5, 1, 1.5, 2, 2.5)), # Define where colors are focused
+    limits = c(0, 2),  # Set the visible range of the color scale
+    oob = scales::squish  # Squish values outside the limits
+  ) +
+  labs(title = "Destination-to-Origin Ratio for College Graduates by Institutional Group") +
+  facet_wrap(~ inst_group, ncol = 1) + # Facet for each level of inst_group
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom") +
+  guides(
+    fill = guide_colorbar(
+      barwidth = 10,  # Adjust width of the color bar (in lines or points)
+      barheight = 0.5 # Adjust height of the color bar (in lines or points)
+    )
+  )
+ggsave(file = paste(directory,"/Outputs/",specification,"/net_state_dorling.png",sep = ""),
+         width = wid, height = 3*hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+
+```
+####    net_cbsa_state
+
+```{r prime age}
+
+net_cbsa <- read_csv(file.path(directory,"Data",specification,"net_cbsa.csv"),col_select = -`...1`) %>%
+  mutate(cbsa_code = str_pad(cbsa,width=5,side="left",pad="0")) %>%
+  #select(-c("origin","destination","total_destination","net")) %>%
+  #pivot_wider(names_from = "inst_group",
+  #            values_from = "net_norm") %>%
+    left_join(cbsa_li_crosswalk %>% dplyr::select(c("cbsa_code","cbsa_core")) %>% distinct(), by = "cbsa_code") %>%
+  mutate(replacement_rate = destination/origin)
+
+net_cbsa_map = county_laea %>% 
+  dplyr::left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  group_by(cbsa_code) %>%
+  dplyr::summarize(geometry = st_union(geometry)) %>%
+  dplyr::left_join(net_cbsa, by = "cbsa_code") %>%
+  # Remove NAs since Dorling function doesn't accept NA weights
+  filter(is.na(total_origin)==FALSE) %>%
+  mutate(geo = "Labor Market")%>%
+  dplyr::select(-c(cbsa,cbsa_code,cbsa_core))
+
+
+net_state <- read_csv(file.path(directory,"Data",specification,"net_state.csv"),col_select = -`...1`) %>%
+  #select(-c("origin","destination","total_destination","net")) %>%
+  filter(state != "empty") %>% 
+  # Add state FIPS codes to simplify spatial merges later
+  left_join(cbsa %>% 
+              separate_wider_delim(`CBSA Title`,delim = ", ", names = c("cbsa_city","state_abbr")) %>%
+              rename(state_code = `FIPS State Code`) %>%
+              dplyr::select(state_code,state_abbr) %>%
+              filter(nchar(state_abbr)==2) %>%
+              distinct(), by = c("state"="state_abbr")) %>%
+  # Coerce DC FIPS code
+  mutate(state_code = ifelse(is.na(state_code)==TRUE,11,state_code)) %>%
+  mutate(replacement_rate = destination/origin)
+
+net_state_map = county_laea %>% 
+  dplyr::left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  dplyr::mutate(state_code = substr(GEOID,start=1,stop=2)) %>%
+  group_by(state_code) %>%
+  dplyr::summarize(geometry = st_union(geometry)) %>%
+  dplyr::left_join(net_state, by = "state_code") %>%
+  # Remove NAs since Dorling function doesn't accept NA weights
+  filter(is.na(total_origin)==FALSE) %>%
+  mutate(geo = "State") %>%
+  dplyr::select(-c(state,state_code))
+
+net_cbsa_state = rbind(net_state_map,net_cbsa_map) %>%
+  mutate(inst_group = case_when(inst_group == "Private, Non-Profit" ~ "Private",
+                                TRUE ~ inst_group))
+
+ggplot(data = net_cbsa_state, aes(fill = replacement_rate)) +
+  geom_sf(data = net_cbsa_state, colour="gray", size=0.1) +
+  scale_fill_gradientn(
+    name = "Dest. Grads\nPer Orig.\nGrad  ",
+    colors = diverging_colors,
+    values = scales::rescale(c(0, 0.5, 1, 1.5, 2, 3.5)), # Define where colors are focused
+    limits = c(0, 2.75),  # Set the visible range of the color scale
+    oob = scales::squish  # Squish values outside the limits
+  ) +
+  labs(title = "Destination-to-Origin Ratio for College Graduates by Institutional Group") +
+  facet_wrap(
+    vars(inst_group, geo),  # Include both inst_group and geo for mapping
+    ncol = 2,              # Two maps side by side per row
+    labeller = labeller(geo = element_blank())  # Remove labels for geo
+  ) + 
+  theme_void() + 
+  theme(text = element_text(size=12, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom",
+        strip.background = element_blank(),               # Clean strip background
+    panel.spacing = unit(1, "lines"),
+        strip.text = element_text(size = 12, hjust = 0.5),
+    strip.text.y = element_blank()) +
+  guides(
+    fill = guide_colorbar(
+      barwidth = 20,  # Adjust width of the color bar (in lines or points)
+      barheight = 0.5 # Adjust height of the color bar (in lines or points)
+    )
+  )
+ggsave(file = paste(directory,"/Outputs/",specification,"/net_cbsa_state.png",sep = ""),
+         width = wid, height = 3*hei, units = unit, bg = bkgrnd, dpi = dpi)
+```
+
+
+####    net_cbsa_state_dorling
+
+```{r return-levels}
+
+# Create Dorling cartogram of prime-age coverage
+#dorling_rpu <- cartogram_dorling(x = net_cbsa_map %>% filter(inst_group == "RPU"),
+#                                    weight = "total_origin",
+#                                    k = 1, itermax = 100)
+#dorling_pf <- cartogram_dorling(x = net_cbsa_map %>% filter(inst_group == "PF"),
+#                                    weight = "total_origin",
+#                                    k = 1, itermax = 100)
+#dorling_private <- cartogram_dorling(x = net_cbsa_map %>% filter(inst_group == "Private, Non-Profit"),
+#                                    weight = "total_origin",
+#                                    k = 1, itermax = 100)
+dorling_cbsa <- cartogram_dorling(x = net_cbsa_map,
+                                    weight = "total_origin",
+                                    k = 1, itermax = 100)
+dorling_state <- cartogram_dorling(x = net_state_map,
+                                    weight = "total_origin",
+                                    k = 1, itermax = 100)
+
+#net_cbsa_dorling = rbind(dorling_rpu,dorling_pf,dorling_private)
+net_cbsa_state_dorling = rbind(dorling_cbsa,dorling_state)
+
+ggplot(data = net_cbsa_state_dorling, aes(fill = shrunk_rate)) +
+  # Second layer: outlines of CBSAs for better location context
+  geom_sf(data = net_cbsa_map, color = "gray", fill = NA, size = 0.3) +
+  # First layer: the Dorling cartogram (colored circles)
+  geom_sf(color = "gray30", size = 0.1, show.legend = FALSE) +  
+  #geom_sf(data = net_cbsa_dorling, colour="gray", size=0.1) +
+  #geom_sf(color = "grey30", size = 0.5,show.legend = TRUE) +
+  scale_fill_gradientn(
+    name = "Dest. Grads\nPer Orig.\nGrad  ",
+    colors = diverging_colors,
+    values = scales::rescale(c(0, 0.5, 1, 1.5, 2, 5)), # Define where colors are focused
+    limits = c(0, 2),  # Set the visible range of the color scale
+    oob = scales::squish  # Squish values outside the limits
+  ) +
+  labs(title = "Destination-to-Origin Ratio for College Graduates by Institutional Group") +
+  facet_wrap(
+    vars(geo),  # Include both inst_group and geo for mapping
+    ncol = 2,              # Two maps side by side per row
+    labeller = labeller(geo = element_blank())  # Remove labels for geo
+  ) + 
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom") +
+  guides(
+    fill = guide_colorbar(
+      barwidth = 10,  # Adjust width of the color bar (in lines or points)
+      barheight = 0.5 # Adjust height of the color bar (in lines or points)
+    )
+  )
+ggsave(file = paste(directory,"/Outputs/",specification,"/net_cbsa_state_dorling.png",sep = ""),
+         width = wid, height = 3*hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+
+```
+
+###   Mapping Amenities
+
+```{r differences}
+
+differences <- read_csv(file.path(directory,"Data",specification,"local_differences.csv")) %>%
+  mutate(cbsa_code = str_pad(hs_cbsa,width=5,side="left",pad="0")) %>%
+  dplyr::select(-c("hs_cbsa","...1")) %>%
+  left_join(cbsa_li_crosswalk %>% dplyr::select(c("cbsa_code","cbsa_core")) %>% distinct(), by = "cbsa_code") %>%
+  mutate(difference_cbsa_alt = shr_returners_cbsa - pred_shr_returners_cbsa)
+
+# Import population weights
+lt_cbsa <- read_csv(file.path(directory,"Data",specification,"local_ties_cbsa.csv"),col_select = -`...1`) %>%
+  mutate(returners = (total *(return_col_only + return_hs_only + return_hs_col + no_ties))) %>%
+  dplyr::select(c(cbsa_code,returners))
+
+# Merge into shapefile
+data(county_laea)
+diff_map = county_laea %>% 
+  dplyr::left_join(unified_cbsa, by = c("GEOID"="GeoFIPS")) %>%
+  group_by(cbsa_code) %>%
+  dplyr::summarize(geometry = st_union(geometry)) %>%
+  dplyr::left_join(differences, by = "cbsa_code") %>%
+  dplyr::left_join(lt_cbsa, by = "cbsa_code") %>%
+  #dplyr::filter(!is.na(returners)) %>%
+  dplyr::select(c(cbsa_code,geometry,difference_cbsa_alt,returners))
+
+# NEED TO MERGE ON POPULATION WEIGHTS
+diff_dorling <- cartogram_dorling(x = diff_map,
+                                    weight = "returners",
+                                    k = 1, itermax = 100)
+
+ggplot(data = diff_dorling, aes(fill = difference_cbsa_alt)) +
+  # Second layer: outlines of CBSAs for better location context
+  geom_sf(data = diff_dorling, color = "gray", fill = NA, size = 0.3) +
+  # First layer: the Dorling cartogram (colored circles)
+  geom_sf(color = "gray30", size = 0.1, show.legend = FALSE) +  
+  #geom_sf(data = net_cbsa_dorling, colour="gray", size=0.1) +
+  #geom_sf(color = "grey30", size = 0.5,show.legend = TRUE) +
+  scale_fill_gradientn(name = "Residual on\nLM Return",
+                       labels = scales::percent,
+                       colors = diverging_colors,
+                       oob = scales::squish
+    ) +
+  labs(title = "Where Do College Graduates Return Despite Labor Demand?") +
+  theme_void() + 
+  theme(text = element_text(size=10, family="LM Roman 10"),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom") +
+  guides(
+    fill = guide_colorbar(
+      barwidth = 10,  # Adjust width of the color bar (in lines or points)
+      barheight = 0.5 # Adjust height of the color bar (in lines or points)
+    )
+  )
+ggsave(file = paste0(directory,"/Outputs/",specification,"/amenities.png"),
+                 width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi) 
+```

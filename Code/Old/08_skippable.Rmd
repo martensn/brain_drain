@@ -1,0 +1,252 @@
+---
+title: "08_skippable"
+author: "Nicholas Martens"
+date: "2024-02-26"
+output: html_document
+---
+
+##  Calculating Denominators for HS Omission
+
+```{r hs inclusion cleaning}
+
+#directory = "/Users/nickmartens/Dropbox (University of Michigan)/Linkedin/"
+posfilename1 = "cleaned_pos_educ_STATES_AK-MD.csv"
+posfilename2 = "cleaned_pos_educ_STATES_MI-WY.csv"
+edufilename1 = "raw_educ_STATES_AK-MD.csv"
+edufilename2 = "raw_educ_STATES_MI-WY.csv"
+
+# Variables user can control
+# Time range for work history
+work_history_start = 1975
+work_history_end = 2023
+# Number of years after college graduation to include in data
+max_post_grad = 50
+min_post_grad = 0
+
+ed_li1 = read_delim(file.path(directory,"Data/02",edufilename1))
+ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
+
+ed_li = rbind(ed_li1,ed_li2) %>% select(-c(world_rank)) %>% as.data.table()
+rm(ed_li2,ed_li1)
+# Remove redundant intermediate objects to save memory
+# Filter out associates degrees
+ed_li = ed_li[degree != "Associate"]
+# Filter universities outside US
+# Simplifies encoding by removing institutions with foreign accents
+ed_li = ed_li[university_country %in% c("United States","\\N")]
+# I convert to ASCII because it avoids headaches associated with non-English characters
+# Since my analysis focuses on American educational institutions,
+# foreign names are not very prevalent
+ed_li$university_name = iconv(ed_li$university_name, from = "UTF-8", to = "ASCII", sub = "")
+
+# Remove extra spaces and punctuation from institution names
+ed_li = ed_li[, alt_name := str_trim(str_to_lower(gsub("[[:punct:]]"," ",university_name)))]
+# Remove observations with empty institution name
+ed_li = ed_li[-which(ed_li$alt_name == ""), ]
+# Remove "main campus" to improve matches
+ed_li = ed_li[, alt_name := gsub("main campus","",alt_name)]
+
+not_hs = ed_li[!all_hs, on = "alt_name"]
+
+col_match = not_hs[all_col, on = "alt_name"] %>%
+  table.express::filter(is.na(university_name)==FALSE) #%>%
+ # table.express::mutate(user_id = as.character(user_id))
+rm(ed_li,not_hs,all_col,all_hs)
+
+col_users = data.table(user_id = unique(col_match$user_id))
+col_match = col_users[col_match, on = "user_id"]%>%
+  setnames(c("educ_startdate","educ_enddate"),
+           c("col_start","col_end"))
+
+pos1 = fread(file.path(directory,"Data/03",posfilename1),
+            # Only important columns necessary to know where people live
+            # In the future, maybe I will look more at occupations
+            select = c('user_id','country','state','msa','startdate','enddate','seniority'))
+pos2 = fread(file.path(directory,"Data/03",posfilename2),
+            # Only important columns necessary to know where people live
+            # In the future, maybe I will look more at occupations
+            select = c('user_id','country','state','msa','startdate','enddate','seniority'))
+pos = rbind(pos1,pos2)
+rm(pos1,pos2)
+
+# Match position file to users with high school and college degrees
+full_position = col_users[pos, on = "user_id", nomatch = NULL] %>%
+  table.express::filter(country == "United States") #%>%
+#  table.express::mutate(user_id = as.character(user_id))
+
+rm(pos,col_users)
+
+#wk_earliest = full_position[full_position[, .I[which.min(startdate)], by=user_id]$V1]
+#wk_earliest = wk_earliest[,c("user_id","startdate")] %>%
+#  table.express::mutate(user_id = as.integer(user_id))
+
+full_position = full_position %>% 
+  #filter(col_name == "Jackson College") %>%
+  # Convert start and end dates to data.table's date format
+  mutate(startdate = as.IDate(startdate),
+         enddate = as.IDate(enddate)) %>%
+  # Remove observations with no startdate
+  filter(is.na(startdate)==FALSE) %>%
+  # Filter out jobs where end date precedes start_date
+  mutate(weird = ifelse((startdate <= enddate)==TRUE,0,1)) %>%
+  #mutate(num_cbsa = as.numeric(cbsa_code)) %>%
+  filter(weird == 0) 
+# Create list of non-overlapping intervals representing year between the start
+# and end defined by the user
+
+gc()
+
+merge_col = col_match[full_position, 
+                      on = "user_id", 
+                      nomatch = NULL,
+                      allow.cartesian=TRUE]
+merge_col = merge_col[,c("user_id","col_start","col_end","university_name","degree","field","col_state","state","cbsa_code","msa","startdate","enddate")]
+rm(col_match)
+gc()
+
+work_earliest = full_position[full_position[, .I[which.min(startdate)], by=user_id]$V1]
+
+rm(full_position)
+gc()
+
+work_earliest = work_earliest[,c("user_id","startdate")] %>%
+  table.express::mutate(user_id = as.integer(user_id))
+
+merge_col = merge_col[work_earliest, on = "user_id"] %>%
+    # Remove rows that only include high school 
+  #table.express::filter(is.na(degree)==FALSE) %>%
+  table.express::filter(is.na(university_name)==FALSE) %>%
+  table.express::mutate(col_start = as.numeric(str_sub(col_start, start = 1, end = 4)),
+                        col_end = as.numeric(str_sub(col_end, start = 1, end = 4))) %>%
+  setnames(c("i.startdate"),
+           c("work_start"))
+merge_col = merge_col[,c("seniority","weird","i.enddate","i.state","i.msa","country") := NULL]
+
+rm(work_earliest)
+gc()
+
+
+start = ymd(rep(work_history_start:work_history_end),truncated=2L)
+end = start + years(1) - days(1)
+interval = year(start)
+work_hist = data.table(interval = interval,
+                       start = as.IDate(start),
+                       end = as.IDate(end))
+# Standardizing time intervals on LI profiles as years since college graduation
+# Reference list (just intervals from Jan 1 to Dec 31 of every year)
+setkey(work_hist, start, end)
+# Detecting overlaps
+std_pos = foverlaps(merge_col,
+                work_hist,
+                by.x=c("startdate","enddate"),
+                by.y=c("start","end"),
+                type = "any") %>%
+  # Converting overlaps into years since graduation
+  table.express::mutate(yrs_graduated = interval - col_end) %>%
+  # Removing jobs prior to college graduation
+  # Approximately 15 percent of users only list jobs prior to their college graduation
+  table.express::filter(min_post_grad <= yrs_graduated  & yrs_graduated <= max_post_grad)
+
+# If multiple jobs listed, selects the most common CBSA for employment
+std_pos_geo = dcast(std_pos, user_id ~ yrs_graduated, 
+             value.var = c("cbsa_code","state"),
+             fun.aggregate = function(x, na.rm = TRUE)
+               {
+               if(na.rm)
+                 {
+                 x = x[!is.na(x)]
+                 }
+               ux <- unique(x)
+               return(ux[which.max(tabulate(match(x,ux)))])
+               })
+
+rm(std_pos)
+gc()
+
+# I should exclude people born outside 1944-2003
+completed = merge_col[std_pos_geo, on = "user_id",all=TRUE] %>%
+  table.express::mutate(birth2 = ifelse(is.na(col_start)==FALSE, col_start - 18,0),
+                        birth3 = ifelse(is.na(col_end)==FALSE, col_end - 22,0),
+                        # Use work history if no dates provided 
+                        birth4 = ifelse(is.na(work_start)==FALSE,
+                                        year(work_start)-22,0)) %>%
+  table.express::mutate(birth = ifelse(birth2 > 0, birth2,
+                                       ifelse(birth3 > 0, birth3,
+                                              ifelse(birth4 > 0, birth4,0)))) %>%
+  # Use estimated birth years to fill in missing graduation or start dates
+  table.express::mutate(col_end = ifelse(is.na(col_end)==FALSE, col_end, birth + 22)) %>%
+  table.express::filter(col_end > 1981 & col_end < 2022 & birth > 1929 & birth > 1929 & birth < 2003) %>%
+  table.express::filter(is.na(dist)==FALSE)
+
+rm(std_pos_geo)
+gc()
+
+completed_age_dist = table(completed$birth)
+
+cols = c("user_id",paste0("cbsa_code_",min_post_grad:max_post_grad))
+completed_melt = completed[, ..cols] %>%
+  melt(id=c("user_id"), na.rm=TRUE)
+
+denominator = completed_melt[, .(count = .N), by = c("value","variable")]
+write.csv(denominator,file.path(directory,"Data/07/denominator.csv"))
+
+rm(merge_col,completed_melt)
+```
+
+##    National HS Omission
+
+```{r hs time}
+
+# Calculate number of users who include high school, by years since graduation
+national_numerator = numerator %>%
+  group_by(variable) %>%
+  dplyr::summarize(total = sum(count))
+
+# Calculate number of users otherwise qualified, except for missing high school
+national_denominator = denominator %>%
+  group_by(variable) %>%
+  dplyr::summarize(total = sum(count))
+
+# Merge numerator and denominator to calculate proportion for chart
+national_fraction = national_denominator[national_numerator, on = c("variable")] %>%
+  setnames(c("variable","total","i.total"),
+           c("n_grad","total","inc_hs")) %>%
+  table.express::mutate(hs_pct = inc_hs / total) %>%
+  table.express::mutate(n_grad = as.numeric(str_replace_all(n_grad,"cbsa_code_",""))) %>%
+  as.data.frame()
+
+ggplot(national_fraction, aes(x = n_grad, 
+                              y = hs_pct)) + 
+  geom_line(color = "#0099f9", linewidth = 2) +
+  geom_point(color = "#0099f9", size = 3) +
+  scale_x_continuous(limits = c(0,40),
+                     expand = c(0.001,0)) +
+  scale_y_continuous(limits = c(0,0.04),
+                     expand = c(0,0),
+                     labels = scales::percent) +
+  xlab("Years Since College Graduation") +
+  ylab("Percent of Observations") +
+  labs(title = "Inclusion of High School Among College Graduates") +
+  theme(#panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent', color=NA),
+        text         = element_text(size=10, family="LM Roman 10"),
+        #panel.grid.major = element_blank(),
+        #panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.background = element_rect(fill='transparent',color=NA),
+        legend.box.background = element_rect(fill='transparent',color=NA),
+        legend.position = "bottom")
+  ggsave(file = paste(directory,"/Outputs/","hs_inclusion_age.png",sep = ""),
+         width = wid, height = hei, units = unit, bg = bkgrnd, dpi = dpi)
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

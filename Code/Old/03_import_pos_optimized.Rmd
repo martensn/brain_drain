@@ -1,0 +1,49 @@
+---
+title: "03_import_pos"
+author: "Nicholas Martens"
+date: "2023-06-10"
+output: html_document
+---
+
+## Setup
+
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+directory = "/Users/nickmartens/Dropbox (University of Michigan)/Linkedin"
+posfilename = "cleaned_pos_educ_STATES.csv"
+```
+
+Import necessary packages
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(data.table)
+```
+
+## Importing Position File
+
+```{r import position, echo=FALSE}
+pos = fread(file.path(directory,"Data/03",posfilename),
+            # Only important columns necessary to know where people live
+            # In the future, maybe I will look more at occupations
+            select = c('user_id','country','state','msa','startdate','enddate','seniority'))
+```
+
+## Cleaning Position File
+
+```{r clean position, echo=FALSE}
+# Extract degree data from position file
+# All data in ed_pos already included in ed_li file
+#ed_pos = pos[,c("user_id","educ_startdate","university_name","educ_enddate",
+#                "degree","field","university_country")] %>%
+#  distinct(university_name,user_id) %>%
+#  filter(university_country == "United States") %>%
+#  table.express::filter(is.na(university_name)==FALSE)
+
+# Match position file to users with high school and college degrees
+position = both[pos, on = "user_id", nomatch = NULL] %>%
+  filter(country == "United States")
+
+rm(pos)  
+
+```

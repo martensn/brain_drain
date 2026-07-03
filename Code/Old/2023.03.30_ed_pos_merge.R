@@ -1,0 +1,402 @@
+# Author  : Nick Martens
+# Date    : 31 March 2023
+# Purpose : Merging education and position data then crosswalking it to correct geography
+
+library(data.table)
+library(tidyverse)
+
+# Need to pull college graduation year from 
+filepath = "E:/Nick/Stata/"
+posfilename0 = "cleaned_pos_educ_STATES.csv"
+
+pos = fread(paste0(filepath,posfilename0))
+pos_keys = pos %>%
+  group_by(user_id) %>%
+  group_keys() %>%
+  distinct()
+
+position = pos %>%
+  filter(user_id %in% both$user_id) %>%
+  filter(country == "United States") %>%
+  # For now we will just filter out 'empty'
+  # It appears CBSA could be imputed for some of them based on the LI raw geography
+  filter(state != "empty")
+
+position_trimmed = position %>%
+  select(-c(educ_startdate:n))
+
+# We need to calculate graduation year 
+both_col = col %>%
+  filter(user_id %in% both$user_id)
+both_hs = hs %>%
+  filter(user_id %in% both$user_id)
+
+# Merging high school and college experiences into one file
+merge_col_hs = both_col %>%
+  left_join(both_hs, by = "user_id", multiple = "all") %>%
+  select(c(user_id, university_name.x, educ_startdate.x, educ_enddate.x,
+           field.x, state, cbsa_code.x, university_name.y, educ_enddate.y, cbsa_code.y))
+
+# Convert date columns into years (remove months and days)
+merge_col_hs_date = merge_col_hs %>%
+  filter(educ_startdate.x != "\\N" | educ_enddate.x != "\\N" | educ_enddate.y != "\\N") %>%
+  mutate(col_start = str_sub(educ_startdate.x, start = 1, end = 4),
+         col_end = str_sub(educ_enddate.x, start = 1, end = 4),
+         hs_end = str_sub(educ_enddate.y, start = 1, end = 4))
+
+merge_col_hs_date$col_start = as.numeric(merge_col_hs_date$col_start)
+merge_col_hs_date$col_end = as.numeric(merge_col_hs_date$col_end)
+merge_col_hs_date$hs_end = as.numeric(merge_col_hs_date$hs_end)
+
+# Calculating birth date based on high school graduation if available, 
+# then college start date, and finally college graduation if the first two aren't available
+birth = merge_col_hs_date %>%
+  mutate(birth1 = ifelse(is.na(hs_end)==FALSE, hs_end - 18,0),
+         birth2 = ifelse(is.na(col_start)==FALSE, col_start - 18,0),
+         birth3 = ifelse(is.na(col_end)==FALSE, col_end - 22,0)) %>%
+  mutate(birth = ifelse(birth1 > 0, birth1, ifelse(birth2 > 0, birth2, birth3))) %>%
+  select(-c(birth1,birth2,birth3)) %>%
+  # Use estimated birth years to fill in missing graduation or start dates
+  mutate(col_start = ifelse(is.na(col_start)==FALSE, col_start, birth + 18),
+         col_end = ifelse(is.na(col_end)==FALSE, col_end, birth + 18),
+         hs_end = ifelse(is.na(hs_end)==FALSE, hs_end, birth + 18))
+
+# Filter birth cohorts outside of current focus
+birth_trimmed = birth %>%
+  filter(birth > 1979 & birth < 2001)
+
+# Merge education and position files
+birth_position = birth_trimmed %>%
+  left_join(position_trimmed, by = "user_id", multiple = "all") %>%
+  mutate(startdate = as.character(startdate),
+         enddate = as.character(enddate))
+
+# Compute commuting zone 1:10 years after graduation, if possible
+bp_datemod = birth_position %>%
+  mutate(post_1 = col_end + 1,
+         post_2 = col_end + 2,
+         post_3 = col_end + 3,
+         post_4 = col_end + 4,
+         post_5 = col_end + 5,
+         post_6 = col_end + 6,
+         post_7 = col_end + 7,
+         post_8 = col_end + 8,
+         post_9 = col_end + 9,
+         post_10 = col_end + 10,) %>%
+  separate(startdate, into = c("st_y","st_m","st_d"), sep = "-") %>%
+  mutate(enddate = ifelse(is.na(enddate)==TRUE,"2023-05-01",enddate)) %>%
+  separate(enddate, into = c("en_y","en_m","en_d"), sep = "-") %>%
+  mutate(st_y = as.numeric(st_y),
+         st_m = as.numeric(st_m),
+         st_d = as.numeric(st_d),
+         en_y = as.numeric(en_y),
+         en_m = as.numeric(en_m),
+         en_d = as.numeric(en_d))
+
+# The tests used to determine if a person worked a given job n years after graduation
+bp_datemod_cbsa = bp_datemod %>%
+  group_by(user_id) %>%
+  # A little bit of string cleaning for MSA name
+  # Separates state and city for hyphenated metros (Philly) and two-word cities (El Paso)
+  mutate(cbsa_clean = str_replace_all(msa, " MSA",""),
+         cbsa_city = str_extract(cbsa_clean,'(^.{1,}-(?=([A-Z][a-z].*)))|(^.{1,} (?=([A-Z][A-Z].*)))'),
+         cbsa_city = str_replace_all(cbsa_city, '-'," ")) %>%
+  separate(cbsa_clean, into = c(NA,"cbsa_state"), sep = (' (?=([A-Z][A-Z].*))')) %>%
+  mutate(cbsa_city = str_replace_all(cbsa_city,"Austin","Austin Round Rock"),
+         cbsa_city = str_replace_all(cbsa_city,"Baltimore","Baltimore Columbia"),
+         cbsa_city = str_replace_all(cbsa_city,"Blacksburg Christiansburg","Blacksburg"),
+         cbsa_city = str_replace_all(cbsa_city,"Bremerton","Bremerton Silverdale"),
+         cbsa_city = str_replace_all(cbsa_city,"Charlotte Gastonia","Charlotte Concord"),
+         cbsa_city = str_replace_all(cbsa_city,"Cleveland Elyria","Cleveland"),
+         cbsa_city = str_replace_all(cbsa_city,"Corvalis","Corvallis"),
+         cbsa_city = str_replace_all(cbsa_city,"Fort Walton Beach Crestview","Crestview Fort Walton Beach"),
+         cbsa_city = str_replace_all(cbsa_city,"Denver","Denver Aurora"),
+         cbsa_city = str_replace_all(cbsa_city,"Greenville Mauldin","Greenville"),
+         cbsa_city = str_replace_all(cbsa_city,"Houma Bayou Cane","Houma"),
+         cbsa_city = str_replace_all(cbsa_city,"Houston Sugar Land","Houston The Woodlands"),
+         cbsa_city = str_replace_all(cbsa_city,"Indianapolis","Indianapolis Carmel"),
+         cbsa_city = str_replace_all(cbsa_city,"Kennewick Richland","Kennewick"),
+         cbsa_city = str_replace_all(cbsa_city,"Killeen Temple","Killeen"),
+         cbsa_city = str_replace_all(cbsa_city,"Kingsport Bristol","Kingsport"),
+         cbsa_city = str_replace_all(cbsa_city,"Las Vegas","Las Vegas Henderson"),
+         cbsa_city = str_replace_all(cbsa_city,"Milwaukee Waukesha","Milwaukee"),
+         cbsa_city = str_replace_all(cbsa_city,"New Orleans Metairie","New Orleans"),
+         cbsa_city = str_replace_all(cbsa_city,"New York Northern New Jersey","New York Newark"),
+         cbsa_city = str_replace_all(cbsa_city,"Sarasota Bradenton","North Port Sarasota"),
+         cbsa_city = str_replace_all(cbsa_city,"Olympia","Olympia Lacey"),
+         cbsa_city = str_replace_all(cbsa_city,"Orlando","Orlando Kissimmee"),
+         cbsa_city = str_replace_all(cbsa_city,"Parkersburg Marietta","Parkersburg"),
+         cbsa_city = str_replace_all(cbsa_city,"Portland South Portland","Portland"),
+         cbsa_city = str_replace_all(cbsa_city,"Prescott","Prescott Valley"),
+         cbsa_city = str_replace_all(cbsa_city,"Providence New Bedford","Providence"),
+         cbsa_city = str_replace_all(cbsa_city,"Sacramento Arden Arcade","Sacramento Roseville"),
+         cbsa_city = str_replace_all(cbsa_city,"San Diego Carlsbad","San Diego Chula Vista"),
+         cbsa_city = str_replace_all(cbsa_city,"Santa Barbara Santa Maria","Santa Maria"),
+ #        cbsa_city = str_replace_all(cbsa_city,"Texarkana TX","Texarkana"),
+         cbsa_city = str_replace_all(cbsa_city,"Honolulu","Urban Honolulu"),
+         cbsa_city = str_replace_all(cbsa_city,"Vineland Millville","Vineland"),
+         cbsa_city = str_replace_all(cbsa_city,"Danville","VA NONMETROPOLITAN"),
+         cbsa_city = str_replace_all(cbsa_city,"Anderson","IN NONMETROPOLITAN"),
+         cbsa_city = str_replace_all(cbsa_city,"Sandusky","OH NONMETROPOLITAN"),
+         cbsa_city = str_replace_all(cbsa_city,"Palm Coast","FL NONMETROPOLITAN"),
+         cbsa_city = str_replace_all(cbsa_city,"Anderson","SC NONMETROPOLITAN"),
+         cbsa_city = str_replace_all(cbsa_city,"Holland","MI NONMETROPOLITAN"),
+         cbsa_city = str_replace_all(cbsa_city,"Norwich","CT NONMETROPOLITAN"),
+         cbsa_city = str_replace_all(cbsa_city,"New Haven","CT NONMETROPOLITAN"),
+         cbsa_city = str_replace_all(cbsa_city,"Hartford West Hartford","CT NONMETROPOLITAN"),
+         cbsa_city = str_replace_all(cbsa_city,"Bridgeport Stamford","CT NONMETROPOLITAN"),
+         cbsa_city = str_replace_all(cbsa_city,"DE NONMETROPOLITAN","Dover"),
+#         cbsa_state = str_replace_all(cbsa_state,"AR-MO","AR"),
+#         cbsa_state = str_replace_all(cbsa_state,"^MA","MA-CT"),
+         cbsa_city = str_replace_all(cbsa_city,"Nashville Davidson Murfreesboro ","Nashville Davidson  Murfreesboro"),
+         cbsa_city = str_replace_all(cbsa_city,"Pascagoula","Gulfport"),
+         cbsa_state = str_replace_all(cbsa_state,"TN-AR-MS","TN-MS-AR"),
+#         cbsa_state = str_replace_all(cbsa_state,"VA","NONMETROPOLITAN"),
+#         cbsa_state = str_replace_all(cbsa_state,"IN","NONMETROPOLITAN"),
+#         cbsa_state = str_replace_all(cbsa_state,"OH","NONMETROPOLITAN"),
+#         cbsa_State = str_replace_all(cbsa_state,"FL","NONMETROPOLITAN"),
+#         cbsa_state = str_replace_all(cbsa_state,"SC","NONMETROPOLITAN"),
+#         cbsa_state = str_replace_all(cbsa_state,"MI","NONMETROPOLITAN"),
+#         cbsa_state = str_replace_all(cbsa_state,"^CT","NONMETROPOLITAN"),
+#         cbsa_state = str_replace_all(cbsa_state,"NONMETROPOLITAN","DE")
+  ) %>%
+  left_join(name_match, by = c("cbsa_state","cbsa_city")) %>%
+ # rename(cbsa_name = msa_clean) %>%
+  mutate(inside_1 = ifelse((st_y < post_1 & post_1 < en_y) | 
+                             (st_y < post_1 & post_1 == en_y) |
+                             (st_y == post_1 & st_m < 4 & (en_y > st_y | en_m > 4)),1,0),
+         inside_2 = ifelse((st_y < post_2 & post_2 < en_y) | 
+                             (st_y < post_2 & post_2 == en_y) |
+                             (st_y == post_2 & st_m < 4 & (en_y > st_y | en_m > 4)),1,0),
+         inside_3 = ifelse((st_y < post_3 & post_3 < en_y) | 
+                             (st_y < post_3 & post_3 == en_y) |
+                             (st_y == post_3 & st_m < 4 & (en_y > st_y | en_m > 4)),1,0),
+         inside_4 = ifelse((st_y < post_4 & post_4 < en_y) | 
+                             (st_y < post_4 & post_4 == en_y) |
+                             (st_y == post_4 & st_m < 4 & (en_y > st_y | en_m > 4)),1,0),
+         inside_5 = ifelse((st_y < post_5 & post_5 < en_y) | 
+                             (st_y < post_5 & post_5 == en_y) |
+                             (st_y == post_5 & st_m < 4 & (en_y > st_y | en_m > 4)),1,0),
+         inside_6 = ifelse((st_y < post_6 & post_6 < en_y) | 
+                             (st_y < post_6 & post_6 == en_y) |
+                             (st_y == post_6 & st_m < 4 & (en_y > st_y | en_m > 4)),1,0),
+         inside_7 = ifelse((st_y < post_7 & post_7 < en_y) | 
+                             (st_y < post_7 & post_7 == en_y) |
+                             (st_y == post_7 & st_m < 4 & (en_y > st_y | en_m > 4)),1,0),
+         inside_8 = ifelse((st_y < post_8 & post_8 < en_y) | 
+                             (st_y < post_8 & post_8 == en_y) |
+                             (st_y == post_8 & st_m < 4 & (en_y > st_y | en_m > 4)),1,0),
+         inside_9 = ifelse((st_y < post_9 & post_9 < en_y) | 
+                             (st_y < post_9 & post_9 == en_y) |
+                             (st_y == post_9 & st_m < 4 & (en_y > st_y | en_m > 4)),1,0),
+         inside_10 = ifelse((st_y < post_10 & post_10 < en_y) | 
+                             (st_y < post_10 & post_10 == en_y) |
+                             (st_y == post_10 & st_m < 4 & (en_y > st_y | en_m > 4)),1,0))
+         
+
+# Manual repair of CBSA merge problems
+cbsa_merge_problems = bp_datemod_cbsa %>%
+  filter(is.na(cbsa_code)==TRUE) %>%
+  group_by(cbsa_city,cbsa_state) %>%
+  summarize(n = n()) %>%
+  arrange(n)
+
+# Clean file such that a single row contains:
+# College name, hs name, 
+pos_cbsa = bp_datemod_cbsa %>%
+  select(c(user_id,cbsa_code,inside_1:inside_10)) %>%
+  mutate(cbsa_1 = ifelse(inside_1==1,cbsa_code,NA),
+         cbsa_2 = ifelse(inside_2==1,cbsa_code,NA),
+         cbsa_3 = ifelse(inside_3==1,cbsa_code,NA),
+         cbsa_4 = ifelse(inside_4==1,cbsa_code,NA),
+         cbsa_5 = ifelse(inside_5==1,cbsa_code,NA),
+         cbsa_6 = ifelse(inside_6==1,cbsa_code,NA),
+         cbsa_7 = ifelse(inside_7==1,cbsa_code,NA),
+         cbsa_8 = ifelse(inside_8==1,cbsa_code,NA),
+         cbsa_9 = ifelse(inside_9==1,cbsa_code,NA),
+         cbsa_10 = ifelse(inside_10==1,cbsa_code,NA)
+         ) %>%
+  select(-c(inside_1:inside_10)) %>%
+  group_by(user_id) %>%
+  summarize(cbsa_1 = na.omit(cbsa_1)[1],
+            cbsa_2 = na.omit(cbsa_2)[1],
+            cbsa_3 = na.omit(cbsa_3)[1],
+            cbsa_4 = na.omit(cbsa_4)[1],
+            cbsa_5 = na.omit(cbsa_5)[1],
+            cbsa_6 = na.omit(cbsa_6)[1],
+            cbsa_7 = na.omit(cbsa_7)[1],
+            cbsa_8 = na.omit(cbsa_8)[1],
+            cbsa_9 = na.omit(cbsa_9)[1],
+            cbsa_10 = na.omit(cbsa_9)[1])
+
+# Linking post-graduation CBSA data with postsecondary and high school
+unified = pos_cbsa %>%
+  left_join(birth, by = "user_id") %>%
+  select(-c(educ_startdate.x,educ_enddate.x,educ_enddate.y,cbsa_code.y)) %>%
+  rename(col_name = university_name.x,
+         hs_name = university_name.y,
+         major = field.x, 
+         col_state = state,
+         col_cbsa = cbsa_code.x) %>%
+  group_by(user_id) %>%
+  # Remove observations with no work history
+  mutate(work_exists = ifelse((is.na(cbsa_1)==FALSE | is.na(cbsa_2)==FALSE |
+                              is.na(cbsa_3)==FALSE | is.na(cbsa_4)==FALSE |
+                              is.na(cbsa_5)==FALSE | is.na(cbsa_6)==FALSE |
+                              is.na(cbsa_7)==FALSE | is.na(cbsa_8)==FALSE |
+                              is.na(cbsa_9)==FALSE | is.na(cbsa_9)==FALSE |
+                              is.na(cbsa_10)==FALSE),1,0)) %>%
+  filter(work_exists == 1)
+
+# Removing extraneous columns from all_hs
+clean_hs = all_hs %>%
+  mutate(alt_name = str_replace_all(alt_name, "high$","high school")) %>%
+  group_by(clean_name,cbsa_code) %>%
+  distinct() %>%
+  select(c(STATE,cbsa_code,clean_name))
+
+# Schools located in a single CBSA
+original_name = clean_hs %>%
+  group_by(clean_name) %>%
+  summarize(n = n()) %>%
+  filter(n == 1)
+
+# Schools located in multiple CBSAs
+unoriginal_name = clean_hs %>%
+  group_by(clean_name) %>%
+  summarize(n = n()) %>%
+  filter(n > 1)
+
+# Constructing a sensitive high school imputation method
+better_hs = unified %>%
+  # Standard string cleaning to ease matching
+  mutate(alt_name = str_to_lower(hs_name),
+         alt_name = str_trim(alt_name),
+         alt_name = str_replace_all(alt_name, "-"," "),
+         alt_name = str_replace_all(alt_name, "—"," "),
+         alt_name = str_replace_all(alt_name, ","," "),
+         alt_name = str_replace_all(alt_name, "main campus",""),
+         alt_name = str_replace_all(alt_name, "high$","high school"),
+         alt_name = str_trim(alt_name)) %>%
+  mutate(clean_name = alt_name,
+         unoriginal = ifelse(clean_name %in% unoriginal_name$clean_name,1,0))
+
+# High schools with unoriginal names
+# Matching won't be as straightforward
+better_hs_unoriginal = better_hs %>%
+  filter(unoriginal == 1) %>%
+  left_join(clean_hs, by = "clean_name") %>%
+  select(-c(alt_name,unoriginal,work_exists)) %>%
+  # First check if any of the high schools are in the post-graduation CBSA 
+  mutate(same_as_post = ifelse((str_detect(cbsa_1,cbsa_code)==TRUE | 
+                                 str_detect(cbsa_2,cbsa_code)==TRUE |
+                                 str_detect(cbsa_3,cbsa_code)==TRUE | 
+                                 str_detect(cbsa_4,cbsa_code)==TRUE |
+                                 str_detect(cbsa_5,cbsa_code)==TRUE | 
+                                 str_detect(cbsa_6,cbsa_code)==TRUE |
+                                 str_detect(cbsa_7,cbsa_code)==TRUE | 
+                                 str_detect(cbsa_8,cbsa_code)==TRUE |
+                                 str_detect(cbsa_9,cbsa_code)==TRUE | 
+                                 str_detect(cbsa_10,cbsa_code)==TRUE),1,NA)) %>%
+  mutate(same_state_col = ifelse(col_state == STATE,1,0))
+
+# Isolate the simplest test case: high school with unoriginal name in post-grad CBSA
+unoriginal_same_as_post = better_hs_unoriginal %>%
+  filter(is.na(same_as_post)==FALSE) %>%
+  select(-c(same_as_post,same_state_col))
+
+# Isolate people who attended college in a state that contains an unoriginal hs
+unoriginal_same_state_col = better_hs_unoriginal %>%
+  filter(user_id %nin% unoriginal_same_as_post$user_id) %>%
+  filter(is.na(same_as_post)==TRUE) %>%
+  filter(same_state_col == 1) %>%
+  select(-c(same_as_post,same_state_col))
+  
+# Isolate people who live in the same state where they went to high school
+# First pull a list of CBSAs by state
+cbsa_state = big_chungus %>%
+  select('Official Name State',cbsa_code) %>%
+  rename(STATE = 'Official Name State') %>%
+  distinct()
+
+# If somebody with an unoriginal high school doesn't fall into the previous categories,
+# same_state_as_post checks if their high school is in the same state as post-grad work
+same_state = better_hs_unoriginal %>%
+  filter(user_id %nin% unoriginal_same_as_post$user_id) %>%
+  filter(user_id %nin% unoriginal_same_state_col$user_id) %>%
+  filter(is.na(same_as_post)==TRUE) %>%
+  filter(same_state_col == 0) %>%
+  left_join(cbsa_state, by = "STATE") %>%
+  mutate(same_state_as_post = ifelse((str_detect(cbsa_1,cbsa_code.y)==TRUE | 
+                                         str_detect(cbsa_2,cbsa_code.y)==TRUE |
+                                         str_detect(cbsa_3,cbsa_code.y)==TRUE | 
+                                         str_detect(cbsa_4,cbsa_code.y)==TRUE |
+                                         str_detect(cbsa_5,cbsa_code.y)==TRUE | 
+                                         str_detect(cbsa_6,cbsa_code.y)==TRUE |
+                                         str_detect(cbsa_7,cbsa_code.y)==TRUE | 
+                                         str_detect(cbsa_8,cbsa_code.y)==TRUE |
+                                         str_detect(cbsa_9,cbsa_code.y)==TRUE | 
+                                         str_detect(cbsa_10,cbsa_code.y)==TRUE),1,NA))
+
+# Isolate people who lived in the same state as their high school
+# For metros across multiple states the MSA will be included as a possibility
+# for every constitutive state
+unoriginal_same_state_post = same_state %>%
+  filter(is.na(same_state_as_post)==FALSE) %>%
+  select(-c(same_as_post:same_state_as_post)) %>%
+  rename(cbsa_code = cbsa_code.x)
+
+# The remaining don't live in the same state as their high school or college
+# For now we will just randomly select one of the possible high schools
+# in the future I might adjust the code so choose the closest possible high school
+unoriginal_last_resort = same_state %>%
+  filter(is.na(same_state_as_post)==TRUE) %>%
+  filter(user_id %nin% unoriginal_same_state$user_id) %>%
+  select(-c(same_as_post:same_state_as_post)) %>%
+  rename(cbsa_code = cbsa_code.x) %>%
+  distinct() %>%
+  group_by(user_id) %>%
+  slice_sample(n = 1)
+
+# High schools with unique names
+# Matching should be straightforward
+better_hs_original = better_hs %>%
+  filter(unoriginal == 0) %>%
+  left_join(clean_hs, by = "clean_name") %>%
+  select(-c(alt_name,unoriginal,work_exists))
+
+# Combine the correct data and filter so that only most recent bachelor's institution listed
+completed = rbind(better_hs_original,
+                  unoriginal_same_as_post,
+                  unoriginal_same_state_col,
+                  unoriginal_same_state_post,
+                  unoriginal_last_resort) %>%
+  arrange(-col_end) %>%
+  slice_max(col_end, n = 1)
+
+completed_col = completed %>%
+  select(user_id,col_name)
+
+# Pull institutional characteristics 
+completed_tiered = completed %>%
+  mutate(alt_name = str_to_lower(col_name),
+         alt_name = str_trim(alt_name),
+         alt_name = str_replace_all(alt_name, "-"," "),
+         alt_name = str_replace_all(alt_name, "—"," "),
+         alt_name = str_replace_all(alt_name, ","," "),
+         alt_name = str_replace_all(alt_name, "main campus",""),
+         alt_name = str_replace_all(alt_name, " at "," "),
+         alt_name = str_replace_all(alt_name, "a&m","agricultural and mechanical"),
+         alt_name = str_replace_all(alt_name, "a & m","agricultural and mechanical"),
+         alt_name = str_trim(alt_name),
+         alt_name = str_squish(alt_name)) %>%
+  left_join(all_col, by = c("col_state","alt_name")) %>%
+  # For now just filter out the ~1500 with no tier
+  filter(is.na(barrons)==FALSE)
+
+
+completed_tiered_problems = completed_tiered %>%
+  filter(is.na(barrons)==TRUE) %>%
+  group_by(col_name) %>%
+  summarize(n = n()) %>%
+  arrange(-n)

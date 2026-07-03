@@ -1,0 +1,275 @@
+---
+title: "06_regression_feb"
+author: "Nicholas Martens"
+date: "2024-02-02"
+output: html_document
+---
+
+##    Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(texreg)
+library(tidyverse)
+library(readxl)
+library(table.express)
+library(data.table)
+
+options(digits = 1)
+```
+
+##    Setup
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+#directory = "/nfs/turbo/lsa-areynoso"
+directory = "/Volumes/lsa-areynoso"
+aaufilename = "AAU.xlsx"
+aau = read_excel(file.path(directory,"Data/06",aaufilename),
+                 col_types = "text") %>%
+  select(c(col_zip,control,aau)) %>%
+  as.data.table()
+microdata = fread(file.path(directory,"Data/06/regression_data.csv"),
+                  colClasses = c("control" = "character",
+                                 "col_zip" = "character",
+                                 "col_cbsa_code" = "character",
+                                 "hs_cbsa_code"= "character"
+                                 ))
+
+#regression = microdata %>%
+#  select(c("user_id",starts_with("col"),starts_with(""),"transfer","birth","dist",starts_with("hs_shock"),starts_with("col_shock")))
+
+geos = c("cbsa","state")
+avgs = c(1,3,5,7)
+
+shock_lbl = c("1-Year Shock",
+              "3-Year Average",
+              "5-Year Average",
+              "7-Year Average")
+
+
+controls = c("in_stateIn-State",
+             "non_traditionalTraditional",
+             "transferTransfer")
+control_lbl = c("College In State",
+                "BA by Age 24",
+                "Transfer Student")
+
+inst_groups = c("col_typePrivate, For-Profit",
+                "col_typePrivate, Non-Profit",
+                "col_typeRPU, Less Selective",
+                "col_typeRPU, More Selective")
+
+```
+
+##    Import Microdata
+Avoid rerunning previous eight steps and saving ~6 hours
+```{r import, include=FALSE}
+
+regression = microdata[,c("user_id","col_name","col_state","col_cbsa_code","barrons","col_end",
+                          "col_major","col_zip","distance_mi",
+                          "control","hbcu","c21ugprf", "carnegie", "tribal","land_grant",
+                          "hs_name","hs_state","hs_cbsa_code","transfer","birth",
+                          "same_state_hs","same_cbsa_hs","same_state_col","same_cbsa_col",
+                          "dist","hs_shock_avg_1","hs_shock_avg_3","hs_shock_avg_5","hs_shock_avg_7",
+                          "col_shock_avg_1","col_shock_avg_3","col_shock_avg_5","col_shock_avg_7")] %>%
+  # Create variable for non-traditional students
+  table.express::mutate(non_traditional = ifelse(col_end - birth > 24,
+                                                 "Non-Traditional",
+                                                 "Traditional"),
+                        transfer = ifelse(transfer == "0",
+                                          "Non-Transfer",
+                                          "Transfer"),
+                        col_end = as.factor(col_end),
+                        binary_dist = case_when(dist %in% c("[0,50]","(50,100]","(100,150]","(150,200]","(200,250]") ~ "Near",
+                                               TRUE ~ "Far"
+                                               ),
+                        #binary_sel = case_when(barrons %in% c("1","2") ~ "MoreSel",
+                        #                       TRUE ~ "LessSel"
+                        #                       ),
+                        #in_state = as.factor(case_when(col_state == hs_state ~ "In-State",
+                        #                     TRUE ~ "Out-of-State")),
+                        col_in_not_hs_cbsa = ifelse(hs_cbsa_code == col_cbsa_code,0,1)) %>%
+  table.express::filter(is.na(dist)==FALSE)
+dist_bins = levels(regression$dist)[-1]
+
+regression = aau[regression, on = c("control","col_zip")] %>%
+  table.express::mutate(aau = ifelse(is.na(aau)==TRUE,0,aau)) %>%
+  table.express::mutate(col_type = as.factor(case_when((aau == "1" | land_grant == "1") & control == "1" ~ "Public Flagship",
+                                             control == "1" & barrons %in% c("1","2","3","4") ~ "RPU, More Selective",
+                                             control == "1" & barrons %in% c("5","9","999","Unrated") ~ "RPU, Less Selective",
+                                             control == "2" ~ "Private, Non-Profit",
+                                             TRUE ~ "Private, For-Profit"))
+                        )
+    # Recode variable for transfer students to ease interpretation
+regression$col_type = relevel(regression$col_type, ref = "Public Flagship")
+regression$in_state = relevel(regression$in_state, ref = "Out-of-State")
+
+# Do people who finish college after age 24 have different mobility patterns than
+# those who finish before age 24. Probably use, profile of institutions varies
+na_count = regression[, lapply(.SD, function(x) sum(is.na(x)))]  
+
+missing_selectivity = regression %>%
+  table.express::filter(is.na(barrons)==TRUE)
+
+#all_binary_final = read.csv(file.path(directory,"Data/regression_data.csv"))
+#actual_cohort = read.csv(file.path(directory,"Data/actual_cohort.csv"))
+```
+
+##    Create Universal Label
+
+```{r label}
+
+# Create labels for colType * in_state
+output_instate = paste0(inst_groups,":in_stateIn-State")
+output_dist = paste0("dist",c("[0,50]","(50,100]","(100,150]","(150,200]",
+                              "(200,250]","(250,500]","(500,1e+03]","(1e+03,1e+04]"))
+
+# Create labels for hs_shock * colType
+prefix_hs = paste0("hs_shock_avg_",avgs,":")
+output_hs = do.call(paste0, expand.grid(prefix_hs, inst_groups))
+
+# Create labels for hs_shock * dist
+output_distance = paste0("hs_shock_avg_",rep(avgs, each = length(output_dist)),":",output_dist)
+#output_distance = paste0("hs_shock_avg_",rep(avgs,length(output_dist)),":",output_dist)
+
+
+# Combine all the interaction labels
+interactions = c(output_instate,output_hs,output_distance)
+
+# Create clean labels for final table
+interactions_lbl = c(paste0(str_replace_all(inst_groups,"col_type","")," $times$ In-State"),
+                     paste0(str_replace_all(output_hs,"hs_shock_avg_[[:digit:]]:col_type","")," $times$ HS LD Shock"),
+                     paste0(str_replace_all(output_distance,"hs_shock_avg_[[:digit:]]:dist","")," $times$ HS LD Shock")
+                     )
+
+# Create list linking old and new names together
+label = data.frame(output_names = c(paste0("hs_shock_avg_",avgs),
+                                    paste0("col_shock_avg_",avgs),
+                                    inst_groups,
+                                    output_dist,
+                                    interactions,
+                                    controls),
+                   label_names = c(rep(times = length(avgs),"HS LD Shock"),
+                                   rep(times = length(avgs),"College LD Shock"),
+                                   str_replace_all(inst_groups,"col_type",""),
+                                   str_replace_all(output_dist,"dist",""),
+                                   interactions_lbl,
+                                   control_lbl))
+
+nestedlist <- split(label$label_names, factor(label$output_names, 
+                                               levels = unique(label$output_names)))
+```
+
+##    Fully Automated with All Shocks
+
+```{r full regression}
+for(f in 1:length(formula))
+  {
+  models = list()
+  for(h in 1:length(geos))
+  {
+    for(i in avgs)
+    {
+      yr_vars = names(regression)[grepl(paste0("avg_",i), names(regression))]
+      
+      current = paste0("same_",geos[h],"_hs ~ ",paste(yr_vars,collapse=" + ")," + col_type + in_state + non_traditional + transfer + col_major + hs_state + col_end + (col_type * in_state)")
+      simple = paste0("same_",geos[h],"_hs ~ ",paste(yr_vars,collapse=" + ")," + col_type + in_state + non_traditional + transfer + col_major + hs_state + col_end")
+      
+      formula = c(current,
+                  simple,
+                  paste0(current," + (col_type * ",yr_vars[1],")"),
+                  paste0(simple," + (col_type * ",yr_vars[1],")"),
+                  paste0(current," + dist"),
+                  paste0(current," + dist + (dist * ",yr_vars[1],")"),
+                  paste0(simple," + dist"),
+                  paste0(simple," + dist + (dist * ",yr_vars[1],")"),
+                  paste0(current," + (col_type * ",yr_vars[1],") + dist + (dist * ",yr_vars[1],")"),
+                  paste0(simple," + (col_type * ",yr_vars[1],") + dist + (dist * ",yr_vars[1],")"))
+      
+      form = formula[f]
+      models[[as.character(i)]] <- lm(form, data = regression)
+  }
+  texreg(list(models[[1]],models[[2]],models[[3]],models[[4]]),
+       file = paste0(directory,"/Outputs/Tables/opt_",f,"_",geos[h],".tex"),
+       custom.model.names = shock_lbl,
+      label = paste0("table:opt-",f,"-",geos[h]),
+      caption = paste0("Probability of returning to ",geos[h]," containing high school"),
+      center = TRUE,
+      digits = 3,
+      custom.coef.map = nestedlist)
+  }
+}
+```
+
+##    Fully Automated with 7-Year Shock
+
+```{r single regression}
+for(f in 1:length(formula))
+{
+  models = list()
+  for(h in 1:length(geos))
+  {
+    #for(i in avgs)
+    #{
+      yr_vars = names(regression)[grepl(paste0("avg_",i), names(regression))]
+      
+      current = paste0("same_",geos[h],"_hs ~ ",paste(yr_vars,collapse=" + ")," + col_type + in_state + non_traditional + transfer + col_major + hs_state + col_end + (col_type * in_state)")
+      simple = paste0("same_",geos[h],"_hs ~ ",paste(yr_vars,collapse=" + ")," + col_type + in_state + non_traditional + transfer + col_major + hs_state + col_end")
+      
+      formula = c(current,
+                  simple,
+                  paste0(current," + (col_type * ",yr_vars[1],")"),
+                  paste0(simple," + (col_type * ",yr_vars[1],")"),
+                  paste0(current," + dist"),
+                  paste0(current," + dist + (dist * ",yr_vars[1],")"),
+                  paste0(simple," + dist"),
+                  paste0(simple," + dist + (dist * ",yr_vars[1],")"),
+                  paste0(current," + (col_type * ",yr_vars[1],") + dist + (dist * ",yr_vars[1],")"),
+                  paste0(simple," + (col_type * ",yr_vars[1],") + dist + (dist * ",yr_vars[1],")"))
+      
+      form = formula[f]
+      models[[as.character(4)]] <- lm(form, data = regression)
+  }
+  texreg(list(models[[1]]),
+       file = paste0(directory,"/Outputs/Tables/opt_",f,"_",geos[h],"_7.tex"),
+       custom.model.names = shock_lbl[4],
+      label = paste0("table:opt-",f,"-",geos[h]),
+      caption = paste0("Probability of returning to ",geos[h]," containing high school"),
+      center = TRUE,
+      digits = 3,
+      custom.coef.map = nestedlist)
+  }
+#}
+```
+
+##    Create Custom Table
+
+```{r single regression}
+for(h in 1:length(geos))
+{
+  models = list()
+  for(f in 1:length(formula))
+  {
+    #for(i in avgs)
+    #{
+      yr_vars = names(regression)[grepl(paste0("avg_7"), names(regression))]
+      
+      current = paste0("same_",geos[h],"_hs ~ ",paste(yr_vars,collapse=" + ")," + col_type + in_state + non_traditional + transfer + col_major + hs_state + col_end + (col_type * in_state)")
+      simple = paste0("same_",geos[h],"_hs ~ ",paste(yr_vars,collapse=" + ")," + col_type + in_state + non_traditional + transfer + col_major + hs_state + col_end")
+      
+      formula = c(current,
+                  paste0(simple," + (col_type * ",yr_vars[1],")"))
+      
+      form = formula[f]
+      models[[as.character(4)]] <- lm(form, data = regression)
+  }
+  texreg(list(models[[1]],models[[2]]),
+       file = paste0(directory,"/Outputs/Tables/final_",geos[h],"_7.tex"),
+       custom.model.names = rep(shock_lbl[4],length(formula)),
+      label = paste0("table:final-",geos[h]),
+      caption = paste0("Probability of returning to ",geos[h]," containing high school"),
+      center = TRUE,
+      digits = 3,
+      custom.coef.map = nestedlist)
+}
+
+```

@@ -1,0 +1,176 @@
+---
+title: "02_import_li_optimized"
+author: "Nicholas Martens"
+date: "2024-01-03"
+output: html_document
+---
+
+## Setup
+
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+directory = "/Users/nickmartens/Dropbox (University of Michigan)/Linkedin/"
+edufilename = "raw_educ_STATES.csv"
+```
+
+Import necessary packages
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tidyverse)
+library(table.express)
+library(data.table)
+```
+
+## Declaring Functions
+Function used to compute mode of a dataset
+
+```{r mode, include=FALSE}
+Mode <- function(x, na.rm = TRUE)
+{
+  if(na.rm)
+  {
+    x = x[!is.na(x)]
+  }
+  ux <- unique(x)
+  return(ux[which.max(tabulate(match(x,ux)))])
+}
+```
+
+Declare %nin% so we can filter observations
+
+```{r negate, include=FALSE}
+`%nin%` = Negate(`%in%`)
+```
+
+## Import and Clean Education File
+Import raw education file from LinkedIN
+Complete basic string cleaning like removing dashes and making lowercase
+
+```{r import, echo=FALSE}
+ed_li = fread(file.path(directory,"Data/02",edufilename),
+              drop = c('world_rank'))
+# Filter out associates degrees
+ed_li = ed_li[degree != "Associate"]
+# Filter universities outside US
+# Simplifies encoding by removing institutions with foreign accents
+ed_li = ed_li[university_country %in% c("United States","\\N")]
+# I convert to ASCII because it avoids headaches associated with non-English characters
+# Since my analysis focuses on American educational institutions,
+# foreign names are not very prevalent
+ed_li$university_name = iconv(ed_li$university_name, from = "UTF-8", to = "ASCII", sub = "")
+
+# Remove extra spaces and punctuation from institution names
+ed_li = ed_li[, alt_name := str_trim(str_to_lower(gsub("[[:punct:]]"," ",university_name)))]
+# Remove observations with empty institution name
+ed_li = ed_li[-which(ed_li$alt_name == ""), ]
+# Remove "main campus" to improve matches
+ed_li = ed_li[, alt_name := gsub("main campus","",alt_name)]
+```
+
+## Extract High School Diplomas
+
+```{r hs split, echo=FALSE}
+# Remove any observations that match to a postsecondary institution
+li_hs = merge(ed_li[degree == "High School"], all_col, by = "alt_name")
+li_hs = unique(li_hs[, .(user_id,INSTNM,alt_name,barrons,degree.x,degree.y)])
+
+# Reclassifies observations Revelio misidentified
+li_hs_misclassified = li_hs[is.na(barrons)==FALSE]
+li_hs_misclassified[degree.x == "Bachelor"]
+li_hs_misclassified[, degree.x := NULL]
+colnames(li_hs_misclassified)[colnames(li_hs_misclassified) == "degree.y"] <- "degree"
+
+# High schools correctly classified by Revelio
+li_hs_correct = merge(li_hs[is.na(barrons)==TRUE], all_hs, by = "alt_name")
+li_hs_correct[, degree.x := NULL]
+colnames(li_hs_correct)[colnames(li_hs_correct) == "degree.y"] <- "degree"
+```
+
+## Extract Unknown Degrees
+
+```{r hs split, echo=FALSE}
+# Users with unknown degrees
+# Currently matches based on first institution listed
+# Eventually I will hone the matching based on workhistory
+li_unknown = ed_li[all_col, on = 'alt_name', bb = i.all_col]
+
+li_unknown = merge(ed_li[degree == "empty"], all_col, by = "alt_name", all.x = TRUE)
+li_unknown = unique(li_unknown[, .(user_id,INSTNM,alt_name,barrons,degree.x,degree.y)])
+
+li_unknown_col = li_unknown[is.na(degree.y)==FALSE]
+li_unknown_col[, degree.x := NULL]
+colnames(li_unknown_col)[colnames(li_unknown_col) == "degree.y"] <- "degree"
+
+li_unknown_unmatched = merge(li_unknown[is.na(degree.y)==TRUE], all_hs, by = "alt_name")
+li_unknown_unmatched = li_unknown_unmatched[, .(user_id,INSTNM,alt_name,barrons,degree.x,degree.y)]
+
+li_unknown_unmatched = li_unknown %>%
+  filter(is.na(degree.y)==TRUE) %>%
+  select(-c(INSTNM:barrons)) %>%
+  left_join(all_hs, by = "alt_name") %>%
+  distinct(user_id,NAME, .keep_all = TRUE)
+li_unknown_hs = li_unknown_unmatched %>%
+  filter(is.na(clean_name.y)==FALSE) %>%
+  # Rename to columns to appease to rbind gods
+  rename(clean_name = clean_name.y) %>%
+  select(-c(degree.x,clean_name.x,UNITID))
+```
+
+## Extract College Degrees
+
+```{r col split, echo=FALSE}
+# College groups bachelor's and master's degrees together
+li_col = ed_li %>%
+  table.express::filter(degree %nin% c("empty","High School")) %>%
+  # Remove any observations that match to a postsecondary institution
+  table.express::left_join(as.data.table(all_hs), "alt_name")
+
+# Reclassifies observations Revelio misidentified
+# Marks any graduates of the New School as high schoolers unless corrected
+li_col_missclassified = li_col %>%
+  filter(is.na(clean_name.y)==FALSE) %>%
+  filter(alt_name != "the new school") %>%
+  mutate(degree.x = "High School") %>%
+  select(-c(clean_name.x,degree.x)) %>%
+  rename(degree = degree.y,
+         clean_name = clean_name.y)
+
+# High schools correctly classified by Revelio
+li_col_correct = li_col %>%
+  filter(is.na(clean_name.y)==TRUE | alt_name == "the new school") %>%
+  select(-c(NAME:clean_name.y)) %>%
+  left_join(all_col, by = "alt_name") %>%
+  filter(is.na(degree)==FALSE) %>%
+  distinct(user_id,INSTNM, .keep_all = TRUE) %>%
+  mutate(degree.x = if_else(is.na(degree.x)==TRUE,degree,degree.x)) %>%
+  # For now I will filter out all graduate degrees
+  filter(degree.x == "Bachelor") %>%
+  # Rename to columns to appease to rbind gods
+  rename(clean_name = clean_name.x)
+```
+
+##    Combine Correct + Incorrect
+
+```{r combine, echo=FALSE}
+
+options(scipen=999)
+
+# Create unified list of users with bachelors degrees
+col = rbind(li_col_correct, li_hs_missclassified, li_unknown_col) %>%
+  group_by(user_id)
+# Create unified list of users with high schools listed
+hs = rbind(li_hs_correct, li_col_missclassified, li_unknown_hs) %>%
+  group_by(user_id)
+
+col_users = col %>%
+  group_keys()
+
+hs_users = hs %>%
+  group_keys()
+
+
+both = intersect(col_users$user_id,hs_users$user_id)
+both = as_tibble(both) %>%
+  rename(user_id = value)
+```

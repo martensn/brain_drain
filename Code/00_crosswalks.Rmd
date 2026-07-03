@@ -1,0 +1,244 @@
+---
+title: "01_import_nces"
+author: "Nicholas Martens"
+date: "2023-06-09"
+output: html_document
+---
+This script imports institution-level characteristics on secondary and post-secondary institution from EDGE and IPEDS
+Then it merges selectivity data with institutional data
+
+## Setup
+
+Import necessary packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tidyverse)
+library(data.table)
+```
+
+Directories and filenames that change with machine
+```{r directory, include=FALSE}
+directory = "/nfs/turbo/lsa-areynoso"
+#directory = "/Volumes/lsa-areynoso"
+
+postfilename = "ipeds_hd2021.csv"
+cbsafilename = "msa_2020.csv"
+countyfilename = "counties.xlsx"
+ctcountyfilename = "ct_counties.xlsx"
+superopeidfilename = "mrc_table11.csv"
+opeidunitidfilename = "CW2021.xlsx"
+
+```
+
+## Declaring Functions
+Function used to compute mode of a dataset
+
+```{r mode, include=FALSE}
+Mode <- function(x, na.rm = TRUE)
+{
+  if(na.rm)
+  {
+    x = x[!is.na(x)]
+  }
+  ux <- unique(x)
+  return(ux[which.max(tabulate(match(x,ux)))])
+}
+```
+
+Declare %nin% so we can filter observations
+
+```{r negate, include=FALSE}
+`%nin%` = Negate(`%in%`)
+```
+
+## Import Files
+
+```{r import, include=FALSE}
+# Import SuperOPEID-OPEID Crosswalk from OI website
+# https://opportunityinsights.org/data/ 
+superope_ope_crosswalk = read_csv(file.path(directory,"Data/01/Crosswalks",superopeidfilename))
+
+# Import OPEID-Unit ID Crosswalk from DOE
+# https://collegescorecard.ed.gov/data/ 
+ope_unit_crosswalk = read_excel(file.path(directory,"Data/01/Crosswalks",opeidunitidfilename), 
+                                sheet = "Crosswalk")
+
+
+# Import CBSA Conversion File
+cbsa = read_csv(file.path(directory,"Data/01",cbsafilename),
+                col_types = "cccccccccccc")
+
+# Read in county list
+raw_county = read_excel(file.path(directory,"Data/01",countyfilename)) %>%
+  # Remove extraneous columns to simplify merge with ct_county
+  dplyr::select(-c('Geo Point','Geo Shape','Year','Iso 3166-3 Area Code',"Type",'County GNIS Code','Official Name County')) %>%
+  rename('state_code' = 'Official Code State',
+         'state_name' = 'Official Name State',
+         'GeoFIPS' = 'Official Code County',
+         'county_name' = 'Name with legal/statistical area description',
+         'county_code' = 'County FIPS Code') %>%
+  # Remove new CT counties, which aren't used in any other data
+  #filter(state_name != "CT") %>%
+  # DC miscoded as part of Delaware in original data
+  mutate(state_name = ifelse(county_name == "District of Columbia","DC",state_name)) %>%
+  # In 2019, Alaska formed two Census areas from one
+  # Add Chugach Census Area, Alaska (FIPS 02063) to 02261
+  # Add Copper River, Alaska (FIPS 02066) to 02999
+  mutate(GeoFIPS = case_when(GeoFIPS %in% c("02063","02066") ~ "02261",
+                             #  Oglala Lakota County (formerly Shannon), 
+                             #  South Dakota (FIPS 46102) to 46113
+                             GeoFIPS == "46102" ~ "46113",
+                             #  Kusilvak Census Area (formerly Wade Hampton),
+                             #  Alaska (FIPS 0) to 02270
+                             GeoFIPS == "02158" ~ "02270",
+                             .default = GeoFIPS))
+
+
+# Connecticut changed counties, so most data uses old boundaries
+# Must append county dataset with old county codes
+ct_county = read_excel(file.path(directory,"Data/01",ctcountyfilename)) %>%
+  # Remove extraneous columns to simplify merge with county
+  dplyr::select(-c('COUNTYNS','CLASSFP','FUNCSTAT')) %>%
+  rename('state_code' = 'STATEFP',
+         'state_name' = 'STATE',
+         #'GeoFIPS' = 'Official Code County',
+         'county_name' = 'COUNTYNAME',
+         'county_code' = 'COUNTYFP') %>%
+  mutate(GeoFIPS = paste0(state_code,county_code))
+# Merge Connecticut and raw county data together
+county = rbind(ct_county,raw_county)
+
+## Creating Full County Name File
+# Necessary for merging everything
+# Create column combining county name and state abbreviation
+county_full = county %>%
+  mutate(full_name = paste0(county_name,", ",state_name)) %>%
+  dplyr::select(c(GeoFIPS,full_name))
+
+```
+
+## String Cleaning
+Cleaning strings on CBSA file
+```{r cbsa string clean, include=FALSE}
+# Pad FIPS county code
+cbsa$`FIPS County Code` = str_pad(cbsa$`FIPS County Code`, width = 3, side = "left", pad = "0")
+cbsa$`FIPS State Code` = str_pad(cbsa$`FIPS State Code`, width = 2, side = "left", pad = "0")
+cbsa$`CBSA Code` = as.character(cbsa$`CBSA Code`)
+```
+
+## Creating Crosswalk of Codes
+Unifying pseudo-CBSA and actual CBSAs
+```{r crosswalk, include=FALSE}
+# Paste state code 
+cbsa_fips = cbsa %>%
+  mutate(GeoFIPS = paste0(`FIPS State Code`,`FIPS County Code`)) %>%
+  dplyr::select(c(`CBSA Code`,`GeoFIPS`)) %>%
+  rename(cbsa_code = `CBSA Code`)
+
+# Add Litchfield County to cbsa_na table to 09999
+addendum = data.frame(GeoFIPS = c("09005"),
+                      cbsa_code = c("09999"))
+
+# Filter counties to only include counties outside of CBSAs
+# Create psuedo-CBSA code for non-CBSA counties by adding "999" to the end
+cbsa_na = county %>%
+  mutate(noncbsa_code = paste0(county$state_code,"999")) %>%
+  filter(GeoFIPS %nin% cbsa_fips$GeoFIPS) %>%
+  # filter(is.na(cbsa_code)==TRUE) %>%
+  mutate(cbsa_code = noncbsa_code) %>%
+  dplyr::select(c(GeoFIPS,noncbsa_code)) %>%
+  rename(cbsa_code = noncbsa_code)
+  
+
+# Join counties with CBSA codes and psuedo-coded non-CBSA counties
+unified_cbsa = rbind(cbsa_fips,cbsa_na) %>%
+  as.data.table()
+
+write.csv(unified_cbsa,file.path(directory,"Data/01/unified_cbsa.csv"))
+
+cbsa_code_name = cbsa[c(1,4)] %>%
+  rename("cbsa_code" = `CBSA Code`,
+         "cbsa_name" = `CBSA Title`) %>%
+  distinct() %>%
+  as.data.table()
+unified_cbsa_name = unified_cbsa[cbsa_code_name, on = "cbsa_code"] 
+```
+
+##    Create Crosswalk of Name + Code
+
+```{r}
+# Create names, state, and code for non-metropolitan areas
+nonmetros = cbsa %>% 
+  separate_wider_delim(`CBSA Title`,delim = ", ", names = c("cbsa_city","state_abbr")) %>%
+  rename(state_code = `FIPS State Code`) %>%
+  dplyr::select(state_code,state_abbr) %>%
+  filter(nchar(state_abbr)==2) %>%
+  distinct() %>%
+  mutate(cbsa_core = paste(state_abbr,"NONMETROPOLITAN AREA"),
+         cbsa_state = state_abbr,
+         cbsa_code = paste0(state_code,"999")) %>%
+  dplyr::select(-starts_with("state_"))
+
+# Extract name, state, and code for metorpolitan areas  
+metros = unified_cbsa_name %>%
+  #distinct(cbsa_code) %>%
+  separate_wider_delim(cbsa_name, delim = ", ", names = c("cbsa_city","cbsa_state")) %>%
+  separate_wider_delim(cbsa_state, delim = "-", 
+                       names = c("cbsa_state1","cbsa_state","cbsa_state3","cbsa_state4"),
+                       too_few = "align_start") %>%
+  pivot_longer(cols = starts_with("cbsa_state"),
+               names_to = "cbsa_state_n",
+               values_to = "cbsa_state",
+               values_drop_na = TRUE) %>%
+  dplyr::select(-cbsa_state_n) %>%
+  mutate(cbsa_core = str_replace(cbsa_city,"-.*","")) %>%
+  dplyr::select(-c("GeoFIPS","cbsa_city")) %>%
+  distinct()
+
+# Merge birth_position to get codes for CBSAs
+cbsa_li_crosswalk = rbind(metros,nonmetros)
+```
+
+
+
+##    Merge on OPEID and Unit ID
+
+```{r institution crosswalk}
+
+# Merge Super OPEID, OPEID, Unit ID, and system names together for easy matches
+institution_crosswalk = ope_unit_crosswalk %>%
+  dplyr::select(c("OPEID","IPEDSMatch","PEPSSchname","IPEDSInstnm","f1sysnam")) %>%
+  distinct() %>%
+  mutate(system_name = case_when(f1sysnam == "-2" ~ IPEDSInstnm,
+                                 TRUE ~ f1sysnam),
+         opeid = as.numeric(str_sub(OPEID,2,6))) %>%
+  left_join(superope_ope_crosswalk, by = "opeid") %>%
+  dplyr::select(-c("f1sysnam","institution_name","multi","superopeid_name")) %>%
+  # Standardize spacing, punctuation removal, and decapitalization
+  # Remove extra spaces and punctuation from institution names 
+  mutate(system_name = str_trim(str_to_lower(str_replace_all(system_name, "[[:punct:]]", " "))),
+         system_name = str_replace_all(system_name, "main campus", ""),
+         clean_name1 = str_trim(str_to_lower(str_replace_all(PEPSSchname, "[[:punct:]]", " "))),
+         clean_name1 = str_replace_all(clean_name1, "main campus", ""),
+         clean_name2 = str_trim(str_to_lower(str_replace_all(IPEDSInstnm, "[[:punct:]]", " "))),
+         clean_name2 = str_replace_all(clean_name2, "main campus", "")) %>%
+  rename(unitid = IPEDSMatch) %>%
+  dplyr::select(unitid,opeid,super_opeid,clean_name1,clean_name2,system_name)
+
+# Crosswalk between unitids and super OPEids
+unitid_super_opeid_crosswalk = institution_crosswalk %>% 
+  dplyr::select(unitid,super_opeid) %>%
+  mutate(unitid = as.integer(unitid)) %>%
+  filter(super_opeid > 0) %>% 
+  distinct()
+
+# Create data.tables for merging based on different variations of institution names
+name_crosswalk_1 = institution_crosswalk %>%
+  distinct(clean_name1, .keep_all = TRUE)
+name_crosswalk_2 = institution_crosswalk %>%
+  distinct(clean_name2, .keep_all = TRUE)
+name_crosswalk_3 = institution_crosswalk %>%
+  distinct(system_name, .keep_all = TRUE)
+
+```

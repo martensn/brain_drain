@@ -13,7 +13,12 @@ library(table.express)
 library(data.table)
 
 
-directory = "/nfs/turbo/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 data_dir = file.path(directory,"Data")
 
 # Not relevant for anything else in step 2, but necessary for step 4
@@ -24,7 +29,7 @@ state_fips = fips_codes %>%
   mutate(state_fips = as.numeric(state_code)) %>%
   select(state,state_fips) %>%
   rename(state_abbr = state)
-saveRDS(state_fips,file.path(data_dir,"state_fips.rds"))
+saveRDS(state_fips,file.path(data_dir,"intermediate/state_fips.rds"))
 
 # Minimum similarity score of top match 
 hs_threshold = 0.91
@@ -99,10 +104,10 @@ top_embed <- function(raw_resp, alias_resp, index, n = 5) {
 }
 
 # Import
-col_alias <- readRDS(file.path(directory,"Data","col_alias.rds"))
-unmatched_col <- readRDS(file.path(data_dir,"unmatched_col.rds"))
-hs_alias <- readRDS(file.path(directory,"Data","hs_alias.rds"))
-unmatched_hs <- readRDS(file.path(data_dir,"unmatched_hs.rds"))
+col_alias <- readRDS(file.path(data_dir,"intermediate/col_alias.rds"))
+unmatched_col <- readRDS(file.path(data_dir,"intermediate/unmatched_col.rds"))
+hs_alias <- readRDS(file.path(data_dir,"intermediate/hs_alias.rds"))
+unmatched_hs <- readRDS(file.path(data_dir,"intermediate/unmatched_hs.rds"))
 
 col_alias_strings = unique(col_alias[, c("alias"), with = FALSE])
 hs_alias_strings = unique(hs_alias[, c("alias"), with = FALSE])
@@ -158,7 +163,7 @@ col_embed <- col_raw_embed %>%
   left_join(col_ambig_flag, by = "raw_string") %>%
   mutate(method = "Embedding") %>%
   select(-raw_row_id) 
-saveRDS(col_embed,file.path(data_dir,"col_embed.rds"))
+saveRDS(col_embed,file.path(data_dir,"intermediate/col_embed.rds"))
 
 # Convert the input strings into embeddings
 hs_raw_input = pull(unmatched_hs, clean_name)
@@ -210,5 +215,5 @@ hs_embed <- hs_raw_embed %>%
   left_join(hs_ambig_flag, by = "raw_string") %>%
   mutate(method = "Embedding") %>%
   select(-raw_row_id) 
-saveRDS(hs_embed,file.path(data_dir,"hs_embed.rds"))
+saveRDS(hs_embed,file.path(data_dir,"intermediate/hs_embed.rds"))
 

@@ -4,16 +4,20 @@ library(table.express)
 library(data.table)
 
 set.seed(49)
-directory = "/nfs/turbo/lsa-areynoso"
-#directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 edufilename1 = "raw_educ_STATES_AK-MD.csv"
 edufilename1edit = "STATES_AK-MD.csv"
 edufilename2 = "raw_educ_STATES_MI-WY.csv"
 edutfilename2edit = "STATES_MI-WY.csv"
 
 
-ed_li1 = read_delim(file.path(directory,"Data/02",edufilename1))
-ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
+ed_li1 = read_delim(file.path(data_dir,"raw/revelio/raw_educ_STATES_AK-MD.csv"))
+ed_li2 = read_delim(file.path(data_dir,"raw/revelio/raw_educ_STATES_MI-WY.csv"))
 
 ed_li = rbind(ed_li1,ed_li2) %>% select(-c(world_rank)) %>% as.data.table()
 rm(ed_li2,ed_li1)
@@ -26,7 +30,7 @@ setDT(ed_li)
 
 ed_li_col = ed_li[,.N, by = .(university_name,university_country)]
 
-col_strings = readRDS(file.path(directory,"Data","col_strings.rds")) %>%
+col_strings = readRDS(file.path(data_dir,"intermediate/col_strings.rds")) %>%
   select(unitid,opeid,parent_institution,university_name,ambiguous_name,system_indicator,method) %>%
   mutate(hs_id = NA, 
          ed_type = "college",
@@ -34,7 +38,7 @@ col_strings = readRDS(file.path(directory,"Data","col_strings.rds")) %>%
          opeid = if_else(ambiguous_name == 0,opeid,NA)) %>%
   distinct()
 
-hs_strings = readRDS(file.path(directory,"Data","hs_strings.rds")) %>%
+hs_strings = readRDS(file.path(data_dir,"intermediate/hs_strings.rds")) %>%
   select(hs_id,university_name,ambiguous_name,method) %>%
   mutate(unitid = NA, 
          opeid = NA, 
@@ -49,8 +53,8 @@ setDT(ed_strings)
 raw_strings = ed_li[,.N,by = .(university_name)]
 string_comp = ed_strings[raw_strings, on = .(university_name)]
 string_ = string_comp[is.na(method) & N > 5][order(-N)]
-fwrite(string_,file.path(directory,"Data/raw_unmatched_strings.csv"))
-saveRDS(string_,file.path(directory,"Data/raw_unmatched_strings.rds"))
+fwrite(string_,file.path(data_dir,"intermediate/raw_unmatched_strings.csv"))
+saveRDS(string_,file.path(data_dir,"intermediate/raw_unmatched_strings.rds"))
 
 # Merge full set of cleaned strings on the education file
 ed_id = ed_strings[ed_li[degree %in% c("Bachelor","empty","High School")], on = "university_name", nomatch=0]
@@ -107,13 +111,13 @@ col_keep = col_dt[, .(user_id, unitid, opeid, parent_institution,
 
 
 
-schools = readRDS(file.path(directory,"Data/schools.rds"))
-colleges = readRDS(file.path(directory,"Data/colleges.rds"))
+schools = readRDS(file.path(data_dir,"intermediate/schools.rds"))
+colleges = readRDS(file.path(data_dir,"intermediate/colleges.rds"))
 setDT(colleges)
 setDT(schools)
 ed_wide = hs_keep[col_keep, on = "user_id"]
 ed_wide_sample = ed_wide[sample(N,100000)]
-saveRDS(ed_wide,file.path(directory,"Data/ed_wide.rds"))
+saveRDS(ed_wide,file.path(data_dir,"intermediate/ed_wide.rds"))
 saveRDS(ed_wide_sample,file.path(directory,"Data/ed_wide_sample.rds"))
 
 col_ct = ed_wide[,.N, by = .(unitid,opeid,parent_institution)][order(-N)]
@@ -127,5 +131,5 @@ imp_ct[,sys_deg_awarded := sum(deg_awarded, na.rm=TRUE), by = .(parent_instituti
 imp_ct[,imp_n := fifelse(is.na(system_n),N,((deg_awarded/sys_deg_awarded)*system_n) + N)]
 imp_ct[,coverage := imp_n / deg_awarded]
 
-saveRDS(imp_ct,file.path(directory,"Data/col_ct.rds"))
-fwrite(imp_ct,file.path(directory,"Data/col_ct.csv"))
+saveRDS(imp_ct,file.path(data_dir,"intermediate/col_ct.rds"))
+fwrite(imp_ct,file.path(data_dir,"intermediate/col_ct.csv"))

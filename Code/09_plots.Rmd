@@ -32,8 +32,12 @@ census_key <- Sys.getenv("CENSUS_KEY")
 #font_import(pattern = "lmroman*")
 #loadfonts()
 
-directory = "/Volumes/lsa-areynoso"
-#directory = "/nfs/turbo/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 specification = "pre_2000"
 # Automate filtering
 cohort_list <- list(post_2000 = c(2000:2013),
@@ -113,13 +117,13 @@ stargazer(observation_accounting[1:10,],
 ####   Plotting Occupational Composition
 ```{r occp}
 
-li_soc = read_csv(file.path(directory,"Data/07","soc_li_distribution.csv"),col_select = -`...1`) %>%
+li_soc = read_csv(file.path(data_dir,"intermediate/soc_li_distribution.csv"),col_select = -`...1`) %>%
   mutate(socp = substr(soc_code_mode,1,7)) %>%
   group_by(socp) %>%
   summarize(shr_li = sum(shr_li))
 
 # Import
-soc_ba = read_csv(file.path(directory,"Data/07","soc_ba.csv"),col_select = -`...1`) %>%
+soc_ba = read_csv(file.path(data_dir,"intermediate/soc_ba.csv"),col_select = -`...1`) %>%
   left_join(li_soc, by = "socp")
 
 # Filter to 2-digit occupational groups  
@@ -264,10 +268,10 @@ ggsave(file = paste(directory,"/Outputs/",specification,"/occp_cross_section.png
 
 ```{r return}
 
-raw_return <- fread(file.path(directory,"Data/05","return_occp.csv"))
+raw_return <- fread(file.path(data_dir,"intermediate/return_occp.csv"))
 
 # Obtain weights and institutional groupings from institutional_characteristics 
-inst_weights <- read_csv(file.path(directory,"Data/06","institutional_characteristics.csv")) %>%
+inst_weights <- read_csv(file.path(data_dir,"intermediate/institutional_characteristics.csv")) %>%
   table.express::select(inst_group,unitid,total_deg_awarded) %>%
   # Remove universities that don't report degrees awarded and for-profits
   table.express::filter(!is.na(total_deg_awarded) & inst_group != "Private, For-Profit")
@@ -433,7 +437,7 @@ ggsave(file = paste(directory,"/Outputs/",specification,"/ever_return_occp.png",
 
 ```{r return by year}
 
-return_by_year <- fread(file.path(directory,"Data/07","return_by_year.csv")) %>%
+return_by_year <- fread(file.path(data_dir,"intermediate/return_by_year.csv")) %>%
   table.express::filter(group %in% c("unc","30")) %>%
   table.express::mutate(level = ifelse(level == "hs","High School","College"),
                         geo = ifelse(geo == "cbsa","Labor Market","State"),
@@ -1019,10 +1023,10 @@ gc()
 https://www.openicpsr.org/openicpsr/project/170381/version/V4/view?path=/openicpsr/170381/fcr:versions/V4/Data/CollegeMarketShares_state.csv&type=file 
 Conzelmann, Johnathan, Hemelt, Steven, Hershbein, Brad, Martin, Shawn, Simon, Andrew, and Stange, Kevin. Grads on the Go: Measuring College-Specific Labor Markets for Graduates [US, 2010-2018]: Data: CollegeMarketShares_state.csv. Ann Arbor, MI: Inter-university Consortium for Political and Social Research [distributor], 2023-12-06. https://doi.org/10.3886/E170381V4-156446
 ```{r}
-institutional_characteristics = read_csv(file.path(directory,"Data/06","institutional_characteristics.csv"))
+institutional_characteristics = read_csv(file.path(data_dir,"intermediate/institutional_characteristics.csv"))
 
 # raw_deg_award is an RDS file (no .rds extension) written by new/00_alias_generation.R
-raw_deg_award = readRDS(file.path(directory,"Data","raw_deg_award"))
+raw_deg_award = readRDS(file.path(data_dir,"intermediate/raw_deg_award"))
 
 # Calculate degrees awarded between 2010 and 2018
 gotg_degree = raw_deg_award %>%
@@ -1035,7 +1039,7 @@ gotg_degree = raw_deg_award %>%
 # share_state includes unlocated graduates
 # share_state_renorm excludes unlocated graduates
 # share_adj realllocates CBSAs that cross state boundaries
-gotg = fread(file.path(directory,"Data/06/CollegeMarketShares_state.csv"),drop="V1")
+gotg = fread(file.path(data_dir,"intermediate/CollegeMarketShares_state.csv"),drop="V1")
 
 # Select the maximum value of share_state_adj by unitid, keeping geo_stabbr and share_state_adj
 gotg_max <- gotg[gotg[, .I[which.max(share_state_renorm_adj)], by = unitid]$V1]
@@ -1419,7 +1423,7 @@ leaver_colors = c("Never Returned" = '#d9f0d3',
                   "Returned" = '#5aae61')
 
 # Import occupational prestige crosswalk created in step 8
-occp_prestige <- fread(file.path(directory,"Data","occupational_prestige.csv")) %>%
+occp_prestige <- fread(file.path(data_dir,"intermediate/occupational_prestige.csv")) %>%
   as.data.frame() %>%
   distinct(socp_raw, .keep_all = TRUE) %>%
   dplyr::select(socp_raw,prestige_bin)
@@ -1545,7 +1549,7 @@ pooled_instate = raw_instate %>%
   summarize(instate = sum(instate),
             total_us = sum(total)) %>%
   mutate(shr_instate = instate/total_us) %>%
-  left_join(read_csv(file.path(directory,"Data/06","institutional_characteristics.csv")) %>% dplyr::select(c(unitid,inst_group)), by = "unitid") %>%
+  left_join(read_csv(file.path(data_dir,"intermediate/institutional_characteristics.csv")) %>% dplyr::select(c(unitid,inst_group)), by = "unitid") %>%
   filter(!is.na(total_us) & !is.na(shr_instate)) %>%
   ungroup() %>%
   group_by(inst_group) %>%
@@ -1652,7 +1656,7 @@ envelope$prob_increase = prob_increase
 envelope$ld_shock_boe = envelope$prob_increase/envelope$semi_elasticity
 
 # Figure out size of median local labor market
-#raw_lm = fread(file.path(directory,"Data/04","cbp19co.txt"),
+#raw_lm = fread(file.path(data_dir,"raw/cbp/cbp19co.txt"),
 #              select = c('fipstate','fipscty','naics','emp'),
               # Ensure state and county codes are characters
 #              colClasses=list(character=1:3))
@@ -1684,7 +1688,7 @@ envelope$ld_shock_cost = envelope$ld_shock_size * 0.196
 # Plot cost of only RPU, only PF, only Private then pooled proportionally
 # only in-state, out-of-state, then pooled proportionally
 envelope_long = envelope %>%
-  left_join(read_csv(file.path(directory,"Data/06","institutional_characteristics.csv")) %>% 
+  left_join(read_csv(file.path(data_dir,"intermediate/institutional_characteristics.csv")) %>% 
               group_by(inst_group) %>% 
               summarize(deg_awarded = sum(total_deg_awarded,na.rm=TRUE)), by ="inst_group") %>%
   left_join(pooled_instate, by = "inst_group")
@@ -1817,7 +1821,7 @@ print(hs_yr_state,file=file.path(directory,"Outputs",specification,"hs_shock_yea
 # RHS: ten years of lagged shocks
 # LHS: three separate regressions for the types of local tie shares
 tie_stocks <- fread(file.path(directory,"Data",specification,"tie_stocks_alt.csv"))
-cbsa_shock <- fread(file.path(directory,"Data/04","cbsa_shock.csv"))
+cbsa_shock <- fread(file.path(data_dir,"intermediate/cbsa_shock.csv"))
 
 
 # Merge on shock-level data
@@ -1982,8 +1986,8 @@ ggsave(file = paste(directory,"/Outputs/",specification,"/irf_shr_decomp.png",se
 
 ```{r cohort-level}
 
-hs_cbsa_10 <- read_csv(file.path(directory,"Data/06/cohort_return_hs_10.csv"))
-col_cbsa_10 <- read_csv(file.path(directory,"Data/06/cohort_return_col_10.csv"))
+hs_cbsa_10 <- read_csv(file.path(data_dir,"intermediate/cohort_return_hs_10.csv"))
+col_cbsa_10 <- read_csv(file.path(data_dir,"intermediate/cohort_return_col_10.csv"))
 
 return_levels = hs_cbsa_10 %>%
   mutate(geography = "High School") %>%
@@ -2063,7 +2067,7 @@ ggsave(file = paste(directory,"/Outputs/",specification,"/cohort_levels.png",sep
 ```{r intercensal, eval=FALSE}
 
 # Obtain CBSA-level employment counts
-cbsa_shock <- read_csv(file.path(directory,"Data/04","cbsa_shock.csv")) %>%
+cbsa_shock <- read_csv(file.path(data_dir,"intermediate/cbsa_shock.csv")) %>%
   dplyr::select(year,cbsa_code,cbsa_actual) %>%
   filter(year %in% c(2000:2019))
 
@@ -2169,7 +2173,7 @@ age_10 <- raw_age_10 %>%
   summarize(value = sum(value, na.rm=TRUE)) %>%
   dplyr::select(year,GEOID,value)
 
-raw_laus <- read_csv(file.path(directory,"Data/06/bls_laus_data.csv"))
+raw_laus <- read_csv(file.path(data_dir,"raw/bls/bls_laus_data.csv"))
 # Run first four chunks of 06_regressions.Rmd to get the regression object
 
 laus = raw_laus %>%
@@ -2198,7 +2202,7 @@ intercensal <- rbind(age_00,age_10) %>%
   left_join(laus, by = c("cbsa_code","year")) %>%
   mutate(emp_rate = labor_force / pop)
 
-write.csv(intercensal,file.path(directory,"Data/06/intercensal.csv"),row.names = FALSE)
+write.csv(intercensal,file.path(data_dir,"intermediate/intercensal.csv"),row.names = FALSE)
 
 
 ```
@@ -2206,7 +2210,7 @@ write.csv(intercensal,file.path(directory,"Data/06/intercensal.csv"),row.names =
 ###   Yagan Directedness
 
 ```{r yagan}
-intercensal <- read_csv(file.path(directory,"Data/06/intercensal.csv"))
+intercensal <- read_csv(file.path(data_dir,"intermediate/intercensal.csv"))
 
 
 yagan <- function(start,end)
@@ -2586,7 +2590,7 @@ li_deg_awarded <- read_csv(file.path(directory,"Data",specification,"li_deg_awar
 # Import Table 318.10 from 2022 Digest of Education Statistics 
 # https://nces.ed.gov/programs/digest/d22/tables/dt22_318.10.asp
 degrees_awardedfilename = "tabn318.10.xlsx"
-deg_awarded = read_excel(file.path(directory,"Data/07",degrees_awardedfilename)) %>%
+deg_awarded = read_excel(file.path(data_dir,"raw/nces/tabn318.10.xlsx")) %>%
   dplyr::select(c("Table 318.10. Degrees conferred by postsecondary institutions, by level of degree and sex of student: Selected academic years, 1869-70 through 2031-32","...6")) %>%
   rename(c("academic_year" = "Table 318.10. Degrees conferred by postsecondary institutions, by level of degree and sex of student: Selected academic years, 1869-70 through 2031-32",
            "deg_awarded" = "...6")) %>%
@@ -2785,7 +2789,7 @@ total_deg = raw_deg_award_2 %>%
   select(unitid,year,awards_6digit) %>%
   rename(awards = awards_6digit) %>%
   rbind(raw_deg_award_1 %>% filter(cipcode == 99) %>% select(unitid,year,awards)) 
-write.csv(total_deg,file.path(directory,"Data/06/total_deg.csv"), row.names = FALSE)
+write.csv(total_deg,file.path(data_dir,"intermediate/total_deg.csv"), row.names = FALSE)
 
 # Business degrees by year and institution
 business_deg = raw_deg_award_2 %>%
@@ -2798,7 +2802,7 @@ business_deg = raw_deg_award_2 %>%
   ungroup(cip_2) %>%
   select(-cip_2) %>%
   rbind(raw_deg_award_1 %>% filter(cipcode == 520000) %>% select(unitid,year,awards)) 
-write.csv(business_deg,file.path(directory,"Data/06/business_deg.csv"), row.names = FALSE)
+write.csv(business_deg,file.path(data_dir,"intermediate/business_deg.csv"), row.names = FALSE)
 
 # Engineering degrees by year and institution
 engineering_deg = raw_deg_award_2 %>%
@@ -2809,14 +2813,14 @@ engineering_deg = raw_deg_award_2 %>%
   ungroup(cip_2) %>%
   select(-cip_2) %>%
   rbind(raw_deg_award_1 %>% filter(cipcode == 140000) %>% select(unitid,year,awards)) 
-write.csv(engineering_deg,file.path(directory,"Data/06/engineering_deg.csv"), row.names = FALSE)
+write.csv(engineering_deg,file.path(data_dir,"intermediate/engineering_deg.csv"), row.names = FALSE)
 
 # Engineering degrees by year and institution
 all_deg = raw_deg_award_2 %>%
   select(unitid,year,awards_6digit,cipcode_6digit) %>%
   rename(awards = awards_6digit,cipcode = cipcode_6digit) %>%
   rbind(raw_deg_award_1 %>% select(unitid,year,cipcode,awards)) 
-write.csv(all_deg,file.path(directory,"Data/06/all_deg.csv"),row.names = FALSE)
+write.csv(all_deg,file.path(data_dir,"intermediate/all_deg.csv"),row.names = FALSE)
 
 ```
 
@@ -2825,7 +2829,7 @@ write.csv(all_deg,file.path(directory,"Data/06/all_deg.csv"),row.names = FALSE)
 
 ```{r sumstat}
 
-institutional_characteristics = read_csv(file.path(directory,"Data/06","institutional_characteristics.csv"), 
+institutional_characteristics = read_csv(file.path(data_dir,"intermediate/institutional_characteristics.csv"), 
                                          col_select = -`...1`) %>%
   # Fix misclassification of Penn State
   # I think public universities in Utah, the next largest group of excluded institutions
@@ -2833,7 +2837,7 @@ institutional_characteristics = read_csv(file.path(directory,"Data/06","institut
   mutate(unitid = case_when(unitid ==495767 ~ 214777,
                             TRUE ~ unitid))
 
-cohort_x_grad <-fread(file.path(directory,"Data/06/cohort_x_grad.csv"))
+cohort_x_grad <-fread(file.path(data_dir,"intermediate/cohort_x_grad.csv"))
 
 # Estimate retirement rate by age cohort
 # Useful for estimating who remains in the labor force
@@ -2882,10 +2886,10 @@ ret_col_end = ret_cohort %>%
   summarize(shr_retired = weighted.mean(shr_retired, w=shr))
 
 # Import degrees awarded data instead of waiting for slow API
-total_deg <- read_csv(file.path(directory,"Data/06/total_deg.csv"))
-business_deg <- read_csv(file.path(directory,"Data/06/business_deg.csv")) %>%
+total_deg <- read_csv(file.path(data_dir,"intermediate/total_deg.csv"))
+business_deg <- read_csv(file.path(data_dir,"intermediate/business_deg.csv")) %>%
   rename(business_awards = awards)
-engineering_deg <- read_csv(file.path(directory,"Data/06/engineering_deg.csv")) %>%
+engineering_deg <- read_csv(file.path(data_dir,"intermediate/engineering_deg.csv")) %>%
   rename(engineering_awards = awards)
 
 # Estimate total number of people still in labor force by year and major
@@ -3004,10 +3008,10 @@ full_res_ret_col_end = ret_cohort %>%
   summarize(shr_retired = weighted.mean(shr_retired, w=shr))
 
 # Import degrees awarded data instead of waiting for slow API
-total_deg <- read_csv(file.path(directory,"Data/06/total_deg.csv"))
-business_deg <- read_csv(file.path(directory,"Data/06/business_deg.csv")) %>%
+total_deg <- read_csv(file.path(data_dir,"intermediate/total_deg.csv"))
+business_deg <- read_csv(file.path(data_dir,"intermediate/business_deg.csv")) %>%
   rename(business_awards = awards)
-engineering_deg <- read_csv(file.path(directory,"Data/06/engineering_deg.csv")) %>%
+engineering_deg <- read_csv(file.path(data_dir,"intermediate/engineering_deg.csv")) %>%
   rename(engineering_awards = awards)
 
 # Estimate total number of people still in labor force by year and major
@@ -3120,10 +3124,10 @@ outsample_res_ret_col_end = ret_cohort %>%
   summarize(shr_retired = weighted.mean(shr_retired, w=shr))
 
 # Import degrees awarded data instead of waiting for slow API
-total_deg <- read_csv(file.path(directory,"Data/06/total_deg.csv"))
-business_deg <- read_csv(file.path(directory,"Data/06/business_deg.csv")) %>%
+total_deg <- read_csv(file.path(data_dir,"intermediate/total_deg.csv"))
+business_deg <- read_csv(file.path(data_dir,"intermediate/business_deg.csv")) %>%
   rename(business_awards = awards)
-engineering_deg <- read_csv(file.path(directory,"Data/06/engineering_deg.csv")) %>%
+engineering_deg <- read_csv(file.path(data_dir,"intermediate/engineering_deg.csv")) %>%
   rename(engineering_awards = awards)
 
 # Estimate total number of people still in labor force by year and major

@@ -15,8 +15,12 @@ use_python("/usr/local/bin/python3", required = TRUE)
 py_config()
 
 set.seed(49)
-directory = "/nfs/turbo/lsa-areynoso"
-directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 
 
 # Function to convert large vectors to embeddings without overwhelming OpenAI
@@ -119,13 +123,13 @@ classify_hs_at_threshold <- function(df, threshold) {
     )
 }
 
-hs_alias = fread(file.path(directory,"Data", "hs_alias.csv"))
+hs_alias = fread(file.path(data_dir,"intermediate/hs_alias.csv"))
 hs_alias[, hs_alias_id := .GRP, by = alias]
-col_alias = fread(file.path(directory,"Data","col_alias.csv"))
+col_alias = fread(file.path(data_dir,"intermediate/col_alias.csv"))
 col_alias[, col_alias_id := .GRP, by = alias]
 hs_alias_strings = unique(hs_alias[, c("alias"), with = FALSE])
 col_alias_strings = unique(col_alias[, c("alias"), with = FALSE])
-shrunken = fread(file.path(directory,"Data","hs_col_classification.csv"))
+shrunken = fread(file.path(data_dir,"intermediate/hs_col_classification.csv"))
 shrunken[,clean_name := normalize_high_school(university_name)]
 
 # join + flag aliases which aren't particular to a single unitid
@@ -163,8 +167,8 @@ hs_raw_strings = hs_ss[sample(.N,500)]
 col_ss = unique(ss[ed_type == "college", c("clean_name"), with = FALSE])
 col_raw_strings = col_ss[sample(.N,500)]
 # Save ground truth as .csv
-hs_path  <- file.path(directory, "Data/hs_gt.csv")
-col_path <- file.path(directory, "Data/col_gt.csv")
+hs_path  <- file.path(data_dir,"intermediate/hs_gt.csv")
+col_path <- file.path(data_dir,"intermediate/col_gt.csv")
 
 if (!file.exists(hs_path)) {
   write.csv(hs_raw_strings, hs_path, row.names = FALSE)
@@ -190,7 +194,7 @@ hs_alias_resp <- batch_embed(
   model = "text-embedding-3-large",
   batch_size = 1000
 )
-saveRDS(hs_alias_resp,file.path(directory,"Data","hs_alias_resp.rds"))
+saveRDS(hs_alias_resp,file.path(data_dir,"intermediate/hs_alias_resp.rds"))
 
 # Add row numbers to simplify comparison
 hs_alias_embed <- hs_alias_resp %>%
@@ -339,7 +343,7 @@ col_alias_resp <- batch_embed(
   model = "text-embedding-3-large",
   batch_size = 1000
 )
-saveRDS(col_alias_resp,file.path(directory,"Data","col_alias_resp.rds"))
+saveRDS(col_alias_resp,file.path(data_dir,"intermediate/col_alias_resp.rds"))
 
 # Add row numbers to simplify comparison
 col_alias_embed <- col_alias_resp %>%

@@ -9,7 +9,12 @@ output: html_document
 
 Directories and filenames that change with machine
 ```{r directory, include=FALSE}
-directory = "/nfs/turbo/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 edufilename1 = "raw_educ_STATES_AK-MD.csv"
 edufilename1edit = "STATES_AK-MD.csv"
 edufilename2 = "raw_educ_STATES_MI-WY.csv"
@@ -39,16 +44,16 @@ Complete basic string cleaning like removing dashes and making lowercase
 
 ```{r import, echo=FALSE}
 # Remove problematic rows
-#x1 = readLines(file.path(directory,"Data/02",edufilename1))
+#x1 = readLines(file.path(data_dir,"raw/revelio/raw_educ_STATES_AK-MD.csv"))
 #x1_edit = x1[-c(11891030)]
 #x1_df = read.table(x1_edit[1:5])
 #  stringi::stri_split_fixed(x1_edit[1:5],","))
 #STATES_MI-WY.csv
 
-ed_li1 = read_delim(file.path(directory,"Data/02",edufilename1))
-ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
+ed_li1 = read_delim(file.path(data_dir,"raw/revelio/raw_educ_STATES_AK-MD.csv"))
+ed_li2 = read_delim(file.path(data_dir,"raw/revelio/raw_educ_STATES_MI-WY.csv"))
 
-#ed_li1 = fread(file.path(directory,"Data/02",edufilename1),
+#ed_li1 = fread(file.path(data_dir,"raw/revelio/raw_educ_STATES_AK-MD.csv"),
 #              drop = c('world_rank'))
               #select = c("user_id","educ_startdate","educ_enddate",
               #         "university_name","degree","field",
@@ -56,7 +61,7 @@ ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
 #              sep = ",")
 
 
-#ed_li2 = fread(file.path(directory,"Data/02",edufilename2),
+#ed_li2 = fread(file.path(data_dir,"raw/revelio/raw_educ_STATES_MI-WY.csv"),
  #             drop = c('world_rank'),
 #              fill=TRUE,
 #              sep = ",")
@@ -167,11 +172,11 @@ col_match <- rbind(col_match[!is.na(unitid)], merged2[!is.na(unitid)], fill = TR
 # Counts missing institution names
 misfit_counts <- misfits[, .N, by = alt_name] %>%
   filter(N > 50)
-write.csv(misfit_counts, file.path(directory,"Data/02/misfits_3.csv"))
+write.csv(misfit_counts, file.path(data_dir,"intermediate/misfits_3.csv"))
 
 # Upload manual correction of some large institutions
 # Potential expansion possible
-misfits_correction <- read_delim(file.path(directory,"Data/02",misfitscorrection)) %>%
+misfits_correction <- read_delim(file.path(data_dir,"intermediate/misfits_correction.csv")) %>%
   mutate(opeid = as.numeric(str_sub(opeid,2,6))) %>%
   filter(is.na(opeid) == FALSE) %>%
   distinct(alt_name,unitid,opeid) %>%
@@ -200,7 +205,7 @@ rm(misfits,misfits_correction)
 # Count the most common universities as a sanity check
 inst_counts <- col_match[, .N, by = unitid] 
 inst_counts <- merge(inst_counts,name_crosswalk_1, by.x = "unitid", by.y = "unitid", all.x = FALSE)
-write.csv(inst_counts,file.path(directory,"Data/02/inst_counts.csv"))
+write.csv(inst_counts,file.path(data_dir,"intermediate/inst_counts.csv"))
 ```
 
 

@@ -6,8 +6,12 @@ library(dplyr)
 
 set.seed(49)
 
-directory = "/nfs/turbo/lsa-areynoso"
-#directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 data_dir = file.path(directory,"Data")
 
 sex_cols  <- c("m_prob", "f_prob")
@@ -60,10 +64,10 @@ draw_category <- function(probs, labels) {
   sample(labels, size = 1, prob = probs)
 }
 
-both__ = readRDS(file.path(directory,"Data","both_final.rds"))
-users = fread(file.path(data_dir,"02/uwdbhdlkbnzhaqxd.csv"),nrows=10000)
+both__ = readRDS(file.path(data_dir,"intermediate/both_final.rds"))
+users = fread(file.path(data_dir,"intermediate/uwdbhdlkbnzhaqxd.csv"),nrows=10000)
 
-users = open_dataset(file.path(data_dir,"02/uwdbhdlkbnzhaqxd.csv"), format = "csv")
+users = open_dataset(file.path(data_dir,"intermediate/uwdbhdlkbnzhaqxd.csv"), format = "csv")
 
 users_ = users %>% filter(user_id %in% both__$user_id) %>% collect()
 setDT(users_)
@@ -80,7 +84,7 @@ users_[
   race_draw := apply(.SD, 1, draw_category, labels = race_labels),
   .SDcols = race_cols
 ]
-saveRDS(users_,file.path(data_dir,"02/both_demo.rds"))
+saveRDS(users_,file.path(data_dir,"intermediate/both_demo.rds"))
 
 final = merge(both__,users_[,.(user_id,sex_draw,race_draw)])
 setDT(final)
@@ -295,5 +299,5 @@ sumstat <- rbindlist(
 sumstat[]
 
 # Export
-fwrite(sumstat, file.path(data_dir, "summary_demographics.csv"))
-saveRDS(sumstat, file.path(data_dir, "summary_demographics.rds"))
+fwrite(sumstat, file.path(data_dir,"results/summary_demographics.csv"))
+saveRDS(sumstat, file.path(data_dir,"results/summary_demographics.rds"))

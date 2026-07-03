@@ -15,8 +15,12 @@ library(tigris)
 options(tigris_use_cache = TRUE)
 
 set.seed(49)
-#directory = "/nfs/turbo/lsa-areynoso"
-directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 
 #public_school_filename = "ELSI_csv_export_6390435784786712152626.csv"
 private_school_filename = "ELSI_csv_export_639044261135902865330.csv"
@@ -245,9 +249,9 @@ public = raw_public_dir %>%
 
 
 # Private school data isn't available via API
-raw_private = fread(file.path(directory,"Data",private_school_filename),
+raw_private = fread(file.path(data_dir,"raw/nces/ELSI_csv_export_639044261135902865330.csv"),
                     skip=2, colClasses = "character")
-raw_private_address = fread(file.path(directory,"Data",private_school_address_filename),
+raw_private_address = fread(file.path(data_dir,"raw/nces/ELSI_csv_export_6390455368533882136542.csv"),
                             skip=2, colClasses = "character")
 
 # Clean private school address data
@@ -424,7 +428,7 @@ ambiguous = schools %>%
 #                                                     #offering_highest_degree = 10:31,
 #                                                     #  With undergraduate degrees available too
 #                                                     offering_undergrad = 1)) 
-raw_institutions = fread(file.path(data_dir,"colleges_ipeds_directory.csv"))
+raw_institutions = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_directory.csv"))
 
 
 # Pull degrees awarded data
@@ -437,7 +441,7 @@ raw_deg_award = get_education_data(level = "college-university",
                                                   race = 99,
                                                   sex = 99,
                                                   majornum = 1))
-saveRDS(raw_deg_award,file.path(data_dir,"raw_deg_award"))
+saveRDS(raw_deg_award,file.path(data_dir,"intermediate/raw_deg_award"))
 
 # Pull degrees awarded data
 # Only pull even years because reporting isn't mandatory in odd years
@@ -451,9 +455,9 @@ raw_instate = get_education_data(level = "college-university",
                                  subtopic = list("residence")) 
 
 # Import CIP-2 award data
-deg_award_2000 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2000.csv"))
-deg_award_2010 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2010.csv"))
-deg_award_2020 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2020.csv"))
+deg_award_2000 = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_completions-2digcip_2000.csv"))
+deg_award_2010 = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_completions-2digcip_2010.csv"))
+deg_award_2020 = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_completions-2digcip_2020.csv"))
 
 # Create wide dataset of the share of awards that were less than a BA
 deg_award = rbind(deg_award_2000,deg_award_2010,deg_award_2020) %>%
@@ -578,7 +582,7 @@ col_geos = geo %>%
   anti_join(mg, by = c("unitid","opeid")) %>%
   rbind(mg) 
 
-raw_deg_award = readRDS(file.path(data_dir,"raw_deg_award"))
+raw_deg_award = readRDS(file.path(data_dir,"intermediate/raw_deg_award"))
 awards_ba = raw_deg_award %>%
   filter(award_level == 7) %>%
   filter(cipcode == 99) %>%
@@ -916,7 +920,7 @@ system_branch_aliases <- colleges %>%
   mutate(system_indicator = 1L)
 
 # Sub-institution unit names
-raw_subunit <- read_csv(file.path(directory,"Data/be_sch_full.csv")) 
+raw_subunit <- read_csv(file.path(data_dir,"intermediate/be_sch_full.csv")) 
 
 # Count unique 
 subunit_counts <- raw_subunit %>% 
@@ -1249,12 +1253,12 @@ hs_alias <- hs_aliases_long %>%
   ungroup() %>%
   select(hs_id, alias, alias_weight, hs_name)
 
-saveRDS(hs_alias,file.path(directory,"Data/hs_alias.rds"))
-saveRDS(alias,file.path(directory,"Data/col_alias.rds"))
-saveRDS(cc_alias,file.path(directory,"Data/cc_alias.rds"))
-write.csv(hs_alias,file.path(directory,"Data/hs_alias.csv"),row.names=FALSE)
-write.csv(alias,file.path(directory,"Data/col_alias.csv"),row.names=FALSE)
-write.csv(cc_alias,file.path(directory,"Data/cc_alias.csv"),row.names=FALSE)
-saveRDS(schools,file.path(directory,"Data/schools.rds"))
-saveRDS(colleges,file.path(directory,"Data/colleges.rds"))
-saveRDS(cc,file.path(directory,"Data/cc.rds"))
+saveRDS(hs_alias,file.path(data_dir,"intermediate/hs_alias.rds"))
+saveRDS(alias,file.path(data_dir,"intermediate/col_alias.rds"))
+saveRDS(cc_alias,file.path(data_dir,"intermediate/cc_alias.rds"))
+write.csv(hs_alias,file.path(data_dir,"intermediate/hs_alias.csv"),row.names=FALSE)
+write.csv(alias,file.path(data_dir,"intermediate/col_alias.csv"),row.names=FALSE)
+write.csv(cc_alias,file.path(data_dir,"intermediate/cc_alias.csv"),row.names=FALSE)
+saveRDS(schools,file.path(data_dir,"intermediate/schools.rds"))
+saveRDS(colleges,file.path(data_dir,"intermediate/colleges.rds"))
+saveRDS(cc,file.path(data_dir,"intermediate/cc.rds"))

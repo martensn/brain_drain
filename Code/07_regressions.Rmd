@@ -27,8 +27,12 @@ options(scipen = 999)
 ##    Setup
 Directories and filenames that change with machine
 ```{r directory, include=FALSE}
-directory = "/nfs/turbo/lsa-areynoso"
-#directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 specification = "great_recession"
 
 geos = c("cbsa")
@@ -547,7 +551,7 @@ setnames(predictions_state, old = c("0_0", "0_1", "1_0", "1_1"),
 predictions_state[,pred_shr_returners_base := pred_returners/(pred_returners+pred_leavers)]
 predictions_state <- predictions_state[, .(col_end_numeric,inst_group,in_state,pred_shr_returners_base)]
 
-cbsa_shock_ptile = fread(file.path(directory,"Data/04","cbsa_shock.csv"))
+cbsa_shock_ptile = fread(file.path(data_dir,"intermediate/cbsa_shock.csv"))
 
 # Compute labor market x year of college graduation return rates, to compare against predictions
 empir_cbsa <- regression[,.N,by=.(col_end_numeric,hs_cbsa,inst_group,in_state,same_cbsa_hs,ever_leave_cbsa_hs)] %>%

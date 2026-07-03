@@ -4,8 +4,12 @@ library(tidyr)
 library(stringr)
 library(educationdata)
 
-directory = "/nfs/turbo/lsa-areynoso"
-#directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 data_dir = file.path(directory,"Data")
 
 #------------------------------------------------------------
@@ -351,13 +355,13 @@ pick_earliest_level <- function(dt, levels, prefix) {
   out
 }
 
-input_ <- fread(file.path(data_dir,"02/2026.04.09_education.csv"), 
+input_ <- fread(file.path(data_dir,"raw/revelio/2026.04.09_education.csv"), 
                 select=c("user_id","university_name","enddate","rsid","degree"))
 setDT(input_)
 
-col_rsid_crosswalk <- readRDS(file.path(data_dir,"col_rsid_crosswalk.rds"))
-cc_rsid_crosswalk <- readRDS(file.path(data_dir,"cc_rsid_crosswalk.rds"))
-hs_rsid_crosswalk <- readRDS(file.path(data_dir,"hs_rsid_crosswalk.rds"))
+col_rsid_crosswalk <- readRDS(file.path(data_dir,"intermediate/col_rsid_crosswalk.rds"))
+cc_rsid_crosswalk <- readRDS(file.path(data_dir,"intermediate/cc_rsid_crosswalk.rds"))
+hs_rsid_crosswalk <- readRDS(file.path(data_dir,"intermediate/hs_rsid_crosswalk.rds"))
 setDT(col_rsid_crosswalk)
 setDT(cc_rsid_crosswalk)
 setDT(hs_rsid_crosswalk)
@@ -405,13 +409,13 @@ input_col <- input_[
   )
 ]
 both_ = input_col[input_hs, on = .(user_id), nomatch = 0]
-saveRDS(both_,file.path(directory,"Data","both_orig.rds"))
-saveRDS(input_col,file.path(directory,"Data","input_col_m.rds"))
+saveRDS(both_,file.path(data_dir,"intermediate/both_orig.rds"))
+saveRDS(input_col,file.path(data_dir,"intermediate/input_col_m.rds"))
 
 # Convert enddate to year to improve computation
 #both_[,hs_en := as.integer(substr(enddate,1,4))]
-both_ = readRDS(file.path(directory,"Data","both_orig.rds"))
-input_col = readRDS(file.path(directory,"Data","input_col_m.rds"))
+both_ = readRDS(file.path(data_dir,"intermediate/both_orig.rds"))
+input_col = readRDS(file.path(data_dir,"intermediate/input_col_m.rds"))
 
 keep_users <- unique(both_[, .(user_id)])
 
@@ -810,19 +814,19 @@ setcolorder(
 sample = both[hs_ambiguous_name == 1]
 setDT(sample)
 
-schools = readRDS(file.path(data_dir,"schools.rds"))
-colleges = readRDS(file.path(data_dir,"colleges.rds"))
+schools = readRDS(file.path(data_dir,"intermediate/schools.rds"))
+colleges = readRDS(file.path(data_dir,"intermediate/colleges.rds"))
 
 # Create state fips crosswalk
-state_fips = readRDS(file.path(data_dir,"state_fips.rds"))
+state_fips = readRDS(file.path(data_dir,"intermediate/state_fips.rds"))
 
 # Pull degrees awarded data
 # Only pull even years because reporting isn't mandatory in odd years
-raw_instate = fread(file.path(data_dir,"colleges_ipeds_fall-res.csv")) %>%
+raw_instate = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_fall-res.csv")) %>%
   filter(type_of_freshman == 99, fips %in% c(1:56), state_of_residence %in% c(1:58), year %in% c(1994,1996,1998,2000,2002,2004,2006,2008,2010))
 instate = raw_instate %>% filter(unitid %in% colleges$unitid) 
 
-rsid_id_dup_crosswalk = readRDS(file.path(data_dir,"rsid_id_dup_crosswalk.rds"))
+rsid_id_dup_crosswalk = readRDS(file.path(data_dir,"intermediate/rsid_id_dup_crosswalk.rds"))
 hs_candidates <- prep_hs_candidates(
   schools = rsid_id_dup_crosswalk,
   state_fips = state_fips,
@@ -912,7 +916,7 @@ a=0.5
   
   # Construct in-state shares, reweighted from IPEDS based off the year distribution
   # for each college
-  col_instate = fread(file.path(data_dir,"colleges_ipeds_fall-res.csv")) %>%
+  col_instate = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_fall-res.csv")) %>%
     filter(state_of_residence %in% c(1:57),type_of_freshman == 99, fips %in% c(1:56), state_of_residence %in% c(1:58)) %>%
     as_tibble() %>%
     mutate(enroll_in = if_else(fips == state_of_residence,enrollment_fall,0),
@@ -960,5 +964,5 @@ a=0.5
   )
 #}
   
-saveRDS(both__,file.path(directory,"Data","both_final.rds"))  
+saveRDS(both__,file.path(data_dir,"intermediate/both_final.rds"))  
 

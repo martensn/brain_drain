@@ -5,9 +5,14 @@ library(dplyr)
 library(readr)
 library(tidyr)
 
-directory = "/nfs/turbo/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 data_dir = file.path(directory,"Data")
-file_dir = file.path(data_dir,"02/2026.04.09_education.csv")
+file_dir = file.path(data_dir,"raw/revelio/2026.04.09_education.csv")
 
 
 # normalize once
@@ -145,22 +150,22 @@ gc()
 
 input_col = input[!is.na(rsid),.N, by = .(university_name,university_country,rsid,degree,university_location)]
 input_col[,clean_name := tolower(university_name)]
-#saveRDS(input_col,file.path(data_dir,"input_col.rds"))
+#saveRDS(input_col,file.path(data_dir,"intermediate/input_col.rds"))
 
-input_col = readRDS(file.path(data_dir,"input_col.rds"))
+input_col = readRDS(file.path(data_dir,"intermediate/input_col.rds"))
 
-col_alias <- readRDS(file.path(directory,"Data","col_alias.rds"))
-hs_alias <- readRDS(file.path(directory,"Data","hs_alias.rds"))
-cc_alias <- readRDS(file.path(directory,"Data","cc_alias.rds"))
+col_alias <- readRDS(file.path(data_dir,"intermediate/col_alias.rds"))
+hs_alias <- readRDS(file.path(data_dir,"intermediate/hs_alias.rds"))
+cc_alias <- readRDS(file.path(data_dir,"intermediate/cc_alias.rds"))
 hs_alias_strings = unique(hs_alias[, c("alias"), with = FALSE])
 col_alias_strings = unique(col_alias[, c("alias"), with = FALSE])
 cc_alias_strings = unique(cc_alias[, c("alias"), with = FALSE])
 
 
-col_ <- readRDS(file.path(directory,"Data","col_strings.rds")) %>%
+col_ <- readRDS(file.path(data_dir,"intermediate/col_strings.rds")) %>%
   select(raw_string,alias,unitid,opeid,system_indicator,ed_type,ambiguous_name,method) %>%
   distinct()
-hs_ <- readRDS(file.path(directory,"Data","hs_strings.rds")) %>%
+hs_ <- readRDS(file.path(data_dir,"intermediate/hs_strings.rds")) %>%
   select(raw_string,alias,hs_id,ed_type,ambiguous_name,method) %>%
   distinct()
 #raw_ind <- fread(file_dir, select=c("user_id","rsid","degree"))
@@ -235,22 +240,22 @@ hs_p4 = hs_p1 %>%
 
 # Save matched column names
 matched_col = rbind(col_p2,col_p3,col_p4)
-saveRDS(matched_col,file.path(data_dir,"matched_col.rds"))
+saveRDS(matched_col,file.path(data_dir,"intermediate/matched_col.rds"))
 
 # Save unmatched college names, which I attempt to match with embeddings in step 2
 unmatched_col = col_p1 %>%
   filter(!rsid %in% col_p2$rsid) %>%
   filter(!rsid %in% col_p3$rsid) %>%
   filter(!rsid %in% col_p4$rsid)
-saveRDS(unmatched_col,file.path(data_dir,"unmatched_col.rds"))
+saveRDS(unmatched_col,file.path(data_dir,"intermediate/unmatched_col.rds"))
 
 # Save matched column names
 matched_hs = rbind(hs_p2,hs_p3,hs_p4)
-saveRDS(matched_hs,file.path(data_dir,"matched_hs.rds"))
+saveRDS(matched_hs,file.path(data_dir,"intermediate/matched_hs.rds"))
 
 # Save unmatched high school names, which I attempt to match with embeddings in step 2
 unmatched_hs = hs_p1 %>%
   filter(!rsid %in% hs_p2$rsid) %>%
   filter(!rsid %in% hs_p3$rsid) %>%
   filter(!rsid %in% hs_p4$rsid)
-saveRDS(unmatched_hs,file.path(data_dir,"unmatched_hs.rds"))
+saveRDS(unmatched_hs,file.path(data_dir,"intermediate/unmatched_hs.rds"))

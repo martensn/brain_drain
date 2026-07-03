@@ -37,8 +37,12 @@ Mode <- function(x, na.rm = TRUE)
 Directories and filenames that change with machine
 ```{r directory, include=FALSE}
 
-#directory = "/nfs/turbo/lsa-areynoso"
-directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 
 aaufilename = "AAU.xlsx"
 mobilityfilename = "mrc_table2.xlsx"
@@ -53,7 +57,7 @@ load(file.path(directory,"Code/06_workspace.RData"))
 ```{r}
 
 # Import microdata file 
-microdata = fread(file.path(directory,"Data/06/regression_data.csv"),
+microdata = fread(file.path(data_dir,"results/regression_data__06.csv"),
                   colClasses = c("hs_zip" = "character",
                                  "col_zip" = "character",
                                  "hs_cnty" = "character",
@@ -67,7 +71,7 @@ microdata = fread(file.path(directory,"Data/06/regression_data.csv"),
 ```{r pull}
 
 # List of members of the American Association of Universities
-aau = read_excel(file.path(directory,"Data/06",aaufilename),
+aau = read_excel(file.path(data_dir,"raw/rankings_membership/AAU__06.xlsx"),
                  col_types = "text") %>%
   mutate(unitid = as.integer(unitid),
          aau = as.integer(aau)) %>%
@@ -111,7 +115,7 @@ raw_deg_award = get_education_data(level = "college-university",
 
 # Import Table 2:  Baseline Cross-Sectional Estimates by College
 # https://opportunityinsights.org/wp-content/uploads/2018/04/Codebook-MRC-Table-2.pdf
-raw_mobility = read_excel(file.path(directory,"Data/06",mobilityfilename))
+raw_mobility = read_excel(file.path(data_dir,"raw/chetty_oi/mrc_table2.xlsx"))
 
 # Import appropriations data
 # https://nces.ed.gov/ipeds/survey-components/2#glossary  

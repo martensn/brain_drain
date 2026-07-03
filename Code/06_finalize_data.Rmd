@@ -26,8 +26,12 @@ options(digits = 1)
 ##    Setup
 Directories and filenames that change with machine
 ```{r directory, include=FALSE}
-directory = "/nfs/turbo/lsa-areynoso"
-#directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 specification = "great_recession"
 
 # Automate filtering
@@ -57,11 +61,11 @@ universes = c("stay","leave_hs","leave_col")
 ##    Import Microdata
 Avoid rerunning previous eight steps and saving ~6 hours
 ```{r import, include=FALSE}
-if(directory == "/nfs/turbo/lsa-areynoso")
+if(file.exists(file.path(data_dir,"intermediate/microdata.csv")))
 {
-  microdata <- fread(file.path(directory,"Data/06/microdata.csv"))
+  microdata <- fread(file.path(data_dir,"intermediate/microdata.csv"))
 } else {
-  microdata <- fread(file.path(directory,"Data/06/microdata_sample.csv"))
+  microdata <- fread(file.path(data_dir,"intermediate/microdata_sample__06.csv"))
 }
 microdata <- microdata[,V1 := NULL]
 ```
@@ -93,7 +97,7 @@ dist_bins = levels(regression$dist)[-1]
 
 
 # Select only the 'unitid' and 'inst_group' columns from institutional_characteristics
-inst_group <- fread(file.path(directory,"Data/06","institutional_characteristics.csv")) %>%
+inst_group <- fread(file.path(data_dir,"intermediate/institutional_characteristics.csv")) %>%
   select(unitid,inst_group)#institutional_characteristics[,c("unitid", "inst_group")]
 
 # Merge the two data.tables on 'unitid'
@@ -129,7 +133,7 @@ regression[, hs_shock_quartile := fifelse(
   fifelse(hs_shock_1 >= quantile(hs_shock_1, 0.75, na.rm = TRUE), "Top LD Quartile", "Middle LD Quartiles")
 ), by = col_end]
 
-#differences_unfilt <- read_csv(file.path(directory,"Data/06","local_differences_unfilt.csv")) %>%
+#differences_unfilt <- read_csv(file.path(data_dir,"intermediate/local_differences_unfilt.csv")) %>%
 #  mutate(cbsa_code = str_pad(hs_cbsa,width=5,side="left",pad="0")) %>%
 #  select(-c("hs_cbsa","...1")) %>%
 #  left_join(cbsa_li_crosswalk %>% select(c("cbsa_code","cbsa_core")) %>% distinct(), by = "cbsa_code") %>%
@@ -145,8 +149,8 @@ regression[, col_end_numeric := as.numeric(as.character(col_end))]
 na_count = regression[, lapply(.SD, function(x) sum(is.na(x)))]  
 
 missing_inst_group = regression[is.na(inst_group), .N, by = .(col_unitid,col_name)]
-#all_binary_final = read.csv(file.path(directory,"Data/regression_data.csv"))
-#actual_cohort = read.csv(file.path(directory,"Data/actual_cohort.csv"))
+#all_binary_final = read.csv(file.path(data_dir,"results/regression_data__top.csv"))
+#actual_cohort = read.csv(file.path(data_dir,"results/actual_cohort.csv"))
 
 ```
 
@@ -236,8 +240,8 @@ max <- migration_ends[1]
 # These generate data used to show the linearity of the dependent variable
 cohort_return_hs <- regression[ever_leave_cbsa_hs_10 == 1, mean(same_cbsa_hs_10 == 1, na.rm = TRUE), by = .(col_end)]
 cohort_return_col <- regression[ever_leave_cbsa_col == 1, mean(same_cbsa_col_10 == 1, na.rm = TRUE), by = .(col_end)]
-write.csv(cohort_return_hs,file.path(directory,"Data/06/cohort_return_hs_10.csv"),row.names = FALSE)
-write.csv(cohort_return_col,file.path(directory,"Data/06/cohort_return_col_10.csv"),row.names = FALSE)
+write.csv(cohort_return_hs,file.path(data_dir,"intermediate/cohort_return_hs_10.csv"),row.names = FALSE)
+write.csv(cohort_return_col,file.path(data_dir,"intermediate/cohort_return_col_10.csv"),row.names = FALSE)
 
 # Measure levels of return for first figure 
 leaver_levels_state <- regression[col_end %in% cohorts[[specification]] & ever_leave_state_hs_10 == 1,.N,by=.(same_state_hs_10,same_state_col_10,inst_group,hs_col_diff_cbsa,inst_group)]
@@ -289,7 +293,7 @@ for (max in migration_ends) {
 
 ```{r sumstat}
 
-institutional_characteristics <- fread(file.path(directory,"Data/06","institutional_characteristics.csv"))
+institutional_characteristics <- fread(file.path(data_dir,"intermediate/institutional_characteristics.csv"))
 
 state_region_crosswalk <- data.table(state = state.abb,
                                      region = state.region)
@@ -301,7 +305,7 @@ institutional_characteristics <- merge(
 
 cohort_x_grad <- as.data.frame(as.table(prop.table(table(regression$birth,regression$col_end), margin = 2)))
 names(cohort_x_grad) <- c("birth","col_end","shr")
-write.csv(cohort_x_grad,file.path(directory,"Data/06/cohort_x_grad.csv"),row.names = FALSE)
+write.csv(cohort_x_grad,file.path(data_dir,"intermediate/cohort_x_grad.csv"),row.names = FALSE)
 
 #  Compute summary statistics with no restrictions on college graduation year
 sample_means = merge(regression, institutional_characteristics, by.x="col_unitid", by.y="unitid") %>%

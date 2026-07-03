@@ -19,8 +19,12 @@ library(data.table)
 
 Directories and filenames that change with machine
 ```{r directory, include=FALSE}
-#directory = "/nfs/turbo/lsa-areynoso"
-directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 
 pubfilename = "Public.csv"
 privfilename = "Private.csv"
@@ -54,8 +58,8 @@ Declare %nin% so we can filter observations
 ```{r import, include=FALSE}
 
 # Import lists of (public + private) high schools and colleges
-public = read_delim(file.path(directory,"Data/01",pubfilename))
-private = read_delim(file.path(directory,"Data/01",privfilename))
+public = read_delim(file.path(data_dir,"raw/nces/Public.csv"))
+private = read_delim(file.path(data_dir,"raw/nces/Private.csv"))
 
 ```
 

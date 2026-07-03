@@ -3,21 +3,26 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 
-directory = "/nfs/turbo/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 data_dir = file.path(directory,"Data")
 
-colleges <- readRDS(file.path(directory,"Data","colleges.rds")) %>%
+colleges <- readRDS(file.path(data_dir,"intermediate/colleges.rds")) %>%
   # Remove territorial colleges and universities
   filter(!state_abbr %in% c("AS","GU","MP","PR","VI"))
 
-matched_col <- readRDS(file.path(directory,"Data","col_strings.rds"))
-unmatched_col <- readRDS(file.path(directory,"Data","unmatched_col.rds"))
+matched_col <- readRDS(file.path(data_dir,"intermediate/col_strings.rds"))
+unmatched_col <- readRDS(file.path(data_dir,"intermediate/unmatched_col.rds"))
 
 # Manual merges for colleges with name changes, academies, institutes, etc
 # First passes looks for the largest colleges without an rsid
-col_wo_rsid <- read_csv(file.path(directory,"Data","col_wo_rsid.csv")) %>%
+col_wo_rsid <- read_csv(file.path(data_dir,"intermediate/col_wo_rsid.csv")) %>%
   dplyr::filter(!is.na(rsid)) %>%
-  left_join(readRDS(file.path(directory,"Data","input_col.rds")) %>% 
+  left_join(readRDS(file.path(data_dir,"intermediate/input_col.rds")) %>% 
               filter(degree %in% c("","Bachelor")) %>% 
               group_by(rsid,university_name) %>% 
               summarize(N = sum(N)), 
@@ -29,10 +34,10 @@ col_wo_rsid <- read_csv(file.path(directory,"Data","col_wo_rsid.csv")) %>%
   select(university_name,rsid,opeid,unitid,system_indicator,ambiguous_name,N,string_method)
 # Next pass looks for largest rsids without colleges, plus correcting outliers 
 # based on degrees awarded
-rsid_wo_col <- read_csv(file.path(directory,"Data","rsid_wo_col.csv")) %>%
+rsid_wo_col <- read_csv(file.path(data_dir,"intermediate/rsid_wo_col.csv")) %>%
   filter(!is.na(unitid)) %>%
   select(-c(university_name,N)) %>%
-  left_join(readRDS(file.path(directory,"Data","input_col.rds")) %>%
+  left_join(readRDS(file.path(data_dir,"intermediate/input_col.rds")) %>%
               filter(degree %in% c("","Bachelor")) %>%
               group_by(rsid,university_name) %>%
               summarize(N = sum(N)), 
@@ -54,7 +59,7 @@ matches_col = rbind(matched_col %>% select(university_name,rsid,opeid,unitid,sys
 # I need to review instances of rsids matching to multiple unitid-opeid pairs
 dup_rsid = matches_col %>% group_by(rsid) %>% summarize(n = n()) %>% filter(n > 1)
 dupes = matches_col %>% filter(rsid %in% dup_rsid$rsid)
-#write.csv(dupes,file.path(data_dir,"dupe_match_rsid.csv"),row.names = FALSE)
+#write.csv(dupes,file.path(data_dir,"intermediate/dupe_match_rsid.csv"),row.names = FALSE)
 #dupes_with_unique_rsid = matched %>% inner_join(dupes %>% ungroup() %>% select(unitid,opeid), by = c("unitid","opeid")) %>% group_by(rsid) %>% summarize(n = n()) %>% filter(n == 1)
 
 # For now, just de-dup by allocating ambiguous names to largest branch of university
@@ -67,7 +72,7 @@ col_rsid_crosswalk = matches_col %>%
   anti_join(dupes, by = c("rsid","unitid","opeid")) %>% 
   rbind(dedup) %>%
   distinct() 
-saveRDS(col_rsid_crosswalk, file.path(data_dir,"col_rsid_crosswalk.rds"))
+saveRDS(col_rsid_crosswalk, file.path(data_dir,"intermediate/col_rsid_crosswalk.rds"))
 
 # Match diagnostics
 col_rsid_diagnostics = col_rsid_crosswalk %>% 
@@ -79,11 +84,11 @@ col_rsid_diagnostics = col_rsid_crosswalk %>%
   #filter(deg_awarded > 2500 & deg_awarded < 5000)
   #filter(deg_awarded < 2500 & deg_awarded > 500)
 
-cc <- readRDS(file.path(directory,"Data","cc.rds")) %>%
+cc <- readRDS(file.path(data_dir,"intermediate/cc.rds")) %>%
   # Remove territorial colleges and universities
   filter(!state_abbr %in% c("AS","GU","MP","PR","VI"))
-matched_cc <- readRDS(file.path(directory,"Data","cc_strings.rds"))
-unmatched_cc <- readRDS(file.path(directory,"Data","unmatched_cc.rds"))
+matched_cc <- readRDS(file.path(data_dir,"intermediate/cc_strings.rds"))
+unmatched_cc <- readRDS(file.path(data_dir,"intermediate/unmatched_cc.rds"))
 
 matches_cc = matched_cc %>%
   left_join(cc %>% select(unitid,opeid,inst_control,deg_awarded,city,state_abbr,parent_university),
@@ -94,7 +99,7 @@ matches_cc = matched_cc %>%
 # I need to review instances of rsids matching to multiple unitid-opeid pairs
 cc_dup_rsid = matches_cc %>% group_by(rsid) %>% summarize(n = n()) %>% filter(n > 1)
 cc_dupes = matches_cc %>% filter(rsid %in% cc_dup_rsid$rsid)
-#write.csv(dupes,file.path(data_dir,"dupe_match_rsid.csv"),row.names = FALSE)
+#write.csv(dupes,file.path(data_dir,"intermediate/dupe_match_rsid.csv"),row.names = FALSE)
 #dupes_with_unique_rsid = matched %>% inner_join(dupes %>% ungroup() %>% select(unitid,opeid), by = c("unitid","opeid")) %>% group_by(rsid) %>% summarize(n = n()) %>% filter(n == 1)
 
 # For now, just de-dup by allocating ambiguous names to largest branch of university
@@ -108,7 +113,7 @@ cc_rsid_crosswalk = matches_cc %>%
   rbind(cc_dedup) %>%
   distinct() #%>%
 #filter(!unitid %in% sub_ba$unitid)
-saveRDS(cc_rsid_crosswalk, file.path(directory,"Data","cc_rsid_crosswalk.rds"))
+saveRDS(cc_rsid_crosswalk, file.path(data_dir,"intermediate/cc_rsid_crosswalk.rds"))
 
 # Match diagnostics
 cc_rsid_diagnostics = cc_rsid_crosswalk %>% 
@@ -134,12 +139,12 @@ cc_scragglers = cc %>%
 
 
 # Repeat the process for high schools
-schools <- readRDS(file.path(directory,"Data","schools.rds")) %>%
+schools <- readRDS(file.path(data_dir,"intermediate/schools.rds")) %>%
   # Remove territorial colleges and universities
   filter(!state_abbr %in% c("AS","GU","MP","PR","VI"))
 
-matched_hs <- readRDS(file.path(directory,"Data","matched_hs.rds"))
-unmatched_hs <- readRDS(file.path(directory,"Data","unmatched_hs.rds"))
+matched_hs <- readRDS(file.path(data_dir,"intermediate/matched_hs.rds"))
+unmatched_hs <- readRDS(file.path(data_dir,"intermediate/unmatched_hs.rds"))
 
 # Identify instances of strings matching to multiple names
 dup_rsid_hs = matched_hs %>%
@@ -157,7 +162,7 @@ matches_hs = matched_hs %>%
             by = c("hs_id"))
 rsid_id_dup_crosswalk = matches_hs %>%
   filter(rsid %in% dup_rsid_hs$rsid)
-saveRDS(rsid_id_dup_crosswalk,file.path(data_dir,"rsid_id_dup_crosswalk.rds"))
+saveRDS(rsid_id_dup_crosswalk,file.path(data_dir,"intermediate/rsid_id_dup_crosswalk.rds"))
 
 hs_rsid_crosswalk = matches_hs %>%
   mutate(ambiguous_name = if_else(rsid %in% dup_rsid_hs$rsid,1,0),
@@ -171,4 +176,4 @@ hs_rsid_crosswalk = matches_hs %>%
   distinct()
 
 # Save crosswalk with a single unitid-opeid pair for each rsid
-saveRDS(hs_rsid_crosswalk, file.path(data_dir,"hs_rsid_crosswalk.rds"))
+saveRDS(hs_rsid_crosswalk, file.path(data_dir,"intermediate/hs_rsid_crosswalk.rds"))

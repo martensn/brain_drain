@@ -2,6 +2,9 @@ library(data.table)
 library(tidyverse)
 library(ggplot2)
 
+# Requires directory/data_dir/out_dir already in the session -- run the
+# config snippet (or any other in-scope script) first.
+
 # Remember to re-run step 6 for updated estimates on full universe
 
 #middle_prestige <- regression_cbsa_10[, mean(prestige_bin == "Middle", na.rm = TRUE), by = .(col_end)]
@@ -12,8 +15,8 @@ library(ggplot2)
 #high_prestige <- regression_cbsa_10[, mean(prestige_bin == "High", na.rm = TRUE), by = .(col_end)]
 #low_prestige <- regression_cbsa_10[, mean(prestige_bin == "Low", na.rm = TRUE), by = .(col_end)]
 
-hs_cbsa_10 <- read_csv(file.path(directory,"Data/06/cohort_return_hs_10.csv"))
-col_cbsa_10 <- read_csv(file.path(directory,"Data/06/cohort_return_col_10.csv"))
+hs_cbsa_10 <- read_csv(file.path(data_dir,"intermediate/cohort_return_hs_10.csv"))
+col_cbsa_10 <- read_csv(file.path(data_dir,"intermediate/cohort_return_col_10.csv"))
 
 return_levels = hs_cbsa_10 %>%
   mutate(geography = "High School") %>%

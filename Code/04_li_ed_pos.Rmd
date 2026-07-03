@@ -10,7 +10,12 @@ output: html_document
 Directories and filenames that change with machine
 ```{r directory, include=FALSE}
 
-directory = "/nfs/turbo/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 posfilename1 = "cleaned_pos_educ_STATES_AK-MD.csv"
 posfilename2 = "cleaned_pos_educ_STATES_MI-WY.csv"
 posfilename3 = "cleaned_pos_educ_sample.csv"
@@ -42,12 +47,12 @@ library(data.table)
 ##    Import Position File
 fread is faster and more effective for large .csv files
 ```{r pos import, include=FALSE}
-pos1 = fread(file.path(directory,"Data/03",posfilename1),
+pos1 = fread(file.path(data_dir,"raw/revelio/cleaned_pos_educ_STATES_AK-MD.csv"),
             # Only important columns necessary to know where people live
             # In the future, maybe I will look more at occupations
             select = c('user_id','country','state','msa','startdate','enddate','seniority',
                        'company_cleaned','mapped_role','role_k1000','onet_code','onet_title'))
-pos2 = fread(file.path(directory,"Data/03",posfilename2),
+pos2 = fread(file.path(data_dir,"raw/revelio/cleaned_pos_educ_STATES_MI-WY.csv"),
             # Only important columns necessary to know where people live
             # In the future, maybe I will look more at occupations
             select = c('user_id','country','state','msa','startdate','enddate','seniority',
@@ -86,7 +91,7 @@ pos_summary <- position[, .(n = .N), by = .(onet_code, onet_title)] %>%
   group_by(socp) %>%
   summarize(shr_li = sum(shr_li))
 
-write.csv(pos_summary,file.path(directory,"Data/07","soc_li_distribution.csv"))
+write.csv(pos_summary,file.path(data_dir,"intermediate/soc_li_distribution.csv"))
 
 ```
 
@@ -226,7 +231,7 @@ d = merge(dup, nces_alt_name, by.x = "hs_stripped_name2", by.y = "stripped_name2
 # https://stackoverflow.com/questions/55408526/r-find-the-distance-between-two-us-zipcode-columns
 ## Convert the zip codes to data.table so we can join on them
 ## using the centroid of the zipcodes (lng and lat).
-dt_zips <- as.data.table(read.csv(file.path(directory,"Data/03",zipcodefilename),
+dt_zips <- as.data.table(read.csv(file.path(data_dir,"raw/census_geo/zipcodes.csv"),
                                   colClasses = c("character","numeric","numeric")))
 
 dt_zips[,c("X") := NULL]
@@ -346,7 +351,7 @@ cbsa_core = table(birth_position$cbsa_core)
   #table.express::mutate(cbsa_city = str_replace_all(cbsa_city, '-'," "))
 
 # Import list of string corrections to ease merge with CBSA file
-string_cleaning = fread(file.path(directory,"Data/03",msastringfilename))
+string_cleaning = fread(file.path(data_dir,"intermediate/msa_string_cleaning.csv"))
 patterns = string_cleaning$Lookup
 replacements = string_cleaning$Rename
 
@@ -506,8 +511,8 @@ completed_melt = completed[, ..cols] %>%
   
 numerator = completed_melt[, .(count = .N), by = c("value","variable")]
 
-write.csv(numerator,file.path(directory,"Data/07/numerator.csv"))
-write.csv(completed,file.path(directory,"Data/05/raw_microdata.csv"))
+write.csv(numerator,file.path(data_dir,"intermediate/numerator.csv"))
+write.csv(completed,file.path(data_dir,"raw/revelio/raw_microdata__05.csv"))
 
 
 rm(position,all_col_unrated,almost_completed,barrons,barrons_chetty,big_chungus,both,

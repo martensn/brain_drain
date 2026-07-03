@@ -19,8 +19,12 @@ library(data.table)
 
 Directories and filenames that change with machine
 ```{r directory, include=FALSE}
-directory = "/nfs/turbo/lsa-areynoso"
-#directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 
 postfilename = "ipeds_hd2021.csv"
 cbsafilename = "msa_2020.csv"
@@ -57,20 +61,20 @@ Declare %nin% so we can filter observations
 ```{r import, include=FALSE}
 # Import SuperOPEID-OPEID Crosswalk from OI website
 # https://opportunityinsights.org/data/ 
-superope_ope_crosswalk = read_csv(file.path(directory,"Data/01/Crosswalks",superopeidfilename))
+superope_ope_crosswalk = read_csv(file.path(data_dir,"raw/chetty_oi/mrc_table11.csv"))
 
 # Import OPEID-Unit ID Crosswalk from DOE
 # https://collegescorecard.ed.gov/data/ 
-ope_unit_crosswalk = read_excel(file.path(directory,"Data/01/Crosswalks",opeidunitidfilename), 
+ope_unit_crosswalk = read_excel(file.path(data_dir,"raw/ipeds/CW2021.xlsx"), 
                                 sheet = "Crosswalk")
 
 
 # Import CBSA Conversion File
-cbsa = read_csv(file.path(directory,"Data/01",cbsafilename),
+cbsa = read_csv(file.path(data_dir,"raw/census_geo/msa_2020.csv"),
                 col_types = "cccccccccccc")
 
 # Read in county list
-raw_county = read_excel(file.path(directory,"Data/01",countyfilename)) %>%
+raw_county = read_excel(file.path(data_dir,"raw/census_geo/counties.xlsx")) %>%
   # Remove extraneous columns to simplify merge with ct_county
   dplyr::select(-c('Geo Point','Geo Shape','Year','Iso 3166-3 Area Code',"Type",'County GNIS Code','Official Name County')) %>%
   rename('state_code' = 'Official Code State',
@@ -97,7 +101,7 @@ raw_county = read_excel(file.path(directory,"Data/01",countyfilename)) %>%
 
 # Connecticut changed counties, so most data uses old boundaries
 # Must append county dataset with old county codes
-ct_county = read_excel(file.path(directory,"Data/01",ctcountyfilename)) %>%
+ct_county = read_excel(file.path(data_dir,"raw/census_geo/ct_counties.xlsx")) %>%
   # Remove extraneous columns to simplify merge with county
   dplyr::select(-c('COUNTYNS','CLASSFP','FUNCSTAT')) %>%
   rename('state_code' = 'STATEFP',
@@ -155,7 +159,7 @@ cbsa_na = county %>%
 unified_cbsa = rbind(cbsa_fips,cbsa_na) %>%
   as.data.table()
 
-write.csv(unified_cbsa,file.path(directory,"Data/01/unified_cbsa.csv"))
+write.csv(unified_cbsa,file.path(data_dir,"raw/census_geo/unified_cbsa.csv"))
 
 cbsa_code_name = cbsa[c(1,4)] %>%
   rename("cbsa_code" = `CBSA Code`,

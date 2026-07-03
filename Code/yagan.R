@@ -2,10 +2,14 @@ library(reldist)
 library(tidyverse)
 library(data.table)
 
-directory = "/nfs/turbo/lsa-areynoso"
-#directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
   
-intercensal <- read_csv(file.path(directory,"Data/06/intercensal.csv"))
+intercensal <- read_csv(file.path(data_dir,"intermediate/intercensal.csv"))
 
 
 yagan <- function(start,end)
@@ -127,7 +131,7 @@ yagan <- function(start,end)
     ) %>%
     bind_rows(overall) 
   
-  write.csv(split,file.path(directory,"Data/06",paste0("directed_",start,"_",end,".csv")),row.names = FALSE)
+  write.csv(split,file.path(data_dir,"results",paste0("directed_",start,"_",end,".csv")),row.names = FALSE)
   
   return(split)
   
@@ -142,7 +146,7 @@ for(s in 0:7)
 #}
 
 #end = 2016
-split <- read_csv(file.path(directory,"Data/06",paste0("directed_",start,"_",end,".csv")))
+split <- read_csv(file.path(data_dir,"results",paste0("directed_",start,"_",end,".csv")))
 
 # Fit separate models for each type
 split_models <- split %>%

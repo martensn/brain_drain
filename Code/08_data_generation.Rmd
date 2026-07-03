@@ -27,8 +27,12 @@ options(digits = 1)
 ##    Setup
 Directories and filenames that change with machine
 ```{r directory, include=FALSE}
-directory = "/nfs/turbo/lsa-areynoso"
-#directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 
 ```
 
@@ -94,7 +98,7 @@ li_inst[, li_shr := N/sum(N)]
 write.csv(li_inst,file.path(directory,"Data",specification,"li_inst.csv"))
 
 # Select only the 'unitid' and 'inst_group' columns from institutional_characteristics
-inst_group = fread(file.path(directory,"Data/06","institutional_characteristics.csv")) %>%
+inst_group = fread(file.path(data_dir,"intermediate/institutional_characteristics.csv")) %>%
   table.express::select(unitid,inst_group)
 # Intermediate object used to create cross-sectional measure of return by inst_group and occupational prestige
 occp_inst_group <- regression_cbsa_10 %>%
@@ -487,7 +491,7 @@ problems <- regression[return_to_both == 1 & col_in_not_hs_cbsa == 1]
 
 # Import residual measurements of places with amenities
 # These are places that attract more migrants than predicted by their labor demand
-#differences_unfilt <- read_csv(file.path(directory,"Data/06","local_differences_unfilt.csv")) %>%
+#differences_unfilt <- read_csv(file.path(data_dir,"intermediate/local_differences_unfilt.csv")) %>%
 #  mutate(cbsa_code = str_pad(hs_cbsa,width=5,side="left",pad="0")) %>%
 #  select(-c("hs_cbsa","...1")) %>%
 #  left_join(cbsa_li_crosswalk %>% select(c("cbsa_code","cbsa_core")) %>% distinct(), by = "cbsa_code") %>%

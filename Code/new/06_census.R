@@ -5,14 +5,18 @@ library(data.table)
 
 
 set.seed(49)
-#directory = "/nfs/turbo/lsa-areynoso"
-directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 data_dir = file.path(directory,"Data")
 
 
 
 # Query API for degrees awared data
-if(exists(file.path(data_dir,"ipeds_deg_awarded.rds")))
+if(exists(file.path(data_dir,"intermediate/ipeds_deg_awarded.rds")))
 {
   raw_deg_award_1 = get_education_data(level = "college-university",
                                        source = "ipeds",
@@ -35,11 +39,11 @@ if(exists(file.path(data_dir,"ipeds_deg_awarded.rds")))
   
   raw_deg_award = rbind(raw_deg_award_1,raw_deg_award_2) %>%
     filter(race == 99, sex == 99, cipcode_6digit == 99)
-  saveRDS(raw_deg_award,file.path(data_dir,"ipeds_deg_awarded.rds"))
+  saveRDS(raw_deg_award,file.path(data_dir,"intermediate/ipeds_deg_awarded.rds"))
 }
 
 # Import residential file
-res = fread(file.path(data_dir,"colleges_ipeds_fall-res.csv"))
+res = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_fall-res.csv"))
 
 
 # Pull 2024 1-year ACS microdata 
@@ -152,11 +156,11 @@ cgp = col_grad_filt %>%
   mutate(shr = n/sum(n))
 
 # Calculate total number of college graduates in labor market by age
-deg_award_2000 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2000.csv"))
-deg_award_2010 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2010.csv"))
-deg_award_2020 = fread(file.path(data_dir,"colleges_ipeds_completions-2digcip_2020.csv"))
-origin = fread(file.path(data_dir,"colleges_ipeds_fall-res.csv"))
-grad_rates_100 = fread(file.path(data_dir,"colleges_ipeds_grad-rates.csv"))
+deg_award_2000 = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_completions-2digcip_2000.csv"))
+deg_award_2010 = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_completions-2digcip_2010.csv"))
+deg_award_2020 = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_completions-2digcip_2020.csv"))
+origin = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_fall-res.csv"))
+grad_rates_100 = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_grad-rates.csv"))
 
 # Ultimately, we want to know the number degrees awarded by state of origin
 origin %>% filter(unitid == 170976, type_of_freshman == 99)

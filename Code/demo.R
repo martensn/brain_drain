@@ -3,9 +3,14 @@ library(dplyr)
 library(readr)
 library(tidyr)
 
-directory = "/nfs/turbo/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 data_dir = file.path(directory,"Data")
-file_dir = file.path(data_dir,"02/2026.04.09_education.csv")
+file_dir = file.path(data_dir,"raw/revelio/2026.04.09_education.csv")
 
 
 # normalize once
@@ -140,15 +145,15 @@ classify_ed_string <- function(x_raw) {
 # Construct crosswalk from rsid to colleges, use the embeddings as a supplement
 input <- fread(file_dir, select=c("university_name","rsid","degree","university_country","university_location"))
 
-col_alias <- readRDS(file.path(directory,"Data","col_alias.rds"))
-hs_alias <- readRDS(file.path(directory,"Data","hs_alias.rds"))
+col_alias <- readRDS(file.path(data_dir,"intermediate/col_alias.rds"))
+hs_alias <- readRDS(file.path(data_dir,"intermediate/hs_alias.rds"))
 hs_alias_strings = unique(hs_alias[, c("alias"), with = FALSE])
 col_alias_strings = unique(col_alias[, c("alias"), with = FALSE])
 
-col_ <- readRDS(file.path(directory,"Data","col_strings.rds")) %>%
+col_ <- readRDS(file.path(data_dir,"intermediate/col_strings.rds")) %>%
   select(raw_string,alias,unitid,opeid,system_indicator,ed_type,ambiguous_name,method) %>%
   distinct()
-hs_ <- readRDS(file.path(directory,"Data","hs_strings.rds")) %>%
+hs_ <- readRDS(file.path(data_dir,"intermediate/hs_strings.rds")) %>%
   select(raw_string,alias,hs_id,ed_type,ambiguous_name,method) %>%
   distinct()
 #raw_ind <- fread(file_dir, select=c("user_id","rsid","degree"))
@@ -190,11 +195,11 @@ unmatched_col = col_p1 %>%
   filter(!rsid %in% col_p2$rsid) %>%
   filter(!rsid %in% col_p3$rsid) %>%
   filter(!rsid %in% col_p4$rsid)
-saveRDS(unmatched_col,file.path(data_dir,"unmatched_col.rds"))
+saveRDS(unmatched_col,file.path(data_dir,"intermediate/unmatched_col.rds"))
 
 
 
-col_p5 = readRDS(file.path(data_dir,"col_embed.rds")) %>% 
+col_p5 = readRDS(file.path(data_dir,"intermediate/col_embed.rds")) %>% 
   group_by(university_name,rsid,unitid,opeid,system_indicator) %>%
   summarize(N = sum(N))
 

@@ -16,8 +16,12 @@ library(data.table)
 Directories and filenames that change with machine
 ```{r directory, include=FALSE}
 
-directory = "/nfs/turbo/lsa-areynoso"
-#directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 zipcodefilename = "zipcodes.csv"
 # Choose a base year (e.g., 2020) for CPI
 cpi_base_year <- 2020
@@ -33,7 +37,7 @@ max_post_grad = 50
 # Import microdata file if not loaded already
 if(!exists("completed"))
 {
-  raw_microdata = fread(file.path(directory,"Data/05/raw_microdata.csv"),
+  raw_microdata = fread(file.path(data_dir,"raw/revelio/raw_microdata__05.csv"),
                   colClasses = c("col_zip" = "character",
                                  "hs_cnty"= "character"
                                  ))
@@ -92,7 +96,7 @@ raw_microdata[, state_mode := apply(.SD, 1, get_mode), .SDcols = paste0("cbsa_st
 ```{r occp-mode, eval=FALSE}
 
 # Import occupational prestige crosswalk created in step 8
-occp_prestige <- fread(file.path(directory,"Data","occupational_prestige.csv")) %>%
+occp_prestige <- fread(file.path(data_dir,"intermediate/occupational_prestige.csv")) %>%
   as.data.frame() %>%
   distinct(socp_raw, .keep_all = TRUE) %>%
   select(socp_raw,prestige_bin)
@@ -161,7 +165,7 @@ for (year in min_post_grad:max_post_grad) {
 
 return <- merge(return_cbsa,return_state,by = c("years","col_unitid","prestige_bin"))
 
-write.csv(return,file.path(directory,"Data/05","return_occp.csv"), row.names=FALSE)
+write.csv(return,file.path(data_dir,"intermediate/return_occp.csv"), row.names=FALSE)
 ```
 
 
@@ -281,7 +285,7 @@ setorder(return_by_year, get, group)
 setnames(return_by_year, "get", "year")
 
 # Conditional on returning to home state, when do people do it
-write.csv(return_by_year,file.path(directory,"Data/07","return_by_year.csv"), row.names=FALSE)
+write.csv(return_by_year,file.path(data_dir,"intermediate/return_by_year.csv"), row.names=FALSE)
 ```
 
 ##    Filtering Birth Years and Geographies
@@ -336,7 +340,7 @@ microdata <- merge(microdata, hs_zip, by = "hs_unitid", all.x = TRUE)
 # https://stackoverflow.com/questions/55408526/r-find-the-distance-between-two-us-zipcode-columns
 ## Convert the zip codes to data.table so we can join on them
 ## using the centroid of the zipcodes (lng and lat).
-dt_zips <- as.data.table(read.csv(file.path(directory,"Data/03",zipcodefilename),
+dt_zips <- as.data.table(read.csv(file.path(data_dir,"raw/census_geo/zipcodes.csv"),
                                   colClasses = c("character","numeric","numeric")))
 
 # Ensure ZIP code for educational institution is standard five digits
@@ -404,7 +408,7 @@ occupational_prestige_filename = "OccupationalPrestigeRatings.csv"
 
 # Import occupational prestige data from Harvard Dataverse
 # https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/G1E4BF
-raw_prestige = read_csv(file.path(directory,"Data/07",occupational_prestige_filename),
+raw_prestige = read_csv(file.path(data_dir,"raw/bls/OccupationalPrestigeRatings.csv"),
                                   col_types = cols_only(`ONET SOC 2018 Code` = col_character(),
                                                         `OPR Job Rating` = col_double(),
                                                         `ONET SOC 2018 Title` = col_character())) %>%
@@ -414,7 +418,7 @@ raw_prestige = read_csv(file.path(directory,"Data/07",occupational_prestige_file
 
 # Import educational attainment by detailed occupation
 # https://www.bls.gov/emp/documentation/education-training-system.htm
-soc_educ <- readxl::read_excel(file.path(directory, "Data", bls_education_filename), 
+soc_educ <- readxl::read_excel(file.path(data_dir,"intermediate/education__top.xlsx"), 
                                col_types = c("text","text","numeric","numeric","numeric","numeric","numeric","numeric","numeric"),
                                 sheet = "Table 5.3")[-1, -1] %>%
   mutate(shr_ba = as.numeric(`...7`) + as.numeric(`...8`) + as.numeric(`...9`)) %>% # Ensure columns are numeric
@@ -423,11 +427,11 @@ soc_educ <- readxl::read_excel(file.path(directory, "Data", bls_education_filena
   # Rename the rightmost column
 # Import employment by detailed occupation
 # https://www.bls.gov/emp/tables/occupational-projections-and-characteristics.htm
-raw_occp <- readxl::read_excel(file.path(directory, "Data", bls_occupation_filename), 
+raw_occp <- readxl::read_excel(file.path(data_dir,"raw/bls/occupation.xlsx"), 
                                col_types = c("text","text","text","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric"),
                                 sheet = "Table 1.2")[-1, ]
 # Import distribution of occupations in LI data
-#pos_summary = fread(file.path(directory,"Data/07","soc_li_distribution.csv"))  
+#pos_summary = fread(file.path(data_dir,"intermediate/soc_li_distribution.csv"))  
 
   
 occp_prestige = raw_prestige %>%
@@ -545,7 +549,7 @@ soc_ba = soc_full %>%
   arrange(prestige_imp) %>%
   tidyr::fill(prestige_bin, .direction = "downup")
 
-write.csv(soc_ba,file.path(directory,"Data/07","soc_ba.csv"), row.names=FALSE)
+write.csv(soc_ba,file.path(data_dir,"intermediate/soc_ba.csv"), row.names=FALSE)
 
 
 soc_merge = soc_ba %>%
@@ -553,7 +557,7 @@ soc_merge = soc_ba %>%
   filter(!is.na(socp)) %>%
   distinct(socp, .keep_all = TRUE)
 
-write.csv(soc_ba,file.path(directory,"Data/07","soc_merge.csv"), row.names=FALSE)
+write.csv(soc_ba,file.path(data_dir,"intermediate/soc_merge.csv"), row.names=FALSE)
 
 
 # Subset to educator codes
@@ -592,7 +596,7 @@ microdata = merge(microdata, soc_merge, by = "socp",all.x=TRUE)
 soc_li_dist <- microdata[,.(count = .N),by=.(soc_code_mode)]
 soc_li_dist[,shr_li := (count/sum(count))]
 soc_li_dist[,count := NULL]
-write.csv(soc_li_dist,file.path(directory,"Data/07","soc_li_distribution.csv"), row.names=FALSE)
+write.csv(soc_li_dist,file.path(data_dir,"intermediate/soc_li_distribution.csv"), row.names=FALSE)
 
 ```
 
@@ -669,10 +673,10 @@ microdata[
 ```{r merge shocks}
 
 # Export full sample
-write.csv(microdata,file.path(directory,"Data/06/microdata.csv"), row.names=FALSE)
+write.csv(microdata,file.path(data_dir,"intermediate/microdata.csv"), row.names=FALSE)
 # Export sample to ease testing
 microdata_sample <- microdata[sample(.N,100000)]
-write.csv(microdata_sample,file.path(directory,"Data/06/microdata_sample.csv"), row.names=FALSE)
+write.csv(microdata_sample,file.path(data_dir,"intermediate/microdata_sample__06.csv"), row.names=FALSE)
 
 ```
 
@@ -690,7 +694,7 @@ selected_cols <- c("user_id","transfer", "work_start", "birth", "distance_mi",
 
 microdata <- microdata[, .SD, .SDcols = selected_cols]
 
-write.csv(microdata,file.path(directory,"Data/06/microdata_compressed.csv"), row.names=FALSE)
+write.csv(microdata,file.path(data_dir,"intermediate/microdata_compressed.csv"), row.names=FALSE)
 
 
 ```

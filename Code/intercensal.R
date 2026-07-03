@@ -3,13 +3,16 @@ library(tidycensus)
 library(censusapi)
 library(data.table)
 
+# Requires directory/data_dir/out_dir already in the session -- run the
+# config snippet (or any other in-scope script) first.
+
 census_key <- Sys.getenv("CENSUS_KEY")
 
 # Check to see that the expected key is output in your R console
 get_api_key()
 
 # Obtain CBSA-level employment counts
-cbsa_shock <- read_csv(file.path(directory,"Data/04","cbsa_shock.csv")) %>%
+cbsa_shock <- read_csv(file.path(data_dir,"intermediate/cbsa_shock.csv")) %>%
   dplyr::select(year,cbsa_code,cbsa_actual) %>%
   filter(year %in% c(2000:2019))
 
@@ -115,7 +118,7 @@ age_10 <- raw_age_10 %>%
   summarize(value = sum(value, na.rm=TRUE)) %>%
   dplyr::select(year,GEOID,value)
 
-raw_laus <- read_csv(file.path(directory,"Data/06/bls_laus_data.csv"))
+raw_laus <- read_csv(file.path(data_dir,"raw/bls/bls_laus_data.csv"))
 # Run first four chunks of 06_regressions.Rmd to get the regression object
 
 laus = raw_laus %>%
@@ -144,7 +147,7 @@ intercensal <- rbind(age_00,age_10) %>%
   left_join(laus, by = c("cbsa_code","year")) %>%
   mutate(emp_rate = labor_force / pop)
 
-write.csv(intercensal,file.path(directory,"Data/06/intercensal.csv"),row.names = FALSE)
+write.csv(intercensal,file.path(data_dir,"intermediate/intercensal.csv"),row.names = FALSE)
 
 
 

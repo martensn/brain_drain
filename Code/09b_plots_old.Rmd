@@ -21,8 +21,12 @@ library(data.table)
 #font_import(pattern = "lmroman*")
 #loadfonts()
 
-directory = "/Volumes/lsa-areynoso"
-#directory = "/nfs/turbo/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 
 # Height, width, units, and background for maps
 hei = 3.75
@@ -478,7 +482,7 @@ fraction = fraction_long %>%
               names_prefix = "age_"
               )
 
-write.csv(fraction,file.path(directory,"Data/07/fraction.csv"))
+write.csv(fraction,file.path(data_dir,"intermediate/fraction.csv"))
 ```
 
 ####   Plotting Violin
@@ -972,7 +976,7 @@ differences <- read_csv(file.path(directory,"Data",specification,"local_differen
   mutate(difference_cbsa_alt = shr_returners_cbsa - pred_shr_returners_cbsa,
          difference_state_alt = shr_returners_state - pred_shr_returners_state,
          )
-differences_unfilt <- read_csv(file.path(directory,"Data/06","local_differences_unfilt.csv")) %>%
+differences_unfilt <- read_csv(file.path(data_dir,"intermediate/local_differences_unfilt.csv")) %>%
   mutate(cbsa_code = str_pad(hs_cbsa,width=5,side="left",pad="0")) %>%
   select(-c("hs_cbsa","...1")) %>%
   left_join(cbsa_li_crosswalk %>% select(c("cbsa_code","cbsa_core")) %>% distinct(), by = "cbsa_code") %>%

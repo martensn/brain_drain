@@ -9,8 +9,12 @@ output: html_document
 
 Directories and filenames that change with machine
 ```{r directory, include=FALSE}
-#directory = "/Volumes/lsa-areynoso"
-directory = "/nfs/turbo/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 eckertcbpfilename = "efsy_panel_naics.csv"
 cbp19filename = "cbp19co.txt"
 cbp20filename = "cbp20co.txt"
@@ -40,7 +44,7 @@ share_year = 2020
 
 # Import County Business Patterns data downloaded from:
 # https://fpeckert.me/cbp/ 
-cbp = fread(file.path(directory,"Data/04",eckertcbpfilename),
+cbp = fread(file.path(data_dir,"raw/cbp/efsy_panel_naics.csv"),
             # Ensure state and county codes are characters
             colClasses=list(character=1:3),
             # Omit last column to save memory
@@ -64,22 +68,22 @@ cbp = cbp %>%
 # Import CBP from Census website
 # Starting in 2018, the Census added random noise
 # So none of the cells are missing
-cbp22 = fread(file.path(directory,"Data/04",cbp22filename),
+cbp22 = fread(file.path(data_dir,"raw/cbp/cbp22co.txt"),
               select = cbp_cols,
               # Ensure state and county codes are characters
               colClasses=list(character=1:3)) %>%
   table.express::mutate(year = 2022)
-cbp21 = fread(file.path(directory,"Data/04",cbp21filename),
+cbp21 = fread(file.path(data_dir,"raw/cbp/cbp21co.txt"),
               select = cbp_cols,
               # Ensure state and county codes are characters
               colClasses=list(character=1:3)) %>%
   table.express::mutate(year = 2021)
-cbp20 = fread(file.path(directory,"Data/04",cbp20filename),
+cbp20 = fread(file.path(data_dir,"raw/cbp/cbp20co.txt"),
               select = cbp_cols,
               # Ensure state and county codes are characters
               colClasses=list(character=1:3)) %>%
   table.express::mutate(year = 2020)
-cbp19 = fread(file.path(directory,"Data/04",cbp19filename),
+cbp19 = fread(file.path(data_dir,"raw/cbp/cbp19co.txt"),
               select = cbp_cols,
               # Ensure state and county codes are characters
               colClasses=list(character=1:3)) %>%
@@ -153,7 +157,7 @@ cols <- c("loo_total")
 cbp_nat_chg = cbp_cbsa[, paste("chg", cols, sep = "_") := lapply(.SD, function(x) as.numeric(pct_change(x))), 
                        by = c("naics3", "cbsa_code"), .SDcols = cols][]
 
-write.csv(shifts,file.path(directory,"Data/04","shifts.csv"),row.names = FALSE)
+write.csv(shifts,file.path(data_dir,"intermediate/shifts.csv"),row.names = FALSE)
 
 # Subset for cleaner merge
 shift_cols = c('naics3','year','cbsa_code','cbsa_total','chg_loo_total')
@@ -169,7 +173,7 @@ shifts = cbp_nat_chg[, ..shift_cols]
 w_share <- cbp_cbsa[year == share_year,  # Filter rows where year equals share_year
                    .(cbsa_total = sum(cbsa_total)),  # Calculate shr and select columns
                    by = cbsa_code]
-write.csv(w_share,file.path(directory,"Data/04","w_share.csv"),row.names = FALSE)
+write.csv(w_share,file.path(data_dir,"intermediate/w_share.csv"),row.names = FALSE)
 
 
 # All subsequent years will use the same shares
@@ -177,7 +181,7 @@ write.csv(w_share,file.path(directory,"Data/04","w_share.csv"),row.names = FALSE
 shares <- cbp_cbsa[year == share_year,  # Filter rows where year equals share_year
                    .(shr = cbsa_total / sum(cbsa_total), naics3),  # Calculate shr and select columns
                    by = cbsa_code]
-write.csv(shares,file.path(directory,"Data/04","shares.csv"),row.names = FALSE)
+write.csv(shares,file.path(data_dir,"intermediate/shares.csv"),row.names = FALSE)
 
 
 
@@ -306,7 +310,7 @@ cbsa_shock_ptile = cbsa_shock_ptile[avg_7,
 avg_names = c(paste0("ptile_growth_avg_",c(1,3,5,7)),paste0("ptile_shock_avg_",c(1,3,5,7)))
 setDT(cbsa_shock_ptile)[, (avg_names) := lapply(.SD, nafill, fill = 10), .SDcols = avg_names]
 
-write.csv(cbsa_shock_ptile,file.path(directory,"Data/04","cbsa_shock.csv"),row.names = FALSE)
+write.csv(cbsa_shock_ptile,file.path(data_dir,"intermediate/cbsa_shock.csv"),row.names = FALSE)
 
 rm(cbp_cbsa_actual,cbp_cbsa_proj,cbp_cbsa)
 

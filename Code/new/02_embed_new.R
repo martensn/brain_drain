@@ -15,8 +15,12 @@ use_python("/usr/local/bin/python3", required = TRUE)
 py_config()
 
 set.seed(49)
-directory = "/nfs/turbo/lsa-areynoso"
-directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 edufilename1 = "raw_educ_STATES_AK-MD.csv"
 edufilename1edit = "STATES_AK-MD.csv"
 edufilename2 = "raw_educ_STATES_MI-WY.csv"
@@ -257,8 +261,8 @@ classify_hs_at_threshold <- function(df, threshold) {
 
 
 
-#ed_li1 = read_delim(file.path(directory,"Data/02",edufilename1))
-#ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
+#ed_li1 = read_delim(file.path(data_dir,"raw/revelio/raw_educ_STATES_AK-MD.csv"))
+#ed_li2 = read_delim(file.path(data_dir,"raw/revelio/raw_educ_STATES_MI-WY.csv"))
 
 #ed_li = rbind(ed_li1,ed_li2) %>% select(-c(world_rank)) %>% as.data.table()
 #rm(ed_li2,ed_li1)
@@ -270,23 +274,23 @@ classify_hs_at_threshold <- function(df, threshold) {
 #comb = ed_li[,.(N = sum(N)), by = university_name]
 
 #shrunken = comb[N > 5]
-#fwrite(shrunken,file.path(directory,"Data","hs_col_classification.csv"))
+#fwrite(shrunken,file.path(data_dir,"intermediate/hs_col_classification.csv"))
 
 # Convert all possible aliases to embeddings
-hs_alias = fread(file.path(directory,"Data", "hs_alias.csv"))
+hs_alias = fread(file.path(data_dir,"intermediate/hs_alias.csv"))
 hs_alias[, hs_alias_id := .GRP, by = alias]
-col_alias = fread(file.path(directory,"Data","col_alias.csv"))
+col_alias = fread(file.path(data_dir,"intermediate/col_alias.csv"))
 col_alias[, col_alias_id := .GRP, by = alias]
-cc_alias = fread(file.path(directory,"Data","cc_alias.csv"))
+cc_alias = fread(file.path(data_dir,"intermediate/cc_alias.csv"))
 cc_alias[, col_alias_id := .GRP, by = alias]
 hs_alias_strings = unique(hs_alias[, c("alias"), with = FALSE])
 col_alias_strings = unique(col_alias[, c("alias"), with = FALSE])
 cc_alias_strings = unique(cc_alias[, c("alias"), with = FALSE])
 
-#shrunken = fread(file.path(directory,"Data","hs_col_classification.csv"))
+#shrunken = fread(file.path(data_dir,"intermediate/hs_col_classification.csv"))
 #shrunken[,clean_name := normalize_high_school(university_name)]
 # Avoid accidental matches on high school
-input_col = readRDS(file.path(directory,"Data/input_col.rds"))
+input_col = readRDS(file.path(data_dir,"intermediate/input_col.rds"))
 
 setDT(input_col)
 
@@ -507,10 +511,10 @@ col_exact = col_p2 %>%
 col_ = rbind(col_embed,col_exact)
 remaining_col = unmatched_col[!rsid %in% col_$rsid]
 
-saveRDS(col_,file.path(directory,"Data","col_strings.rds"))
-fwrite(col_,file.path(directory,"Data","col_strings.csv"))
-saveRDS(remaining_col,file.path(directory,"Data","unmatched_col.rds"))
-fwrite(remaining_col,file.path(directory,"Data","unmatched_col.csv"))
+saveRDS(col_,file.path(data_dir,"intermediate/col_strings.rds"))
+fwrite(col_,file.path(data_dir,"intermediate/col_strings.csv"))
+saveRDS(remaining_col,file.path(data_dir,"intermediate/unmatched_col.rds"))
+fwrite(remaining_col,file.path(data_dir,"intermediate/unmatched_col.csv"))
 
 # Try matching on community college names
 unmatched_cc <- unique(
@@ -581,10 +585,10 @@ cc_exact = cc_p2 %>%
 cc_ = rbind(cc_embed,cc_exact)
 remaining_cc = unmatched_cc[!rsid %in% cc_$rsid]
 
-saveRDS(cc_,file.path(directory,"Data","cc_strings.rds"))
-fwrite(cc_,file.path(directory,"Data","cc_strings.csv"))
-saveRDS(remaining_cc,file.path(directory,"Data","unmatched_cc.rds"))
-fwrite(remaining_cc,file.path(directory,"Data","unmatched_cc.csv"))
+saveRDS(cc_,file.path(data_dir,"intermediate/cc_strings.rds"))
+fwrite(cc_,file.path(data_dir,"intermediate/cc_strings.csv"))
+saveRDS(remaining_cc,file.path(data_dir,"intermediate/unmatched_cc.rds"))
+fwrite(remaining_cc,file.path(data_dir,"intermediate/unmatched_cc.csv"))
 
 # Remember to de-duplicate hs_p0, col_p0, and cc_p0 before running through embeddings
 hs_raw_input = pull(unmatched_hs, clean_name)
@@ -644,5 +648,5 @@ hs_exact = hs_p2 %>%
 hs_ = rbind(hs_embed, hs_exact)
 remaining_hs = unmatched_hs[!rsid %in% hs_$rsid]
 
-saveRDS(hs_,file.path(directory,"Data","hs_strings.rds"))
-fwrite(hs_,file.path(directory,"Data","hs_strings.csv"))
+saveRDS(hs_,file.path(data_dir,"intermediate/hs_strings.rds"))
+fwrite(hs_,file.path(data_dir,"intermediate/hs_strings.csv"))

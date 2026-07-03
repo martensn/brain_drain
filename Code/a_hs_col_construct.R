@@ -15,8 +15,12 @@ library(tigris)
 options(tigris_use_cache = TRUE)
 
 set.seed(49)
-#directory = "/nfs/turbo/lsa-areynoso"
-directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 
 #public_school_filename = "ELSI_csv_export_6390435784786712152626.csv"
 private_school_filename = "ELSI_csv_export_639044261135902865330.csv"
@@ -245,9 +249,9 @@ public = raw_public_dir %>%
 
 
 # Private school data isn't available via API
-raw_private = fread(file.path(directory,"Data",private_school_filename),
+raw_private = fread(file.path(data_dir,"raw/nces/ELSI_csv_export_639044261135902865330.csv"),
                    skip=2, colClasses = "character")
-raw_private_address = fread(file.path(directory,"Data",private_school_address_filename),
+raw_private_address = fread(file.path(data_dir,"raw/nces/ELSI_csv_export_6390455368533882136542.csv"),
                     skip=2, colClasses = "character")
 
 # Clean private school address data
@@ -778,7 +782,7 @@ system_branch_aliases <- colleges %>%
   mutate(system_indicator = 1L)
 
 # Sub-institution unit names
-raw_subunit <- read_csv(file.path(directory,"Data/be_sch_full.csv")) 
+raw_subunit <- read_csv(file.path(data_dir,"intermediate/be_sch_full.csv")) 
 
 # Count unique 
 subunit_counts <- raw_subunit %>% 
@@ -1052,12 +1056,12 @@ hs_alias <- hs_aliases_long %>%
   ungroup() %>%
   select(hs_id, alias, alias_weight, hs_name)
 
-saveRDS(hs_alias,file.path(directory,"Data/hs_alias.rds"))
-saveRDS(alias,file.path(directory,"Data/col_alias.rds"))
-write.csv(hs_alias,file.path(directory,"Data/hs_alias.csv"),row.names=FALSE)
-write.csv(alias,file.path(directory,"Data/col_alias.csv"),row.names=FALSE)
-saveRDS(schools,file.path(directory,"Data/schools.rds"))
-saveRDS(colleges,file.path(directory,"Data/colleges.rds"))
+saveRDS(hs_alias,file.path(data_dir,"intermediate/hs_alias.rds"))
+saveRDS(alias,file.path(data_dir,"intermediate/col_alias.rds"))
+write.csv(hs_alias,file.path(data_dir,"intermediate/hs_alias.csv"),row.names=FALSE)
+write.csv(alias,file.path(data_dir,"intermediate/col_alias.csv"),row.names=FALSE)
+saveRDS(schools,file.path(data_dir,"intermediate/schools.rds"))
+saveRDS(colleges,file.path(data_dir,"intermediate/colleges.rds"))
 
 instate = raw_instate %>%
   filter(unitid %in% colleges$unitid) 

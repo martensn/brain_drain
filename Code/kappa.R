@@ -3,8 +3,12 @@ library(fixest)
 library(tidyverse)
 library(data.table)
 
-#directory = "/Volumes/lsa-areynoso"
-directory = "/nfs/turbo/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 
 # Run beginning of step 6 first
 
@@ -14,7 +18,7 @@ problems <- regression[return_to_both == 1 & col_in_not_hs_cbsa == 1]
 
 # Import residual measurements of places with amenities
 # These are places that attract more migrants than predicted by their labor demand
-differences_unfilt <- read_csv(file.path(directory,"Data/06","local_differences_unfilt.csv")) %>%
+differences_unfilt <- read_csv(file.path(data_dir,"intermediate/local_differences_unfilt.csv")) %>%
   mutate(cbsa_code = str_pad(hs_cbsa,width=5,side="left",pad="0")) %>%
   select(-c("hs_cbsa","...1")) %>%
   left_join(cbsa_li_crosswalk %>% select(c("cbsa_code","cbsa_core")) %>% distinct(), by = "cbsa_code") %>%

@@ -4,7 +4,7 @@ library(stringr)
 library(purrr)
 library(stringdist)
 
-col_alias <- readRDS(file.path(directory,"Data","col_alias.rds"))
+col_alias <- readRDS(file.path(data_dir,"intermediate/col_alias.rds"))
 
 us_states <- tolower(c(
   "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
@@ -102,4 +102,4 @@ be_sch = rbind(business_schools,engineering_schools) %>%
               filter(system_indicator == 0) %>%
               select(unitid,opeid,alias), 
             by = c("parent_university"="alias"))
-fwrite(be_sch,file.path(directory,"Data/be_sch.csv"))
+fwrite(be_sch,file.path(data_dir,"intermediate/be_sch.csv"))

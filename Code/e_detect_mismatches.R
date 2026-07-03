@@ -4,16 +4,20 @@ library(table.express)
 library(data.table)
 
 set.seed(49)
-#directory = "/nfs/turbo/lsa-areynoso"
-directory = "/Volumes/lsa-areynoso"
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
 edufilename1 = "raw_educ_STATES_AK-MD.csv"
 edufilename1edit = "STATES_AK-MD.csv"
 edufilename2 = "raw_educ_STATES_MI-WY.csv"
 edutfilename2edit = "STATES_MI-WY.csv"
 
 
-ed_li1 = read_delim(file.path(directory,"Data/02",edufilename1))
-ed_li2 = read_delim(file.path(directory,"Data/02",edufilename2))
+ed_li1 = read_delim(file.path(data_dir,"raw/revelio/raw_educ_STATES_AK-MD.csv"))
+ed_li2 = read_delim(file.path(data_dir,"raw/revelio/raw_educ_STATES_MI-WY.csv"))
 
 ed_li = rbind(ed_li1,ed_li2) %>% select(-c(world_rank)) %>% as.data.table()
 rm(ed_li2,ed_li1)
@@ -50,7 +54,7 @@ mn_df = data.frame(hs_id = NA,
 ed_m = ed_li[university_name %in% mismatched_names]
 ed_mhs = ed_li[user_id %in% ed_m$user_id]
 
-col_strings = readRDS(file.path(directory,"Data","col_strings.rds")) %>%
+col_strings = readRDS(file.path(data_dir,"intermediate/col_strings.rds")) %>%
   select(unitid,opeid,parent_institution,university_name,ambiguous_name,system_indicator,method) %>%
   mutate(hs_id = NA, 
          ed_type = "college",
@@ -59,7 +63,7 @@ col_strings = readRDS(file.path(directory,"Data","col_strings.rds")) %>%
   distinct() %>%
   rbind(mn_df)
 
-hs_strings = readRDS(file.path(directory,"Data","hs_strings.rds")) %>%
+hs_strings = readRDS(file.path(data_dir,"intermediate/hs_strings.rds")) %>%
   select(hs_id,university_name,ambiguous_name,method) %>%
   mutate(unitid = NA, 
          opeid = NA, 
@@ -133,9 +137,9 @@ col_keep = col_dt[, .(user_id, unitid, opeid, parent_institution,
 
 
 
-schools = readRDS(file.path(directory,"Data/schools.rds")) %>%
+schools = readRDS(file.path(data_dir,"intermediate/schools.rds")) %>%
   left_join(unified_cbsa_name, by=c("hs_fips"="GeoFIPS")) 
-colleges = readRDS(file.path(directory,"Data/colleges.rds"))
+colleges = readRDS(file.path(data_dir,"intermediate/colleges.rds"))
 setDT(colleges)
 setDT(schools)
 

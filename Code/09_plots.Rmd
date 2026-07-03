@@ -1021,7 +1021,10 @@ Conzelmann, Johnathan, Hemelt, Steven, Hershbein, Brad, Martin, Shawn, Simon, An
 ```{r}
 institutional_characteristics = read_csv(file.path(directory,"Data/06","institutional_characteristics.csv"))
 
-# Calculate degrees awarded between 2010 and 2018                 
+# raw_deg_award is an RDS file (no .rds extension) written by new/00_alias_generation.R
+raw_deg_award = readRDS(file.path(directory,"Data","raw_deg_award"))
+
+# Calculate degrees awarded between 2010 and 2018
 gotg_degree = raw_deg_award %>%
   filter(year <= 2018 & year >= 2010) %>%
   filter(cipcode == 99) %>%

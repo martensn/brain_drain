@@ -4,6 +4,7 @@ library(stringr)
 library(purrr)
 library(stringdist)
 
+col_alias <- readRDS(file.path(directory,"Data","col_alias.rds"))
 
 us_states <- tolower(c(
   "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",

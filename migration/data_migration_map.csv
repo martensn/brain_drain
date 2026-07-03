@@ -6,29 +6,29 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/01/chetty_college.xlsx,/p/BRAIN_DRAIN/Data/raw/chetty_oi/chetty_college.xlsx,941152,raw/chetty_oi,high,Opportunity Insights / Chetty mobility data
 /p/BRAIN_DRAIN/Data/01/counties.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/counties.xlsx,23996269,raw/census_geo,high,Census/OMB geography crosswalk
 /p/BRAIN_DRAIN/Data/01/Crosswalks/.DS_Store,(DELETE),6148,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2000.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2000.xlsx,2517621,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2001.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2001.xlsx,2498218,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2002.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2002.xlsx,2311443,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2003.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2003.xlsx,2254474,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2004.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2004.xlsx,2231943,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2005.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2005.xlsx,2162895,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2006.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2006.xlsx,2233281,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2007.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2007.xlsx,2334699,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2008.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2008.xlsx,2432644,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2009.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2009.xlsx,2587270,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2010.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2010.xlsx,2699373,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2011.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2011.xlsx,2785145,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2012.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2012.xlsx,2823785,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2013.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2013.xlsx,2795397,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2014.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2014.xlsx,2799469,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2015.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2015.xlsx,2774247,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2016.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2016.xlsx,2754363,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2017.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2017.xlsx,2700642,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2018.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2018.xlsx,2639180,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2019.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2019.xlsx,2588702,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2020.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2020.xlsx,2530819,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2021.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2021.xlsx,2517022,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
-/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2022_preliminary.xlsx,/p/BRAIN_DRAIN/Data/raw/census_geo/CW2022_preliminary.xlsx,2478965,raw/census_geo,low,OPEID/UNITID crosswalk by year -- confirm publisher before finalizing
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2000.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2000.xlsx,2517621,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2001.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2001.xlsx,2498218,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2002.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2002.xlsx,2311443,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2003.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2003.xlsx,2254474,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2004.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2004.xlsx,2231943,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2005.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2005.xlsx,2162895,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2006.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2006.xlsx,2233281,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2007.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2007.xlsx,2334699,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2008.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2008.xlsx,2432644,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2009.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2009.xlsx,2587270,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2010.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2010.xlsx,2699373,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2011.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2011.xlsx,2785145,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2012.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2012.xlsx,2823785,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2013.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2013.xlsx,2795397,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2014.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2014.xlsx,2799469,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2015.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2015.xlsx,2774247,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2016.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2016.xlsx,2754363,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2017.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2017.xlsx,2700642,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2018.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2018.xlsx,2639180,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2019.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2019.xlsx,2588702,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2020.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2020.xlsx,2530819,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2021.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2021.xlsx,2517022,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
+/p/BRAIN_DRAIN/Data/01/Crosswalks/CW2022_preliminary.xlsx,/p/BRAIN_DRAIN/Data/raw/ipeds/CW2022_preliminary.xlsx,2478965,raw/ipeds,high,"IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"
 /p/BRAIN_DRAIN/Data/01/Crosswalks/mrc_table11.csv,/p/BRAIN_DRAIN/Data/raw/chetty_oi/mrc_table11.csv,433012,raw/chetty_oi,high,Mobility Report Card table
 /p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2000.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
 /p/BRAIN_DRAIN/Data/01/Crosswalks/~$CW2021.xlsx,(DELETE),165,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
@@ -218,7 +218,7 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/07/no_prestige_soc.csv,/p/BRAIN_DRAIN/Data/intermediate/no_prestige_soc.csv,818,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/07/numerator.csv,/p/BRAIN_DRAIN/Data/intermediate/numerator.csv,582523,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/07/OccupationalPrestigeRatings.csv,/p/BRAIN_DRAIN/Data/raw/bls/OccupationalPrestigeRatings.csv,270539,raw/bls,medium,occupational prestige scale (raw source table)
-/p/BRAIN_DRAIN/Data/07/pf.xlsx,/p/BRAIN_DRAIN/Data/intermediate/pf.xlsx,13638,intermediate,low,unclear meaning ('pf') -- confirm before finalizing
+/p/BRAIN_DRAIN/Data/07/pf.xlsx,/p/BRAIN_DRAIN/Data/raw/other/pf.xlsx,13638,raw/other,high,"user-created list of public flagship institutions -- a manually authored reference input, not a script-derived intermediate (confirmed by user)"
 /p/BRAIN_DRAIN/Data/07/raw_microdata.csv,/p/BRAIN_DRAIN/Data/raw/revelio/raw_microdata__07.csv,2308154293,raw/revelio,COLLISION-RESOLVED,"Revelio raw microdata sample || was a basename collision with 1 other file(s); disambiguated with a __07 stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
 /p/BRAIN_DRAIN/Data/07/return_by_year.csv,/p/BRAIN_DRAIN/Data/intermediate/return_by_year.csv,41560,intermediate,medium,per-stage pipeline intermediate
 /p/BRAIN_DRAIN/Data/07/return_levels_cbsa.csv,/p/BRAIN_DRAIN/Data/intermediate/return_levels_cbsa.csv,363,intermediate,medium,per-stage pipeline intermediate
@@ -238,9 +238,9 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/barrons01.pdf,/p/BRAIN_DRAIN/Data/_review/needs_inspection/barrons01.pdf,0,_review/needs_inspection,high,zero-byte file
 /p/BRAIN_DRAIN/Data/barrons_mod_endowment.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/barrons_mod_endowment.xlsx,0,_review/needs_inspection,high,zero-byte file
 /p/BRAIN_DRAIN/Data/barrons_raw.xlsx,/p/BRAIN_DRAIN/Data/_review/needs_inspection/barrons_raw.xlsx,0,_review/needs_inspection,high,zero-byte file
-/p/BRAIN_DRAIN/Data/be_sch.csv,/p/BRAIN_DRAIN/Data/intermediate/be_sch.csv,64459,intermediate,low,unclear exact meaning ('be_sch') -- confirm before finalizing
-/p/BRAIN_DRAIN/Data/be_sch_full.csv,/p/BRAIN_DRAIN/Data/intermediate/be_sch_full.csv,103142,intermediate,low,unclear exact meaning ('be_sch') -- confirm before finalizing
-/p/BRAIN_DRAIN/Data/be_sch_grad.csv,/p/BRAIN_DRAIN/Data/intermediate/be_sch_grad.csv,46947,intermediate,low,unclear exact meaning ('be_sch') -- confirm before finalizing
+/p/BRAIN_DRAIN/Data/be_sch.csv,/p/BRAIN_DRAIN/Data/intermediate/be_sch.csv,64459,intermediate,high,"user-created alias/crosswalk for academic subunits, supplementing raw Revelio data (confirmed by user)"
+/p/BRAIN_DRAIN/Data/be_sch_full.csv,/p/BRAIN_DRAIN/Data/intermediate/be_sch_full.csv,103142,intermediate,high,"user-created alias/crosswalk for academic subunits, supplementing raw Revelio data (confirmed by user)"
+/p/BRAIN_DRAIN/Data/be_sch_grad.csv,/p/BRAIN_DRAIN/Data/intermediate/be_sch_grad.csv,46947,intermediate,high,"user-created alias/crosswalk for academic subunits, supplementing raw Revelio data (confirmed by user)"
 /p/BRAIN_DRAIN/Data/both_final.rds,/p/BRAIN_DRAIN/Data/intermediate/both_final.rds,124896206,intermediate,high,"merged/matched panel, model input"
 /p/BRAIN_DRAIN/Data/both_orig.rds,/p/BRAIN_DRAIN/Data/intermediate/both_orig.rds,90543244,intermediate,high,"merged/matched panel, model input"
 /p/BRAIN_DRAIN/Data/cbsa_2020.csv,/p/BRAIN_DRAIN/Data/raw/census_geo/cbsa_2020.csv,245365,raw/census_geo,high,Census/OMB geography crosswalk
@@ -365,7 +365,7 @@ old_path,new_path,size,bucket,confidence,note
 /p/BRAIN_DRAIN/Data/match_problems.xlsx,/p/BRAIN_DRAIN/Data/intermediate/match_problems.xlsx,55420,intermediate,high,entity-resolution / name-matching pipeline output
 /p/BRAIN_DRAIN/Data/microdata_sample.csv,/p/BRAIN_DRAIN/Data/intermediate/microdata_sample__top.csv,148025,intermediate,COLLISION-RESOLVED,"merged/matched panel, model input || was a basename collision with 2 other file(s); disambiguated with a __top stage suffix pending your review -- sizes differ substantially across the group, these are NOT simple duplicates"
 /p/BRAIN_DRAIN/Data/nces_public_school_file.zip.download/nces_public_school_file.zip.sb-652df04a-9Tybbh/nces_public_school_file/ELSI_csv_export_6390435443173860515321.csv,(DELETE),57382082,_review/junk,high,"OS/Office/download cruft, staged for deletion in Phase 7 -- not moved anywhere"
-/p/BRAIN_DRAIN/Data/occupation.xlsx,/p/BRAIN_DRAIN/Data/raw/bls/occupation.xlsx,407963,raw/bls,low,likely BLS occupation classification -- confirm
+/p/BRAIN_DRAIN/Data/occupation.xlsx,/p/BRAIN_DRAIN/Data/raw/bls/occupation.xlsx,407963,raw/bls,high,BLS occupation classification file (confirmed by user)
 /p/BRAIN_DRAIN/Data/occupational_prestige.csv,/p/BRAIN_DRAIN/Data/intermediate/occupational_prestige.csv,226997,intermediate,medium,merge of raw prestige scale + BLS employment + Revelio shares
 /p/BRAIN_DRAIN/Data/Paper/chetty_sel_dist_stats.xlsx,/p/BRAIN_DRAIN/Data/results/chetty_sel_dist_stats.xlsx,10727,results,medium,"paper-ready summary stat derived from Chetty data, not raw itself"
 /p/BRAIN_DRAIN/Data/persistent_match_issues.xlsx,/p/BRAIN_DRAIN/Data/intermediate/persistent_match_issues.xlsx,27985,intermediate,high,entity-resolution / name-matching pipeline output

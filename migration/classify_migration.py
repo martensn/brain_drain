@@ -41,7 +41,7 @@ BASENAME_RULES = [
 
     (r"CBSACrosswalk\.csv|msa_2020\.(csv|xlsx)|unified_cbsa\.csv|counties\.xlsx|ct_counties\.xlsx|zipcodes\.csv|cbsa_2020\.csv",
      "raw/census_geo", "high", "Census/OMB geography crosswalk"),
-    (r"CW\d{4}.*\.xlsx", "raw/census_geo", "low", "OPEID/UNITID crosswalk by year -- confirm publisher before finalizing"),
+    (r"CW\d{4}.*\.xlsx", "raw/ipeds", "high", "IPEDS master crosswalk linking subunits to institutional identifiers, confirmed by user"),
 
     (r"cbp\d{2}co\.txt", "raw/cbp", "high", "Census County Business Patterns bulk file"),
     (r"efsy_panel_naics\.csv", "raw/cbp", "high", "external EFSY imputed CBP panel"),
@@ -100,9 +100,11 @@ BASENAME_RULES = [
 
     (r"outsample_values|restrict_values", "_review/needs_inspection", "high", "extensionless file, content not yet verified"),
 
-    (r"be_sch\.csv|be_sch_full\.csv|be_sch_grad\.csv", "intermediate", "low", "unclear exact meaning ('be_sch') -- confirm before finalizing"),
-    (r"occupation\.xlsx", "raw/bls", "low", "likely BLS occupation classification -- confirm"),
-    (r"pf\.xlsx", "intermediate", "low", "unclear meaning ('pf') -- confirm before finalizing"),
+    (r"be_sch\.csv|be_sch_full\.csv|be_sch_grad\.csv", "intermediate", "high",
+     "user-created alias/crosswalk for academic subunits, supplementing raw Revelio data (confirmed by user)"),
+    (r"occupation\.xlsx", "raw/bls", "high", "BLS occupation classification file (confirmed by user)"),
+    (r"pf\.xlsx", "raw/other", "high",
+     "user-created list of public flagship institutions -- a manually authored reference input, not a script-derived intermediate (confirmed by user)"),
     (r"finance_raw\.csv", "raw/ipeds", "low", "appears reshaped from IPEDS finance survey despite '_raw' name -- confirm"),
     (r"ipeds_finance_troubleshoot\.xlsx", "raw/ipeds", "low", "likely IPEDS finance troubleshooting workbook -- confirm"),
 ]

@@ -1,0 +1,90 @@
+OK_TEXT	intermediate/CollegeMarketShares_state.csv	10207581 bytes, 135201 lines
+OK_TEXT	intermediate/all_deg.csv	28403166 bytes, 1326633 lines
+OK_TEXT	intermediate/be_sch.csv	64459 bytes, 665 lines
+OK_TEXT	intermediate/be_sch_full.csv	103142 bytes, 1098 lines
+PENDING_RDS	intermediate/both_demo.rds	152015510 bytes
+PENDING_RDS	intermediate/both_final.rds	124896206 bytes
+PENDING_RDS	intermediate/both_orig.rds	90543244 bytes
+OK_TEXT	intermediate/business_deg.csv	1043217 bytes, 68025 lines
+OK_TEXT	intermediate/cbsa_shock.csv	7427833 bytes, 19827 lines
+PENDING_RDS	intermediate/cc.rds	284967 bytes
+OK_TEXT	intermediate/cc_alias.csv	948689 bytes, 8424 lines
+PENDING_RDS	intermediate/cc_alias.rds	238698 bytes
+PENDING_RDS	intermediate/cc_rsid_crosswalk.rds	94508 bytes
+OK_TEXT	intermediate/cc_strings.csv	257529 bytes, 1543 lines
+PENDING_RDS	intermediate/cc_strings.rds	75647 bytes
+OK_TEXT	intermediate/cohort_return_col_10.csv	1041 bytes, 42 lines
+OK_TEXT	intermediate/cohort_return_hs_10.csv	1053 bytes, 42 lines
+OK_TEXT	intermediate/cohort_x_grad.csv	95170 bytes, 2994 lines
+OK_TEXT	intermediate/col_alias.csv	1874599 bytes, 16640 lines
+PENDING_RDS	intermediate/col_alias.rds	348495 bytes
+PENDING_RDS	intermediate/col_alias_resp.rds	156432643 bytes
+OK_TEXT	intermediate/col_ct.csv	734635 bytes, 2575 lines
+PENDING_RDS	intermediate/col_ct.rds	271062 bytes
+PENDING_RDS	intermediate/col_embed.rds	121128 bytes
+OK_TEXT	intermediate/col_gt.csv	20526 bytes, 500 lines
+PENDING_RDS	intermediate/col_rsid_crosswalk.rds	174849 bytes
+OK_TEXT	intermediate/col_strings.csv	604944 bytes, 3623 lines
+PENDING_RDS	intermediate/col_strings.rds	164166 bytes
+OK_TEXT	intermediate/col_wo_rsid.csv	43117 bytes, 604 lines
+PENDING_RDS	intermediate/colleges.rds	323383 bytes
+OK_TEXT	intermediate/dupe_match_rsid.csv	174712 bytes, 860 lines
+PENDING_RDS	intermediate/ed_wide.rds	121029697 bytes
+OK_ZIP	intermediate/education__top.xlsx	119908 bytes, valid archive
+OK_TEXT	intermediate/engineering_deg.csv	301888 bytes, 19881 lines
+OK_TEXT	intermediate/fraction.csv	44575 bytes, 436 lines
+OK_TEXT	intermediate/hs_alias.csv	9556580 bytes, 132310 lines
+PENDING_RDS	intermediate/hs_alias.rds	1451740 bytes
+PENDING_RDS	intermediate/hs_alias_resp.rds	273498112 bytes
+OK_TEXT	intermediate/hs_col_classification.csv	14653586 bytes, 387630 lines
+PENDING_RDS	intermediate/hs_embed.rds	48520 bytes
+OK_TEXT	intermediate/hs_gt.csv	14270 bytes, 300 lines
+PENDING_RDS	intermediate/hs_rsid_crosswalk.rds	500468 bytes
+OK_TEXT	intermediate/hs_strings.csv	28051801 bytes, 183122 lines
+PENDING_RDS	intermediate/hs_strings.rds	4817514 bytes
+PENDING_RDS	intermediate/input_col.rds	21486726 bytes
+PENDING_RDS	intermediate/input_col_m.rds	340042363 bytes
+OK_TEXT	intermediate/inst_counts.csv	609849 bytes, 4937 lines
+OK_TEXT	intermediate/institutional_characteristics.csv	569517 bytes, 2029 lines
+OK_TEXT	intermediate/intercensal.csv	422700 bytes, 7678 lines
+PENDING_RDS	intermediate/ipeds_deg_awarded.rds	224033 bytes
+OK_TEXT	intermediate/local_differences_unfilt.csv	49953 bytes, 430 lines
+PENDING_RDS	intermediate/matched_col.rds	98388 bytes
+PENDING_RDS	intermediate/matched_hs.rds	632072 bytes
+MISSING	intermediate/microdata.csv	
+MISSING	intermediate/microdata_compressed.csv	
+OK_TEXT	intermediate/microdata_sample__06.csv	171259082 bytes, 100001 lines
+OK_TEXT	intermediate/misfits_3.csv	3673361 bytes, 93551 lines
+OK_TEXT	intermediate/misfits_correction.csv	5458033 bytes, 153370 lines
+OK_TEXT	intermediate/msa_string_cleaning.csv	161 bytes, 6 lines
+OK_TEXT	intermediate/numerator.csv	582523 bytes, 17061 lines
+OK_TEXT	intermediate/occupational_prestige.csv	226997 bytes, 833 lines
+OK_OTHER	intermediate/raw_deg_award	1670028 bytes, extension .intermediate/raw_deg_award (existence only)
+OK_TEXT	intermediate/raw_unmatched_strings.csv	12679696 bytes, 325709 lines
+PENDING_RDS	intermediate/raw_unmatched_strings.rds	4100702 bytes
+OK_TEXT	intermediate/return_by_year.csv	41560 bytes, 817 lines
+OK_TEXT	intermediate/return_occp.csv	40444957 bytes, 626689 lines
+PENDING_RDS	intermediate/rsid_id_dup_crosswalk.rds	324820 bytes
+OK_TEXT	intermediate/rsid_wo_col.csv	373678 bytes, 7910 lines
+PENDING_RDS	intermediate/schools.rds	1959998 bytes
+OK_TEXT	intermediate/shares.csv	1006407 bytes, 29924 lines
+OK_TEXT	intermediate/shifts.csv	83196309 bytes, 1772205 lines
+OK_TEXT	intermediate/soc_ba.csv	189227 bytes, 845 lines
+OK_TEXT	intermediate/soc_li_distribution.csv	15368 bytes, 393 lines
+OK_TEXT	intermediate/soc_merge.csv	189227 bytes, 845 lines
+PENDING_RDS	intermediate/state_fips.rds	596 bytes
+OK_TEXT	intermediate/total_deg.csv	1319373 bytes, 83751 lines
+OK_TEXT	intermediate/unmatched_cc.csv	269731 bytes, 3119 lines
+PENDING_RDS	intermediate/unmatched_cc.rds	93899 bytes
+OK_TEXT	intermediate/unmatched_col.csv	267148 bytes, 3085 lines
+PENDING_RDS	intermediate/unmatched_col.rds	92672 bytes
+PENDING_RDS	intermediate/unmatched_hs.rds	345559 bytes
+OK_TEXT	intermediate/uwdbhdlkbnzhaqxd.csv	69313728101 bytes, 592848049 lines
+OK_TEXT	intermediate/w_share.csv	6297 bytes, 432 lines
+OK_TEXT	raw/bls/OccupationalPrestigeRatings.csv	270539 bytes, 1204 lines
+OK_TEXT	raw/bls/bls_laus_data.csv	953165 bytes, 6292 lines
+OK_ZIP	raw/bls/occupation.xlsx	407963 bytes, valid archive
+OK_TEXT	raw/cbp/cbp19co.txt	116865881 bytes, 1085473 lines
+OK_TEXT	raw/cbp/cbp20co.txt	104653260 bytes, 1082435 lines
+OK_TEXT	raw/cbp/cbp21co.txt	105433378 bytes, 1090165 lines
+OK_TEXT	raw/cbp/cbp22co.txt	106543178 bytes, 1100805 lines

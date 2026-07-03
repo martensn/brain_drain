@@ -3,9 +3,15 @@ import os
 import re
 from collections import defaultdict
 
-DATA_ROOT = "/p/BRAIN_DRAIN/Data"
+DATA_ROOT = "P:/BRAIN_DRAIN/Data"
 MANIFEST = "D:/Users/martensn/BRAIN_DRAIN/migration/data_manifest_raw.tsv"
 OUT = "D:/Users/martensn/BRAIN_DRAIN/migration/data_migration_map.csv"
+
+def to_windows_path(p):
+    # data_manifest_raw.tsv was built via git-bash `find`, so it has
+    # /p/BRAIN_DRAIN/... paths -- python.exe is a native Windows binary
+    # and needs P:/BRAIN_DRAIN/... instead.
+    return p.replace("/p/BRAIN_DRAIN", "P:/BRAIN_DRAIN", 1) if p.startswith("/p/BRAIN_DRAIN") else p
 
 # matched against basename only (folder location doesn't matter)
 JUNK_BASENAME_PATTERNS = [
@@ -142,8 +148,9 @@ def is_junk(relpath, basename):
 rows = []
 with open(MANIFEST, encoding="utf-8") as f:
     reader = csv.reader(f, delimiter="\t")
-    for size_s, mtime, fullpath in reader:
+    for size_s, mtime, fullpath_raw in reader:
         size = int(size_s)
+        fullpath = to_windows_path(fullpath_raw)
         relpath = os.path.relpath(fullpath, DATA_ROOT).replace("\\", "/")
         basename = os.path.basename(relpath)
 

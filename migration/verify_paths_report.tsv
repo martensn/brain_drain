@@ -110,3 +110,13 @@ OK_TEXT	raw/nces/Public.csv	42879198 bytes, 100723 lines
 OK_ZIP	raw/nces/tabn318.10.xlsx	17609 bytes, valid archive
 OK_ZIP	raw/rankings_membership/AAU__06.xlsx	11794 bytes, valid archive
 OK_TEXT	raw/revelio/2026.04.09_education.csv	45919259557 bytes, 562190251 lines
+OK_TEXT	raw/revelio/cleaned_pos_educ_STATES_AK-MD.csv	53256452200 bytes, 169136002 lines
+OK_TEXT	raw/revelio/cleaned_pos_educ_STATES_MI-WY.csv	62142870080 bytes, 196733937 lines
+OK_TEXT	raw/revelio/raw_educ_STATES_AK-MD.csv	5363637185 bytes, 61507854 lines
+OK_TEXT	raw/revelio/raw_educ_STATES_MI-WY.csv	6161357211 bytes, 70880889 lines
+OK_TEXT	raw/revelio/raw_microdata__05.csv	2886355924 bytes, 3380996 lines
+OK_TEXT	results/actual_cohort.csv	135298 bytes, 431 lines
+OK_TEXT	results/regression_data__06.csv	3047395669 bytes, 3097277 lines
+OK_TEXT	results/regression_data__top.csv	5499040 bytes, 25437 lines
+OK_TEXT	results/summary_demographics.csv	2215 bytes, 54 lines
+PENDING_RDS	results/summary_demographics.rds	1042 bytes

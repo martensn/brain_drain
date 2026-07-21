@@ -2,10 +2,11 @@ library(tidyr)
 library(tidyverse)
 library(table.express)
 library(data.table)
-
-set.seed(49)
 library(dotenv)
 library(here)
+
+set.seed(49)
+
 load_dot_env(here::here(".env"))
 directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
 data_dir  <- file.path(directory, "Data")
@@ -31,7 +32,7 @@ setDT(ed_li)
 ed_li_col = ed_li[,.N, by = .(university_name,university_country)]
 
 col_strings = readRDS(file.path(data_dir,"intermediate/col_strings.rds")) %>%
-  select(unitid,opeid,parent_institution,university_name,ambiguous_name,system_indicator,method) %>%
+  select(unitid,opeid,parent_institution,university_name,ambiguous_name,system_indicator,string_method) %>%
   mutate(hs_id = NA, 
          ed_type = "college",
          unitid = if_else(ambiguous_name == 0,unitid,NA),
@@ -39,7 +40,7 @@ col_strings = readRDS(file.path(data_dir,"intermediate/col_strings.rds")) %>%
   distinct()
 
 hs_strings = readRDS(file.path(data_dir,"intermediate/hs_strings.rds")) %>%
-  select(hs_id,university_name,ambiguous_name,method) %>%
+  select(hs_id,university_name,ambiguous_name,string_method=method) %>%
   mutate(unitid = NA, 
          opeid = NA, 
          parent_institution = NA, 
@@ -52,7 +53,7 @@ setDT(ed_strings)
 
 raw_strings = ed_li[,.N,by = .(university_name)]
 string_comp = ed_strings[raw_strings, on = .(university_name)]
-string_ = string_comp[is.na(method) & N > 5][order(-N)]
+string_ = string_comp[is.na(string_method) & N > 5][order(-N)]
 fwrite(string_,file.path(data_dir,"intermediate/raw_unmatched_strings.csv"))
 saveRDS(string_,file.path(data_dir,"intermediate/raw_unmatched_strings.rds"))
 
@@ -72,9 +73,9 @@ users_with_both = length(both)
 ed_id = ed_id[user_id %in% both]
 
 ed_id[
-  , educ_startdate := as.IDate(educ_startdate)
+  , educ_startdate := as.IDate(educ_startdate, format="%Y-%m-%d")
 ][
-  , educ_enddate := as.IDate(educ_enddate)
+  , educ_enddate := as.IDate(educ_enddate, format="%Y-%m-%d")
 ]
 # Identify the latest high school and college experience
 # Eventually this won't be missing for anyone but I need to dig up exactly

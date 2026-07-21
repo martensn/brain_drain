@@ -15,10 +15,6 @@ knitr::opts_chunk$set(echo = TRUE)
 library(readxl)
 library(tidyverse)
 library(data.table)
-```
-
-Directories and filenames that change with machine
-```{r directory, include=FALSE}
 library(dotenv)
 library(here)
 load_dot_env(here::here(".env"))

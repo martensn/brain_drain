@@ -60,6 +60,26 @@ cpi_base_year <- 2020
 
 ## ----pull---------------------------------------------------------------------
 
+# Disk cache for the slow/live get_education_data() pulls below. The
+# existing raw_deg_award guard (if(!exists("raw_deg_award"))) only helps
+# within a single long-lived interactive session -- it's always a cache
+# miss in a fresh Rscript run, which is now how this script can be invoked
+# (Code/scripts/run_pipeline.R). Caching to disk instead means a re-run
+# (e.g. after fixing an unrelated bug downstream, or retrying past a
+# transient API error like Urban Institute's "Query page not found") skips
+# straight past these pulls instead of re-fetching everything from scratch.
+# Delete the relevant .rds under intermediate/api_cache/ to force a refresh.
+cached_pull <- function(cache_name, fetch_expr) {
+  cache_path <- file.path(data_dir, "intermediate", "api_cache", paste0(cache_name, ".rds"))
+  if (file.exists(cache_path)) {
+    return(readRDS(cache_path))
+  }
+  result <- fetch_expr
+  dir.create(dirname(cache_path), showWarnings = FALSE, recursive = TRUE)
+  saveRDS(result, cache_path)
+  result
+}
+
 # List of members of the American Association of Universities
 aau = read_excel(file.path(data_dir,"raw/rankings_membership/AAU__06.xlsx"),
                  col_types = "text") %>%
@@ -69,16 +89,19 @@ aau = read_excel(file.path(data_dir,"raw/rankings_membership/AAU__06.xlsx"),
   as.data.table()
 
 # Pull directory of basic information about institutions
-raw_institutions = get_education_data(level = "college-university",
+raw_institutions = cached_pull("raw_institutions", {
+  get_education_data(level = "college-university",
                                    source = "ipeds",
                                    topic = "directory",
                                    filters = list(year = 2000:2013)
                    ) %>%
   filter(inst_category == 2) %>%
   select(c(unitid,state_abbr,inst_name,inst_control,land_grant,county_fips))
+})
 
 # Pull acceptance rate data
-raw_acceptance = get_education_data(level = "college-university",
+raw_acceptance = cached_pull("raw_acceptance", {
+  get_education_data(level = "college-university",
                                    source = "ipeds",
                                    topic = "admissions-enrollment",
                                    filters = list(sex = 99)
@@ -90,13 +113,13 @@ raw_acceptance = get_education_data(level = "college-university",
                                      TRUE ~ number_admitted/number_applied)) %>%
   # Remove cohort x institution combinations where no students enroll
   filter(number_enrolled_total != 0)
+})
 
-# Import raw_deg_award if not already present
-# Takes a while to run 
-if(!exists("raw_deg_award"))
-{
-  # Pull degrees awarded data
-  raw_deg_award = get_education_data(level = "college-university",
+# Pull degrees awarded data (this is the slow one, and where the live API
+# error surfaced -- cached so a retry doesn't re-pull years that already
+# succeeded)
+raw_deg_award = cached_pull("raw_deg_award", {
+  get_education_data(level = "college-university",
                                    source = "ipeds",
                                    topic = "completions-cip-2",
                                    filters = list(award_level = 7,
@@ -106,7 +129,7 @@ if(!exists("raw_deg_award"))
                                                   sex = 99,
                                                   majornum = 1)
                                   )
-}
+})
 
 
 
@@ -115,15 +138,18 @@ if(!exists("raw_deg_award"))
 raw_mobility = read_excel(file.path(data_dir,"raw/chetty_oi/mrc_table2.xlsx"))
 
 # Import appropriations data
-# https://nces.ed.gov/ipeds/survey-components/2#glossary  
-raw_finance = get_education_data(level = "college-university",
+# https://nces.ed.gov/ipeds/survey-components/2#glossary
+raw_finance = cached_pull("raw_finance", {
+  get_education_data(level = "college-university",
                    source = "ipeds",
                    topic = "finance",
                    filters = list(year = c(2002:2017)),
                    add_labels = TRUE)
+})
 
 # Estimate cohort's share of undergraduate student body in given year
-raw_grad_rates = get_education_data(level = "college-university",
+raw_grad_rates = cached_pull("raw_grad_rates", {
+  get_education_data(level = "college-university",
                    source = "ipeds",
                    topic = "grad-rates-200pct",
                    #filters = list(year = 2017),
@@ -135,11 +161,13 @@ raw_grad_rates = get_education_data(level = "college-university",
   # Distributes costs evenly across between enrollment and graduation
   mutate(yr_1_to_4_complete = (completion_rate_100pct/4)+((completion_rate_150pct-completion_rate_100pct)/6)+((completion_rate_200pct-completion_rate_150pct)/8),
          yr_4_to_6_complete = ((completion_rate_150pct-completion_rate_100pct)/6)+((completion_rate_200pct-completion_rate_150pct)/8),
-         yr_6_to_8_complete = (completion_rate_200pct-completion_rate_150pct)/8) 
+         yr_6_to_8_complete = (completion_rate_200pct-completion_rate_150pct)/8)
+})
 
 # Pull degrees awarded data
 # Only pull even years because reporting isn't mandatory in odd years
-raw_instate = get_education_data(level = "college-university",
+raw_instate = cached_pull("raw_instate", {
+  get_education_data(level = "college-university",
                                    source = "ipeds",
                                    topic = "fall-enrollment",
                                    filters = list(year = c(2000,2002,2004,2006,2008,2010,2012,2014,2016,2018,2020),
@@ -149,6 +177,7 @@ raw_instate = get_education_data(level = "college-university",
                                  subtopic = list("residence")
                                    ) %>%
   filter(state_of_residence == fips | state_of_residence == 58)
+})
 
 
 ## ----cpi, eval = FALSE--------------------------------------------------------

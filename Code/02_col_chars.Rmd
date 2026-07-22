@@ -161,7 +161,13 @@ raw_acceptance = cached_pull("raw_acceptance", {
 # error repeatedly surfaced -- fetched (and cached) one year at a time
 # rather than as a single 2000:2021 call, so a transient failure only costs
 # re-fetching that one year, not the whole 22-year pull.
-raw_deg_award = rbindlist(lapply(2000:2021, function(yr) {
+# bind_rows(), not rbindlist(): get_education_data() returns a tibble, and
+# downstream code (deg_award_total, deg_award_super_opeid, etc.) is written
+# assuming plain dplyr semantics on that tibble. rbindlist() always returns
+# a data.table regardless of its inputs' class, which silently changed
+# raw_deg_award's type and broke a later table.express-dispatched join
+# further downstream that wasn't written to receive a real data.table here.
+raw_deg_award = bind_rows(lapply(2000:2021, function(yr) {
   cached_pull(paste0("raw_deg_award_", yr), {
     get_education_data(level = "college-university",
                                      source = "ipeds",
@@ -174,7 +180,7 @@ raw_deg_award = rbindlist(lapply(2000:2021, function(yr) {
                                                     majornum = 1)
                                     )
   })
-}), use.names = TRUE, fill = TRUE)
+}))
 
 
 

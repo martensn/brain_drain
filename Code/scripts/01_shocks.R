@@ -137,11 +137,11 @@ cols <- c("loo_total")
 cbp_nat_chg = cbp_cbsa[, paste("chg", cols, sep = "_") := lapply(.SD, function(x) as.numeric(pct_change(x))), 
                        by = c("naics3", "cbsa_code"), .SDcols = cols][]
 
-write.csv(shifts,file.path(data_dir,"intermediate/shifts.csv"),row.names = FALSE)
-
 # Subset for cleaner merge
 shift_cols = c('naics3','year','cbsa_code','cbsa_total','chg_loo_total')
 shifts = cbp_nat_chg[, ..shift_cols]
+
+write.csv(shifts,file.path(data_dir,"intermediate/shifts.csv"),row.names = FALSE)
 
 
 

@@ -433,7 +433,7 @@ state_region_crosswalk <- data.frame(
   rbind(c("DC","South")) %>% as.data.table()
 
 institutional_characteristics <- institutional_characteristics %>%
-  left_join(state_region_crosswalk, by = ("state_abbr"="state"))
+  left_join(state_region_crosswalk, by = c("state_abbr"="state"))
 
 
 ## ----gradrate_dup2------------------------------------------------------------

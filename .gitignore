@@ -6,6 +6,9 @@
 .RData
 *.RData
 
+# Pipeline run logs (Code/scripts/run_pipeline.R output)
+Code/scripts/run_pipeline_log.txt
+
 # OS / Office cruft
 .DS_Store
 ~$*.xlsx

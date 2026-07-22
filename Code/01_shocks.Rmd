@@ -28,7 +28,6 @@ Import necessary packages
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(table.express)
-library(DescTools)
 library(data.table)
 
 options(scipen=999)

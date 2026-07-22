@@ -17,7 +17,6 @@ cbp22filename = "cbp22co.txt"
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(table.express)
-library(DescTools)
 library(data.table)
 
 options(scipen=999)

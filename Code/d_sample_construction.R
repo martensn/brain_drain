@@ -32,7 +32,7 @@ setDT(ed_li)
 ed_li_col = ed_li[,.N, by = .(university_name,university_country)]
 
 col_strings = readRDS(file.path(data_dir,"intermediate/col_strings.rds")) %>%
-  select(unitid,opeid,parent_institution,university_name,ambiguous_name,system_indicator,string_method) %>%
+  select(unitid,opeid,parent_institution,university_name,ambiguous_name,system_indicator,string_method=method) %>%
   mutate(hs_id = NA, 
          ed_type = "college",
          unitid = if_else(ambiguous_name == 0,unitid,NA),
@@ -105,7 +105,7 @@ setnames(
     "col_startdate", "col_enddate")
 )
 
-hs_keep = hs_dt[, .(user_id, hs_name, hs_ambiguous_name, hs_method, hs_startdate, hs_enddate)]
+hs_keep = hs_dt[, .(user_id, hs_id, hs_name, hs_ambiguous_name, hs_method, hs_startdate, hs_enddate)]
 col_keep = col_dt[, .(user_id, unitid, opeid, parent_institution, 
                       system_indicator, col_name, col_ambiguous_name,
                       col_method, col_startdate, col_enddate)]
@@ -117,7 +117,7 @@ colleges = readRDS(file.path(data_dir,"intermediate/colleges.rds"))
 setDT(colleges)
 setDT(schools)
 ed_wide = hs_keep[col_keep, on = "user_id"]
-ed_wide_sample = ed_wide[sample(N,100000)]
+ed_wide_sample = ed_wide[sample(.N,100000)]
 saveRDS(ed_wide,file.path(data_dir,"intermediate/ed_wide.rds"))
 saveRDS(ed_wide_sample,file.path(directory,"Data/ed_wide_sample.rds"))
 

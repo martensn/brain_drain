@@ -60,21 +60,49 @@ cpi_base_year <- 2020
 
 ## ----pull---------------------------------------------------------------------
 
-# Disk cache for the slow/live get_education_data() pulls below. The
-# existing raw_deg_award guard (if(!exists("raw_deg_award"))) only helps
-# within a single long-lived interactive session -- it's always a cache
-# miss in a fresh Rscript run, which is now how this script can be invoked
-# (Code/scripts/run_pipeline.R). Caching to disk instead means a re-run
-# (e.g. after fixing an unrelated bug downstream, or retrying past a
-# transient API error like Urban Institute's "Query page not found") skips
-# straight past these pulls instead of re-fetching everything from scratch.
+# Disk cache (+ retry) for the slow/live get_education_data() pulls below.
+# The existing raw_deg_award guard (if(!exists("raw_deg_award"))) only
+# helps within one long-lived interactive session -- always a cache miss in
+# a fresh Rscript run, which is now how this script can be invoked
+# (Code/scripts/run_pipeline.R). Caching to disk means a re-run (e.g. after
+# fixing an unrelated downstream bug) skips straight past these pulls
+# instead of re-fetching everything from scratch.
+#
+# Also retries on error, up to max_attempts, with a delay between tries --
+# the Urban Institute API turned out to be flaky in practice (three
+# consecutive fresh-environment runs each hit "Query page not found" at a
+# different point mid-pull, not the same one, i.e. transient, not a
+# systematic problem with a specific year's data).
+#
+# Note on the eval(substitute(...)) below, not just `fetch_expr`: R's lazy
+# evaluation forces a promise (evaluates it) at most once and memoizes the
+# result -- including an error. A loop that just referenced `fetch_expr`
+# again on retry would silently re-throw the SAME cached error without
+# actually re-running the API call. substitute() captures the caller's
+# unevaluated expression instead, so eval() genuinely re-runs it fresh each
+# attempt.
+#
 # Delete the relevant .rds under intermediate/api_cache/ to force a refresh.
-cached_pull <- function(cache_name, fetch_expr) {
+cached_pull <- function(cache_name, fetch_expr, max_attempts = 3, retry_delay = 20) {
   cache_path <- file.path(data_dir, "intermediate", "api_cache", paste0(cache_name, ".rds"))
   if (file.exists(cache_path)) {
     return(readRDS(cache_path))
   }
-  result <- fetch_expr
+  expr <- substitute(fetch_expr)
+  env <- parent.frame()
+  result <- NULL
+  for (attempt in seq_len(max_attempts)) {
+    result <- tryCatch(eval(expr, env), error = function(e) {
+      cat(sprintf("cached_pull('%s'): attempt %d/%d failed: %s\n",
+                  cache_name, attempt, max_attempts, conditionMessage(e)))
+      NULL
+    })
+    if (!is.null(result)) break
+    if (attempt < max_attempts) Sys.sleep(retry_delay)
+  }
+  if (is.null(result)) {
+    stop(sprintf("cached_pull('%s'): all %d attempts failed", cache_name, max_attempts))
+  }
   dir.create(dirname(cache_path), showWarnings = FALSE, recursive = TRUE)
   saveRDS(result, cache_path)
   result
@@ -115,21 +143,24 @@ raw_acceptance = cached_pull("raw_acceptance", {
   filter(number_enrolled_total != 0)
 })
 
-# Pull degrees awarded data (this is the slow one, and where the live API
-# error surfaced -- cached so a retry doesn't re-pull years that already
-# succeeded)
-raw_deg_award = cached_pull("raw_deg_award", {
-  get_education_data(level = "college-university",
-                                   source = "ipeds",
-                                   topic = "completions-cip-2",
-                                   filters = list(award_level = 7,
-                                                  year = c(2000:2021),
-                                                  #fips = 26,
-                                                  race = 99,
-                                                  sex = 99,
-                                                  majornum = 1)
-                                  )
-})
+# Pull degrees awarded data. This is the slow one, and where the live API
+# error repeatedly surfaced -- fetched (and cached) one year at a time
+# rather than as a single 2000:2021 call, so a transient failure only costs
+# re-fetching that one year, not the whole 22-year pull.
+raw_deg_award = rbindlist(lapply(2000:2021, function(yr) {
+  cached_pull(paste0("raw_deg_award_", yr), {
+    get_education_data(level = "college-university",
+                                     source = "ipeds",
+                                     topic = "completions-cip-2",
+                                     filters = list(award_level = 7,
+                                                    year = yr,
+                                                    #fips = 26,
+                                                    race = 99,
+                                                    sex = 99,
+                                                    majornum = 1)
+                                    )
+  })
+}), use.names = TRUE, fill = TRUE)
 
 
 

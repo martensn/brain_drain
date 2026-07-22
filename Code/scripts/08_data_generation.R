@@ -1,0 +1,569 @@
+## ----setup, include=FALSE-----------------------------------------------------
+knitr::opts_chunk$set(echo = TRUE)
+library(texreg)
+# Fastest package for adding cluster-robust standard errors:
+# https://www.r-bloggers.com/2021/05/clustered-standard-errors-with-r/#google_vignette 
+#library(estimatr)
+library(fixest)
+library(xtable)
+library(tidyverse)
+library(readxl)
+library(table.express)
+library(data.table)
+#library(progressr)
+
+options(digits = 1)
+#handlers(global = TRUE) #  For progress bars
+
+
+## ----directory, include=FALSE-------------------------------------------------
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
+
+
+
+## -----------------------------------------------------------------------------
+
+# Compute fraction_cohort
+fraction_cohort <- regression[, .(li_total = .N), by = birth]
+write.csv(fraction_cohort,file.path(directory,"Data",specification,"fraction_cohort.csv"),row.names=FALSE)
+
+# Compute li_deg_awarded
+li_deg_awarded <- regression[, .(li_deg_awarded = .N), by = col_end][
+  , .(year = as.numeric(as.character(col_end)), li_deg_awarded)]
+write.csv(li_deg_awarded,file.path(directory,"Data",specification,"li_deg_awarded.csv"),row.names=FALSE)
+
+# Necessary for age distribution plot
+probs <- 0.5
+density_sam <- density(regression[col_end %in% cohorts[[specification]]]$birth,adjust=2)
+dens_sam <- data.frame(x = density_sam$x, y = density_sam$y)
+write.csv(dens_sam,file.path(directory,"Data",specification,"dens_sam.csv"),row.names=FALSE)
+quantiles_sam <- quantile(regression[col_end %in% cohorts[[specification]]]$birth, prob=probs)
+quant_sam <- data.frame(prob = names(quantiles_sam), value = quantiles_sam)
+write.csv(quant_sam,file.path(directory,"Data",specification,"quantiles_sam.csv"),row.names=FALSE)
+
+
+## ----spat---------------------------------------------------------------------
+
+# Conditional on graduating college, what are the most common alma maters in every
+# local labor market
+local_stocks <- regression[,.N,by=.(col_unitid,cbsa_mode,state_mode)]
+local_stocks[,shr_col := N/sum(N),by=.(cbsa_mode,state_mode)]
+local_stocks <- merge(local_stocks,
+                      cbsa_li_crosswalk %>% mutate(cbsa_code = as.integer(cbsa_code)),
+                      by.x=c("cbsa_mode","state_mode"),
+                      by.y=c("cbsa_code","cbsa_state"),all.x=TRUE) %>%
+  merge(ope_unit_crosswalk %>%
+          dplyr::select(IPEDSMatch,PEPSSchname) %>%
+          distinct() %>%
+          mutate(col_unitid = as.integer(IPEDSMatch)) %>%
+          dplyr::select(-IPEDSMatch),
+        by=c("col_unitid"))
+  
+  
+# Export
+write.csv(local_stocks %>% 
+            table.express::filter(!is.na(cbsa_core)) %>%
+            table.express::filter(N > 9),
+          file.path(directory,"Data",specification,"local_stocks.csv"))
+
+state_stocks <- local_stocks[,.(N = sum(N)),by=.(state_mode,col_unitid,PEPSSchname)]
+state_stocks[,shr_col := N/sum(N), by=.(state_mode)]
+write.csv(state_stocks %>% 
+            table.express::filter(N > 9),
+          file.path(directory,"Data",specification,"state_stocks.csv"))
+
+##  Compute share of LI users attending institution
+li_inst <- microdata[, .N, by = .(col_unitid)]
+li_inst[, li_shr := N/sum(N)]
+write.csv(li_inst,file.path(directory,"Data",specification,"li_inst.csv"))
+
+# Select only the 'unitid' and 'inst_group' columns from institutional_characteristics
+inst_group = fread(file.path(data_dir,"intermediate/institutional_characteristics.csv")) %>%
+  table.express::select(unitid,inst_group)
+# Intermediate object used to create cross-sectional measure of return by inst_group and occupational prestige
+occp_inst_group <- regression_cbsa_10 %>%
+  table.express::filter(!is.na(prestige_bin) & !is.na(inst_group)) %>%
+  table.express::filter(inst_group != "Private, For-Profit") %>%
+  table.express::mutate(col_end_bin = cut(col_end_numeric,
+                        breaks = c(2013,2009,2004,1999,1982),
+                        include.lowest = TRUE,
+                        #labels = c("0-5","6-10","11-15","15+"),
+                        right = TRUE,
+                        ordered = TRUE
+                        )) %>%
+  table.express::filter(!is.na(col_end_bin))
+occp_inst_group_counts <- occp_inst_group[, .N, by = .(prestige_bin,inst_group,col_end_bin)]
+write.csv(occp_inst_group_counts,file.path(directory,"Data",specification,"occp_inst_group.csv"),row.names = FALSE)
+
+
+
+## ----net----------------------------------------------------------------------
+
+# Compute in-state share by institution
+instate_li = regression[col_end %in% c(2000:2022),shr_instate_li := mean(instate), by = col_unitid]
+instate_li <- unique(instate_li[!is.na(col_unitid) & !is.na(shr_instate_li), .(col_unitid, shr_instate_li)])
+write.csv(instate_li,file.path(directory,"Data",specification,"instate_li.csv"))
+
+regression_od <- regression[!is.na(cbsa_mode) & !is.na(hs_cbsa) & col_end %in% c(2010:2018)]
+
+# Count observations by where they went to high school
+origin_cbsa <- regression_od[,.(origin = .N),by=.(hs_cbsa,col_unitid)]
+# Count observations by where they lived after college
+destination_cbsa <- regression_od[,.(destination = .N),by=.(cbsa_mode,col_unitid)]
+destination_cbsa[,li_total_college := sum(destination),by=.(col_unitid)]
+
+#destination_cbsa[,total_destination := sum(destination),by=.(cbsa_mode)]
+write.csv(destination_cbsa,file.path(directory,"Data",specification,"destination_cbsa.csv"))
+
+# Merge orign and destination data to compute net flows by labor market
+od_cbsa <- merge(origin_cbsa,destination_cbsa,by.x=c("hs_cbsa","col_unitid"),by.y=c("cbsa_mode","col_unitid"),all=TRUE) %>%
+  table.express::mutate(destination = fifelse(is.na(destination)==TRUE,0,destination),
+                        origin = fifelse(is.na(origin)==TRUE,0,origin)) %>%
+  merge(inst_group,
+        by.x = c("col_unitid"),by.y="unitid") %>%
+  rename(cbsa = hs_cbsa)
+
+net_cbsa <- od_cbsa[, .(origin = sum(origin),
+            destination = sum(destination)),by=.(cbsa,inst_group)]
+net_cbsa[,total_origin := sum(origin),by=.(cbsa)]
+net_cbsa[,total_destination := sum(destination),by=.(cbsa)]
+net_cbsa[,net := destination - origin]
+net_cbsa[,net_norm := net/total_origin]
+# Export file
+write.csv(net_cbsa,file.path(directory,"Data",specification,"net_cbsa.csv"))
+
+# Count observations by where they went to high school
+origin_state <- regression_od[,.(origin = .N),by=.(hs_state,col_unitid)]
+# Count observations by where they lived after college
+destination_state <- regression_od[,.(destination = .N),by=.(state_mode,col_unitid)]
+destination_state[,li_total_college := sum(destination),by=.(col_unitid)]
+write.csv(destination_state,file.path(directory,"Data",specification,"destination_state.csv"))
+
+# Merge orign and destination data to compute net flows by state
+# Merge orign and destination data to compute net flows by labor market
+od_state <- merge(origin_state,destination_state,by.x=c("hs_state","col_unitid"),by.y=c("state_mode","col_unitid"),all=TRUE) %>%
+  table.express::mutate(destination = fifelse(is.na(destination)==TRUE,0,destination),
+                        origin = fifelse(is.na(origin)==TRUE,0,origin)) %>%
+  merge(inst_group,
+        by.x = c("col_unitid"),by.y="unitid") %>%
+  rename(state = hs_state)
+net_state <- od_state[, .(origin = sum(origin),
+            destination = sum(destination)),by=.(state,inst_group)]
+net_state[,total_origin := sum(origin),by=.(state)]
+net_state[,total_destination := sum(destination),by=.(state)]
+net_state[,net := destination - origin]
+net_state[,net_norm := net/total_origin]
+# Export file
+write.csv(net_state,file.path(directory,"Data",specification,"net_state.csv"))
+
+# Measure levels of return for first figure 
+return_levels_state <- regression[col_end %in% cohorts[[specification]],.N,by=.(ever_leave_state_hs_10,same_state_hs_10,inst_group,hs_col_diff_cbsa)]
+write.csv(return_levels_state,file=file.path(directory,"Data",specification,"return_levels_state.csv"),row.names = FALSE)
+return_levels_cbsa <- regression[col_end %in% cohorts[[specification]],.N,by=.(ever_leave_cbsa_hs_10,same_cbsa_hs_10,inst_group,hs_col_diff_cbsa)]
+write.csv(return_levels_cbsa,file=file.path(directory,"Data",specification,"return_levels_cbsa.csv"), row.names = FALSE)
+
+
+
+## ----inst-levels--------------------------------------------------------------
+# Newcomers move away from their hometown at some point after college
+newcomers_cbsa <- regression[ever_leave_cbsa_hs == 1 ,.N,by=.(hs_cbsa,col_cbsa_code,cbsa_mode)] %>%
+  table.express::mutate(return_hs_col = case_when(hs_cbsa == cbsa_mode & col_cbsa_code == cbsa_mode ~ N,
+                                          TRUE ~ 0),
+                        return_hs_only = case_when(hs_cbsa == cbsa_mode & col_cbsa_code != cbsa_mode ~ N,
+                                            TRUE ~ 0),
+                        return_col_only = case_when(hs_cbsa != cbsa_mode & col_cbsa_code == cbsa_mode ~ N,
+                                          TRUE ~ 0),
+                        return_no_ties = case_when(hs_cbsa != cbsa_mode & col_cbsa_code != cbsa_mode ~ N,
+                                            TRUE ~ 0))
+local_ties_cbsa <- newcomers_cbsa[,.(return_hs_col = sum(return_hs_col),
+                  return_hs_only = sum(return_hs_only),
+                  return_col_only = sum(return_col_only),
+                  no_ties = sum(return_no_ties)), by = .(cbsa_mode)]
+# Natives might have gone away for college and returned
+natives_cbsa <- regression[ever_leave_cbsa_hs == 0 ,.N,by=.(hs_cbsa,col_cbsa_code,cbsa_mode)] %>%
+  table.express::mutate(stay_hs_col = case_when(hs_cbsa == cbsa_mode & col_cbsa_code == cbsa_mode ~ N,
+                                          TRUE ~ 0),
+                        stay_hs_only = case_when(hs_cbsa == cbsa_mode & col_cbsa_code != cbsa_mode ~ N,
+                                            TRUE ~ 0))
+# Merge local and natives into single object
+# Cross-sectional measurement of where a given CBSA's residents are from 
+local_ties_cbsa <- natives_cbsa[,.(stay_hs_col = sum(stay_hs_col),
+                  stay_hs_only = sum(stay_hs_only)), by = .(cbsa_mode)] %>%
+  merge(local_ties_cbsa, by = "cbsa_mode") %>%
+  mutate(cbsa_code = str_pad(cbsa_mode,width=5,side="left",pad="0"))
+local_ties_cbsa[,total := stay_hs_col + stay_hs_only + return_hs_col + return_hs_only + return_col_only + no_ties]
+# Calculate normalized counts
+count_cols <- names(local_ties_cbsa)[2:7]  # Select only the count columns
+local_ties_cbsa[, (count_cols) := lapply(.SD, function(x) x / rowSums(.SD)), .SDcols = count_cols]
+write.csv(local_ties_cbsa,file.path(directory,"Data",specification,"local_ties_cbsa.csv"))
+
+# Newcomers move away from their hometown at some point after college
+newcomers_state <- microdata[ever_leave_state_hs == 1 ,.N,by=.(hs_state,col_state,state_mode)] %>%
+  table.express::mutate(return_hs_col = case_when(hs_state == state_mode & col_state == state_mode ~ N,
+                                          TRUE ~ 0),
+                        return_hs_only = case_when(hs_state == state_mode & col_state != state_mode ~ N,
+                                            TRUE ~ 0),
+                        return_col_only = case_when(hs_state != state_mode & col_state == state_mode ~ N,
+                                          TRUE ~ 0),
+                        return_no_ties = case_when(hs_state != state_mode & col_state != state_mode ~ N,
+                                            TRUE ~ 0))
+local_ties_state <- newcomers_state[,.(return_hs_col = sum(return_hs_col),
+                  return_hs_only = sum(return_hs_only),
+                  return_col_only = sum(return_col_only),
+                  no_ties = sum(return_no_ties)), by = .(state_mode)]
+# Natives might have gone away for college and returned
+natives_state <- microdata[ever_leave_state_hs == 0 ,.N,by=.(hs_state,col_state,state_mode)] %>%
+  table.express::mutate(stay_hs_col = case_when(hs_state == state_mode & col_state == state_mode ~ N,
+                                          TRUE ~ 0),
+                        stay_hs_only = case_when(hs_state == state_mode & col_state != state_mode ~ N,
+                                            TRUE ~ 0))
+# Merge local and natives into single object
+# Cross-sectional measurement of where a given state's residents are from 
+local_ties_state <- natives_state[,.(stay_hs_col = sum(stay_hs_col),
+                  stay_hs_only = sum(stay_hs_only)), by = .(state_mode)] %>%
+  merge(local_ties_state, by = "state_mode")
+local_ties_state[,total := stay_hs_col + stay_hs_only + return_hs_col + return_hs_only + return_col_only + no_ties]
+# Calculate normalized counts
+count_cols <- names(local_ties_state)[2:7]  # Select only the count columns
+local_ties_state[, (count_cols) := lapply(.SD, function(x) x / rowSums(.SD)), .SDcols = count_cols]
+write.csv(local_ties_state,file.path(directory,"Data",specification,"local_ties_state.csv"))
+
+
+## ----inst-levels_dup2---------------------------------------------------------
+
+# Order that institutions will appear in table
+col_order = c("PF","RPU",
+              "Private, Non-Profit")
+
+# Calculating return rates by institutional groups 
+inst_levels = regression %>%
+  as.data.frame() %>%
+  mutate(in_state = case_when(in_state == "In-State" ~ "is",
+                              in_state == "Out-of-State" ~ "oos"),
+         inst_group = factor(inst_group, ordered = TRUE,
+                           levels = col_order)) %>%
+  group_by(inst_group,in_state) %>%
+  dplyr::summarise(same_cbsa_hs = sum(same_cbsa_hs),
+                   same_state_hs = sum(same_state_hs),
+                   n = n()) %>%
+  mutate(same_cbsa_prop = round((same_cbsa_hs/n) * 100,1),
+         same_state_prop = round((same_state_hs/n) * 100,1)) %>%
+  dplyr::select(-c(same_cbsa_hs,same_state_hs)) %>%
+  pivot_wider(names_from = in_state,
+              values_from = c(same_cbsa_prop,same_state_prop,n)) %>%
+  mutate(cbsa_retention_gap = same_cbsa_prop_is - same_cbsa_prop_oos,
+         state_retention_gap = same_state_prop_is - same_state_prop_oos) %>%
+  relocate(c("n_is","n_oos"), .before = "same_cbsa_prop_is") %>%
+  relocate("cbsa_retention_gap", .after = "same_cbsa_prop_oos") %>%
+  # Convert institutional grouping back into character so it appears in table
+  mutate(inst_group = as.character(inst_group))
+
+# Splitting data into CBSA and state-level tables
+inst_levels_cbsa = inst_levels %>%
+  dplyr::select(contains("cbsa"))
+inst_levels_state = inst_levels %>%
+  dplyr::select(contains("state"))
+
+write.csv(inst_levels,file.path(directory,"Data",specification,"inst_levels.csv"))
+
+
+## ----shocks-------------------------------------------------------------------
+
+# Select all columns measuring labor demand shocks or growth
+iv_cols <- names(regression)[grepl("^(hs|col).*[1357]$", names(regression))]
+  
+# Measuring the incidence of shocks by CBSA, education group, and occupation  
+for(b in num_bins)
+{
+  for(h in geos) 
+  {
+    data <- if(h == "cbsa") regression_cbsa_10 else regression_state_10
+    #data = regression_cbsa
+    # Compute which CBSAs appear in each quantile
+    for(col in iv_cols)
+    {
+      bin_shares = list()
+      bin_col_name <- paste0(col,"_bin")
+      data[, paste0(col, "_bin") := cut(get(col), 
+                                             breaks = quantile(get(col), 
+                                                               probs = seq(0,1,length.out = b+1),
+                                                               na.rm=TRUE),
+                                             labels = FALSE,
+                                             include.lowest = TRUE)]
+      bin_share <- data[, .(same_cbsa_hs_10 = mean(same_cbsa_hs_10, na.rm = TRUE),
+                                 same_state_hs_10 = mean(same_state_hs_10, na.rm = TRUE),
+                                 same_cbsa_col_10 = mean(same_cbsa_col_10, na.rm = TRUE),
+                                 same_state_col_10 = mean(same_state_col_10, na.rm = TRUE)
+                            ),
+                                 by = bin_col_name]
+      bin_share[, variable := col]
+      setnames(bin_share, bin_col_name,"bin")
+      bin_shares[[col]] <- bin_share
+    }
+    
+    # Create df with return rates by quantile for 
+    all_bin_shares <- rbindlist(bin_shares,use.names=TRUE,fill=TRUE) %>%
+      mutate(geo = sub("_.*","",variable),
+             avg = sub(".*_([0-9]+)$","\\1",variable),
+             var = sub("(_[0-9]+)$","", sub("^[^_]+_","",variable)))
+    # Export qunatile-level return statistics
+    all_bin_filename = paste0("all_bin_shares_",h,"_",b,".csv")
+    write.csv(all_bin_shares,file.path(directory,"Data",specification,all_bin_filename))
+    
+    # Calculate which local labor markets contribute observations to each quantile
+    bin_shares = data[, .(count = .N), by = .(hs_shock_7_bin,hs_cbsa,hs_state)] %>%
+      table.express::filter(!is.na(hs_shock_7_bin))
+    bin_shares[, shr_bin := count/sum(count), by = .(hs_shock_7_bin)]
+    bin_shares[, shr_cbsa := count/sum(count), by = .(hs_cbsa,hs_state)]
+    
+    # Compute return statistics by high school labor market
+    cbsa_returns <- data[, .(same_cbsa_hs_10 = mean(same_cbsa_hs_10, na.rm = TRUE),
+                                 same_state_hs_10 = mean(same_state_hs_10, na.rm = TRUE),
+                                 same_cbsa_col_10 = mean(same_cbsa_col_10, na.rm = TRUE),
+                                 same_state_col_10 = mean(same_state_col_10, na.rm = TRUE)),
+                                 by = .(hs_cbsa,hs_state,hs_shock_7_bin)] %>%
+      table.express::filter(!is.na(hs_shock_7_bin))
+    
+    # Merge crosswalk from step 0 and returns by cbsa x shock_bin
+    bin <- merge(bin_shares, cbsa_li_crosswalk %>% 
+                  mutate(cbsa_code = as.integer(cbsa_code)), by.x = c("hs_cbsa","hs_state"),by.y = c("cbsa_code","cbsa_state"), all.x = TRUE) %>%
+      merge(cbsa_returns,by = c("hs_cbsa","hs_state","hs_shock_7_bin"))
+    # Export quantile-level return statistics
+    bin_filename = paste0("bin_",h,"_",b,".csv")
+    write.csv(bin,file.path(directory,"Data",specification,bin_filename))
+    
+    # Compute totals by occupation x shock_bin x inst_group
+    total_result <- data[, .N, by = .(hs_shock_7_bin, inst_group, soc_code_mode)]
+
+    # Select the appropriate condition dynamically
+    filter_condition <- if (h == "cbsa") "same_cbsa_hs == 1" else "same_state_hs == 1"
+    # Compute both returners by occupation x shock_bin x inst_group
+    returner_result <- data[eval(parse(text = filter_condition)), .N, by = .(hs_shock_7_bin, inst_group, soc_code_mode)]
+    returner_result <- merge(returner_result,total_result,by=c("hs_shock_7_bin","inst_group","soc_code_mode"))
+    names(returner_result) <- c("hs_shock_7_bin","inst_group","soc_code_mode","returners","total")
+    assign(paste0("returners_", h,"_",b), returner_result)
+     
+    
+    write.csv(get(paste0("returners_", h,"_",b)),file.path(directory,"Data",specification,paste0("returners_", h,"_",b,".csv")))
+  }
+}
+
+# Distribution of shocks over time
+hs_shock_year_state = regression_state_10[, .(
+  p01 = quantile(hs_shock_7,0.01,na.rm=TRUE),
+  p05 = quantile(hs_shock_7,0.05,na.rm=TRUE),
+  p25 = quantile(hs_shock_7,0.25,na.rm=TRUE),
+  p50 = quantile(hs_shock_7,0.5,na.rm=TRUE),
+  p75 = quantile(hs_shock_7,0.75,na.rm=TRUE),
+  p95 = quantile(hs_shock_7,0.95,na.rm=TRUE),
+  p99 = quantile(hs_shock_7,0.99,na.rm=TRUE),
+  sd = sd(hs_shock_7,na.rm=TRUE),
+  count = .N), by = col_end]
+write.csv(hs_shock_year_state,file.path(directory,"Data",specification,paste0("hs_shock_year_state.csv")))
+hs_shock_year_cbsa = regression_cbsa_10[, .(
+  p01 = quantile(hs_shock_7,0.01,na.rm=TRUE),
+  p05 = quantile(hs_shock_7,0.05,na.rm=TRUE),
+  p25 = quantile(hs_shock_7,0.25,na.rm=TRUE),
+  p50 = quantile(hs_shock_7,0.5,na.rm=TRUE),
+  p75 = quantile(hs_shock_7,0.75,na.rm=TRUE),
+  p95 = quantile(hs_shock_7,0.95,na.rm=TRUE),
+  p99 = quantile(hs_shock_7,0.99,na.rm=TRUE),
+  sd = sd(hs_shock_7,na.rm=TRUE),
+  count = .N), by = col_end]
+write.csv(hs_shock_year_cbsa,file.path(directory,"Data",specification,paste0("hs_shock_year_cbsa.csv")))
+
+
+
+## ----bk-----------------------------------------------------------------------
+
+regression_sample <- regression[col_end_numeric %in% cohorts[[specification]]]
+
+reside_long <- melt(
+  regression_cbsa_10, 
+  id.vars = c("user_id", "hs_cbsa_code", "col_cbsa_code", "col_end"),
+  measure.vars = patterns("^cbsa_code_"),  # Select all residence_* columns
+  variable.name = "year_after_grad", 
+  value.name = "dest_loc"
+)[, year_after_grad := as.integer(gsub("cbsa_code_", "", year_after_grad))]
+
+reside_long[, year := as.numeric(as.character(col_end)) + year_after_grad]
+
+setorder(reside_long, user_id, year_after_grad)  # Ensure correct ordering
+
+reside_long[, orig_loc := shift(dest_loc, type = "lag"), by = user_id]
+reside_long <- reside_long[!is.na(orig_loc) & !is.na(dest_loc)]
+#reside_long[year_after_grad == 0, origin_location := col_cbsa_code]  # First move from college
+reside_panel <- reside_long[, .N, by = .(hs_cbsa_code, col_cbsa_code, orig_loc, dest_loc, year)]
+setnames(reside_panel, "N", "frequency")  # Rename count column
+
+reside_panel[,migration := fifelse(orig_loc != dest_loc,1,0)]
+reside_panel[,orig_ties := fifelse((orig_loc == col_cbsa_code | orig_loc == hs_cbsa_code) & migration == 1,frequency,0)]
+reside_panel[,dest_ties := fifelse((dest_loc == col_cbsa_code | dest_loc == hs_cbsa_code) & migration == 1,frequency,0)]
+
+in_migrants <- reside_panel[migration==1,.(flow_in = sum(frequency),
+                                            flow_in_ties = sum(dest_ties)
+                                            ),by=.(dest_loc,year)]
+setnames(in_migrants,"dest_loc","cbsa")
+out_migrants <- reside_panel[migration==1,.(flow_out = sum(frequency),
+                                       flow_out_ties = sum(orig_ties)
+),by=.(orig_loc,year)]
+setnames(out_migrants,"orig_loc","cbsa")
+
+
+ds <- melt(regression_sample, 
+             id.vars = c("col_end_numeric","hs_cbsa_code","col_cbsa_code"), 
+             measure.vars = patterns("^cbsa_code_"), 
+             variable.name = "years_since_grad", 
+             value.name = "cbsa") %>%
+    table.express::filter(!is.na(cbsa))
+  
+  # Extract the number of years since graduation
+  ds[, years_since_grad := as.integer(gsub("\\D", "", years_since_grad))]
+  
+  # Compute the actual year
+  ds[, year := col_end_numeric + years_since_grad]
+  
+  # Count residence by year and origin CBSAs
+  dyn <- ds[, .N, by = .(hs_cbsa_code, col_cbsa_code, cbsa, year)]
+  
+  # Classify observations based on their local ties
+  dyn[ , local_ties := fifelse(hs_cbsa_code != cbsa & col_cbsa_code != cbsa,"stock_no_local_ties","stock_local_ties")]
+  
+  
+  # Impo
+  dynamic <- dyn[, .(N = .N), by = .(cbsa, year, local_ties)]
+  
+  # Compute denominators (total number of people in CBSA in given year)
+  total <- dyn[,.N, by = .(cbsa, year)] 
+  # Merge numerator and denominator counts
+  tie_stocks <- merge(dynamic, 
+                      total,
+                      by = c("cbsa", "year"), suffixes = c("", "_total"), all.x=TRUE) %>%
+    #table.express::mutate(local_ties_shr = N/N_total) %>% 
+    dcast(year + cbsa + N_total ~ local_ties, value.var = "N",fill=0) %>%
+    merge(in_migrants, by = c("cbsa","year"), all.x=TRUE) %>%
+    merge(out_migrants, by = c("cbsa","year"), all.x=TRUE) 
+  
+  write.csv(tie_stocks,file.path(directory,"Data",specification,"tie_stocks_alt.csv"),row.names = FALSE)
+
+
+
+## ----compliers----------------------------------------------------------------
+
+regression[,return_to_both := same_cbsa_col_10 * same_cbsa_col_10]
+problems <- regression[return_to_both == 1 & col_in_not_hs_cbsa == 1]
+
+
+# Import residual measurements of places with amenities
+# These are places that attract more migrants than predicted by their labor demand
+#differences_unfilt <- read_csv(file.path(data_dir,"intermediate/local_differences_unfilt.csv")) %>%
+#  mutate(cbsa_code = str_pad(hs_cbsa,width=5,side="left",pad="0")) %>%
+#  select(-c("hs_cbsa","...1")) %>%
+#  left_join(cbsa_li_crosswalk %>% select(c("cbsa_code","cbsa_core")) %>% distinct(), by = "cbsa_code") %>%
+#  mutate(difference_cbsa_alt = shr_returners_cbsa - pred_shr_returners_cbsa) %>%
+#  filter(difference_cbsa_alt > 0)
+differences <- read_csv(file.path(directory,"Data",specification,"local_differences.csv")) %>%
+  mutate(cbsa_code = str_pad(hs_cbsa,width=5,side="left",pad="0")) %>%
+  dplyr::select(-c("hs_cbsa","...1")) %>%
+  left_join(cbsa_li_crosswalk %>% dplyr::select(c("cbsa_code","cbsa_core")) %>% distinct(), by = "cbsa_code") %>%
+  mutate(difference_cbsa_alt = shr_returners_cbsa - pred_shr_returners_cbsa) %>%
+  filter(difference_cbsa_alt > 0)
+
+# Migration destinations are simply CBSA codes of locations where the difference
+# between the predicted labor demand and the actual labor demand is positive
+# indicating migration above what you'd expect given the labor demand 
+destinations = differences$cbsa_code
+
+# Migration destinations are simply CBSA codes of locations where the difference
+# between the predicted labor demand and the actual labor demand is positive
+# indicating migration above what you'd expect given the labor demand 
+regression[, amenity := fifelse(
+  hs_cbsa %in% destinations | col_cbsa_code %in% destinations,"High-Amenity LM","Low-Amenity LM")]
+regression_cbsa_10[, amenity := fifelse(
+  hs_cbsa %in% destinations | col_cbsa_code %in% destinations,"High-Amenity LM","Low-Amenity LM")]
+
+# Evan suggested a column for all migrants in the sample, with no additional conditioning
+migrant_universe <- regression[ever_leave_cbsa_hs_10 == 1 | ever_leave_cbsa_col_10 == 1]
+
+# Parameters for complier means table
+complier_chars <- c("inst_group","inst_group","in_state","transfer",
+                    "non_traditional","prestige_bin","prestige_bin",
+                    "inst_group_in_state","inst_group_in_state","inst_group_in_state",
+                    "return_within_5","return_within_5","hs_shock_quartile",
+                    "hs_shock_quartile","hs_shock_quartile","amenity","amenity")
+preferred_values <- c("RPU","PF","In-State","Transfer","Traditional","Low","Middle",
+                      "RPU, In-State", "PF, In-State", "Private, In-State",
+                      "Return Within 5 Years","Return in 5-10 Years","Bottom LD Quartile",
+                      "Middle LD Quartiles","Top LD Quartile","High-Amenity LM", "Low-Amenity LM")
+
+# Initialize results table
+compliers <- data.table(characteristic = character(), preferred_value = character(),
+                        coefficient = numeric(), std_error = numeric(), sample = numeric())
+
+# Loop over each characteristic and preferred value
+for (i in seq_along(complier_chars)) {
+  char_col <- complier_chars[i]
+  preferred_val <- preferred_values[i]
+  
+  print(paste("Processing:", char_col, "==", preferred_val))
+  
+  # Create treatment variable
+  treatment_col <- paste0(char_col, "_treatment")
+  regression_cbsa_10[, (treatment_col) := as.integer(get(char_col) == preferred_val) * same_cbsa_hs_10]
+  migrant_universe[, (treatment_col) := as.integer(get(char_col) == preferred_val) * same_cbsa_hs_10]
+  
+  # Compute unconditional mean
+  sample_mean <- regression_cbsa_10[col_end %in% cohorts[[specification]], mean(get(char_col) == preferred_val, na.rm = TRUE)]
+  universe_mean <- migrant_universe[col_end %in% cohorts[[specification]], mean(get(char_col) == preferred_val, na.rm = TRUE)]
+  compliers_data <- regression_cbsa_10[col_end %in% cohorts[[specification]]]
+  
+  # Define regression formula
+  formula <- paste0(treatment_col, " ~ same_cbsa_hs_10 + inst_group + in_state + (inst_group * in_state) + ",
+                    "non_traditional + transfer + col_major + soc_3 + prestige_bin + col_end + hs_state")
+  
+  # Run regression
+  #model <- lm_robust(as.formula(formula), data = regression_cbsa, clusters = hs_cbsa_code)
+  model <- fixest::feols(as.formula(formula), data = compliers_data, cluster = ~hs_cbsa_code)
+  
+  # Store results
+  compliers <- rbind(compliers, data.table(
+    characteristic = char_col,
+    preferred_value = preferred_val,
+    all_migrants = universe_mean,
+    sample = sample_mean,
+    coefficient = model$coefficients["same_cbsa_hs_10"],
+    std_error = model$se["same_cbsa_hs_10"]
+    
+  ), fill = TRUE)
+}
+# Export compliers so plots can be created on 09_plots.Rmd
+write.csv(compliers,file.path(directory,"Data",specification,"compliers.csv"),row.names = FALSE)
+
+compliers_output <- compliers %>%
+  mutate(Characteristic = case_when(preferred_value == "RPU" ~ "Regional Public University",
+                                    preferred_value == "PF" ~ "Public Flagship",
+                                    preferred_value == "Low" ~ "Low-Prestige Occp.",
+                                    preferred_value == "Middle" ~ "Medium-Prestige Occp.",
+                                    preferred_value == "In-State" ~ "Attended  In-State College",
+                                    preferred_value == "Transfer" ~ "Transferred Between Colleges",
+                                    preferred_value == "Traditional" ~ "Completed Degree by 24",
+                                    TRUE ~ preferred_value
+                                    )) %>%
+  relocate(Characteristic, .before = "coefficient") %>%
+  dplyr::select(Characteristic,coefficient,std_error,sample,all_migrants)
+
+
+names(compliers_output) <- c("Characteristic","Compliers","Std. Error","Sample","All Migrants")
+
+xc <- xtable(compliers_output)
+sink(file.path(directory,"Outputs",specification,"complier_means.tex"))
+print(xc, include.rownames=FALSE)
+
+closeAllConnections()
+
+

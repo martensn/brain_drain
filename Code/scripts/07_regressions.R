@@ -1,0 +1,594 @@
+## ----setup, include=FALSE-----------------------------------------------------
+knitr::opts_chunk$set(echo = TRUE)
+library(texreg)
+# Fastest package for adding cluster-robust standard errors:
+# https://www.r-bloggers.com/2021/05/clustered-standard-errors-with-r/#google_vignette 
+#library(estimatr)
+library(fixest)
+library(tidyverse)
+library(readxl)
+library(table.express)
+library(data.table)
+#library(progressr)
+
+options(digits = 1)
+options(scipen = 999)
+#handlers(global = TRUE) #  For progress bars
+
+
+## ----directory, include=FALSE-------------------------------------------------
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
+specification = "great_recession"
+
+geos = c("cbsa")
+dep_var = c("same","yagan")
+#geos = c("state")
+avgs = c(1)
+migration_ends <- c(5, 10)
+norm = c("")
+stage = c("_shock","_growth")
+shock_lbl = c("1-Year Shock",
+              "3-Year Average",
+              "5-Year Average",
+              "7-Year Average")
+# Number of bins is flexible
+num_bins = c(5,10)
+universes = c("stay","leave_hs","leave_col")
+
+
+## ----label--------------------------------------------------------------------
+
+# Function to generate variable labels for multiple prefixes
+generate_labels <- function(var_prefixes, avgs, inst_groups) {
+  labels_list <- lapply(var_prefixes, function(var_prefix) {
+    labels <- paste0(var_prefix, "_", avgs, ":")
+    do.call(paste0, expand.grid(labels, inst_groups))
+  })
+  unlist(labels_list)  # Flatten the list into a single vector
+}
+
+controls = c("in_stateIn-State",
+             "non_traditionalTraditional",
+             "transferTransfer")
+control_lbl = c("College In State",
+                "BA by Age 24",
+                "Transfer Student")
+inst_groups = c("inst_groupPrivate, For-Profit",
+                "inst_groupPrivate, Non-Profit",
+                "inst_groupRPU")
+                #"inst_groupRPU, Less Selective",
+                #"inst_groupRPU, More Selective")
+
+# Create Universal Labels
+output_instate = paste0(inst_groups, ":in_stateIn-State")
+output_dist = paste0("dist", c("[0,50]", "(50,100]", "(100,150]", "(150,200]", 
+                                "(200,250]", "(250,500]", "(500,1e+03]", "(1e+03,1e+04]"))
+
+# Crete labor demand shock variables
+hs_vars = paste0("hs",do.call(paste0, expand.grid(stage, norm, stringsAsFactors = FALSE)))
+col_vars = paste0("col",do.call(paste0, expand.grid(stage, norm, stringsAsFactors = FALSE)))
+
+# Generate labels for all variable types
+hs_output_vars = generate_labels(hs_vars, avgs, inst_groups)
+col_output_vars = generate_labels(col_vars, avgs, inst_groups)
+
+# Create labels for hs_shock * dist (using the original prefix)
+output_distance = paste0(rep(paste0(rep(hs_vars,each = length(avgs)),"_",avgs,":"),each = length(output_dist)),output_dist) 
+
+# Combine all interaction labels
+interactions = c(output_instate, hs_output_vars, col_output_vars, output_distance)
+interactions = c(output_instate, hs_output_vars, col_output_vars) #output_distance)
+
+# Remove variable names through flexible regex
+basic_pattern = "[^0-9]*[0-9]+"
+hs_pattern <- paste0("hs",basic_pattern)
+col_pattern <- paste0("col",basic_pattern)
+
+
+# Create clean labels for final table
+interactions_lbl = c(paste0(str_replace_all(inst_groups, "inst_group", ""), " $times$ In-State"),
+                     paste0(str_replace_all(hs_output_vars, paste0(hs_pattern,"(:inst_group)?"), ""), " $times$ HS LD Shock"),
+                     paste0(str_replace_all(col_output_vars, paste0(col_pattern,"(:inst_group)?"), ""), " $times$ College LD Shock"))#,
+                     #paste0(str_replace_all(output_distance, paste0(hs_pattern,"(:dist)?"), ""), " $times$ HS LD Shock"))
+
+# Bind regression outputs with cleaned names
+label = data.frame(output_names = c(do.call(paste, expand.grid(hs_vars, avgs, stringsAsFactors = FALSE, sep = "_")),
+                                    do.call(paste, expand.grid(col_vars, avgs, stringsAsFactors = FALSE, sep = "_")),
+                                    inst_groups,
+                                    #output_dist,
+                                    interactions,
+                                    controls),
+                   label_names = c(rep(times = length(avgs) * length(hs_vars),"HS LD Shock"),
+                                   rep(times = length(avgs) * length(col_vars),"College LD Shock"),
+                                   str_replace_all(inst_groups,"inst_group",""),
+                                   #str_replace_all(output_dist,"dist",""),
+                                   interactions_lbl,
+                                   control_lbl))
+
+nestedlist <- split(label$label_names, factor(label$output_names, 
+                                               levels = unique(label$output_names)))
+
+
+
+## ----first-stage--------------------------------------------------------------
+models = list()
+#geos = c("state","cbsa")
+#avgs = c(7,5)
+#norm = c("")
+#stage = c("_shock","_growth")
+
+# Define each first-stage model with the respective year, formula, and variable names
+models_info <- list(
+  "7" = list(formula = hs_growth_7 ~ hs_shock_7 + col_shock_7 + inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + col_end + hs_state + prestige_bin, early_filt = 1982, late_filt = 2019), #,
+  "5" = list(formula = hs_growth_5 ~ hs_shock_5 + col_shock_5 + inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + col_end + hs_state + prestige_bin, early_filt = 1982, late_filt = 2019),
+  "3" = list(formula = hs_growth_3 ~ hs_shock_3 + col_shock_3 + inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + col_end + hs_state + prestige_bin, early_filt = 1982, late_filt = 2019),
+  "1" = list(formula = hs_growth_1 ~ hs_shock_1 + col_shock_1 + inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + col_end + hs_state + prestige_bin, early_filt = 1982, late_filt = 2019))
+
+# Initialize list to store results
+stay_stats <- list()
+leave_hs_stats <- list()
+leave_col_stats <- list()
+captions <- list()
+# Loop through each model info, run the regression, and extract the relevant statistics
+for(a in avgs) 
+{
+  #h = "cbsa"
+  model_info <- models_info[[as.character(a)]]
+  early_filt <- model_info$early_filt
+  late_filt <- model_info$late_filt
+  for(u in universes)
+  {
+    data <- regression_cbsa_10
+    # Filter data based on the universe condition
+    if(u == "stay") {
+      data <- data[data$hs_cbsa_code == data$col_cbsa_code, ]
+    } else {
+      data <- data[data$hs_cbsa_code != data$col_cbsa_code, ]
+    }
+    #data <- data[!col_end %in% c(1975:early_filt)]
+    #data <- data[!col_end %in% c(late_filt:2023)]
+    #data <- data[!col_end %in% c(1982:1999)]
+    #data <- data[col_end %in% cohorts[[specification]]]
+    # Remove any rows with NAs for instrument values
+    instrument_cols = paste0(c("hs_growth_","hs_shock_","col_shock_","col_growth_"),a)
+    data <- data[complete.cases(data[, ..instrument_cols])]
+    #covariates = "inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + col_end + hs_state + prestige_bin"
+    covariates = "inst_group + in_state + non_traditional + transfer + col_major + soc_3 + col_end + hs_state + prestige_bin"
+  
+
+    if(u == "stay") 
+    {
+      print(paste("Solving: First-stage",u,a))
+      stayer_form <- paste0("same_cbsa_hs_10 ~ 1 |",covariates," | hs_growth_1 ~ hs_shock_1")
+      stayer_first <- fixest::feols(as.formula(stayer_form),
+                                     data = data,
+                                     cluster = ~hs_cbsa_code)
+      print(paste("Solved: First-stage",u,a))
+        
+    }
+    if(u == "leave_hs") 
+    {
+      print(paste("Solving: First-stage Uniftted",u,a))
+      leaver_form <- paste0("same_cbsa_hs_10 ~ 1 |",covariates,"| hs_growth_",a," + col_growth_",a," ~ hs_shock_",a," + col_shock_",a)
+      leaver_first <- fixest::feols(as.formula(leaver_form),
+                                 data = data,
+                                 cluster = ~hs_cbsa_code)
+      print(paste("Solved: First-stage Fitted",u,a))
+    }    
+  }
+  
+  coef_dict <- c(
+    # Map original variable names to desired labels
+    "hs_shock_1" = "HS LD Shock",
+    "hs_growth_1" = "HS LD Shock",
+    "col_shock_1" = "College LD Shock",
+    "col_growth_1" = "College LD Shock"
+  )
+  
+  # Example esttex usage
+  esttex(summary(stayer_first,stage=1), summary(leaver_first,stage=1), 
+      file = paste0(directory, "/Outputs/", specification, "/first_stage_", a, ".tex"),
+      title = "First-stage OLS measuring strength of labor demand shock instrument.",
+      label = paste0("table:first-stage-", a),
+      dict = coef_dict,  # Custom dictionary
+      fitstat = c('n','r2','ivf'),
+      digits = 4,
+      replace = FALSE,
+      drop.section = "fixef"
+  )
+  closeAllConnections()
+
+  # Export table to LaTeX using texreg
+  #texreg(
+  #  list(summary(hs_first_stay,stage=1),
+  #       #hs_first,
+  #       summary(hs_second,stage=1),
+  #       #col_first,
+  #       summary(col_second,stage=1)),                                                                                                                 
+    #custom.model.names = c("Stayers","HS First","HS Con.","Col First","Col Con."),
+  #  custom.model.names = c("Stayers","HS Con.","Col Con."),
+  #  label = paste0("table:first-stage-", a),
+  #  include.ci = FALSE,
+  #  center = FALSE,
+  #  digits = 4,
+  #  caption = "First-stage OLS measuring strength of labor demand shock instrument.",
+  #  custom.coef.map = nestedlist,
+  #  custom.gof.rows = list(
+  #      "F-Statistic" = sapply(list(hs_first_stay, hs_second, col_second), 
+  #                             function(model) fixest::fitstat(model, type = "ivf")$`ivf1::hs_growth_1`$stat
+  #  )),
+  #  file = paste0(directory, "/Outputs/",specification,"/first_stage_",a,".tex"),
+  #  append = TRUE
+  #)
+  # Extract F-statistic and R-squared, store in list
+  stay_stats[[as.character(a)]] <- list(
+    f_stat = fixest::fitstat(stayer_first, type = "ivf")$`ivf1::hs_growth_1`$stat,
+    r_squared = fixest::fitstat(stayer_first, type = "r2"),
+    slope = coef(summary(stayer_first,stage=1))[[paste0("hs_shock_",a)]],
+    slope_se = se(summary(stayer_first,stage=1))[[paste0("hs_shock_",a)]]
+  )
+  leave_hs_stats[[as.character(a)]] <- list(
+    f_stat = fixest::fitstat(leaver_first, type = "ivf")$`ivf1::hs_growth_1`$stat,
+    r_squared = fixest::fitstat(leaver_first, type = "r2"),
+    slope = coef(summary(leaver_first,stage=1))[[paste0("hs_shock_",a)]],
+    slope_se = se(summary(leaver_first,stage=1))[[paste0("hs_shock_",a)]]
+  )
+  leave_col_stats[[as.character(a)]] <- list(
+    f_stat = fixest::fitstat(leaver_first, type = "ivf")$`ivf1::col_growth_1`$stat,
+    r_squared = fixest::fitstat(leaver_first, type = "r2"),
+    slope = coef(summary(leaver_first,stage=1))[[paste0("col_shock_",a)]],
+    slope_se = se(summary(leaver_first,stage=1))[[paste0("col_shock_",a)]]
+  )
+  
+  # Creating captions for second-stage tables
+  captions[[paste("stay",a,sep="_")]] <- paste0("First-stage F-statistic for high school and college LD shock is ",
+                               round(get("stay_stats")[[as.character(a)]]$f_stat,0)," ($R^2=",
+                                    round(as.numeric(get("stay_stats")[[as.character(a)]]$r_squared),3),"$)")
+  captions[[paste("leave_hs",a,sep="_")]] <- paste0("First-stage partial F-statistic for high school LD shock is ",
+                                    round(get("leave_hs_stats")[[as.character(a)]]$f_stat,0)," ($R^2=",
+                                    round(as.numeric(get("leave_hs_stats")[[as.character(a)]]$r_squared),3),"$) and ",
+                                    round(get("leave_col_stats")[[as.character(a)]]$f_stat,0)," for college shock ($R^2=",
+                                    round(as.numeric(get("leave_col_stats")[[as.character(a)]]$r_squared),3),"$).")
+  captions[[paste("leave_col",a,sep="_")]] <- paste0("First-stage partial F-statistic for high school LD shock is ",
+                                    round(get("leave_hs_stats")[[as.character(a)]]$f_stat,0)," ($R^2=",
+                                    round(as.numeric(get("leave_col_stats")[[as.character(a)]]$r_squared),3),"$) and ",
+                                    round(get("leave_col_stats")[[as.character(a)]]$f_stat,0)," for college shock ($R^2=",
+                                    round(as.double(get("leave_col_stats")[[as.character(a)]]$r_squared),3),"$).")
+  
+}
+
+
+
+
+
+## ----2sls---------------------------------------------------------------------
+models <- list()
+group_semi_elasticities <- data.frame()
+# Prepare data to collect coefficients
+coef_data <- data.frame()
+
+for(h in geos) 
+{
+  for(u in universes)
+  {
+    print(paste0("Universe: ",u))
+    for(m in migration_ends)
+    {
+      data <- if(h == "cbsa") get(paste0("regression_cbsa_",m)) else get(paste0("regression_state_",m))
+      # Filter data based on the universe condition
+      if(u == "stay") {
+        data <- data[data$hs_cbsa_code == data$col_cbsa_code, ]
+      } else {
+        data <- data[data$hs_cbsa_code != data$col_cbsa_code, ]
+      }
+      #data <- data[!col_end %in% c(1982:1999)]
+      data <- data[col_end %in% cohorts[[specification]]]
+      for(a in avgs) 
+      {
+        for(n in norm)
+        {
+          for(d in dep_var)
+          {
+            mean_y_row = list()
+            for(s in stage) 
+            {
+              hs_var <- paste0("hs", s, n, "_", a)
+              col_var <- paste0("col", s, n, "_", a)
+      
+              current_stay <- paste0(d,"_", h, "_hs_",m," ~ ",hs_var)
+            
+            
+              current_hs <- paste0(d,"_", h, "_hs_",m," ~ ", paste(hs_var, col_var, sep=" + "))
+              current_col <- paste0(d,"_", h, "_col_",m," ~ ", paste(hs_var, col_var, sep=" + "))
+    
+              if(u == "stay") 
+              {
+                formula <- c(
+                  current_stay,
+                  paste0(current_stay, " + col_end"),
+                  paste0(current_stay, " + col_end + inst_group + in_state + (inst_group * in_state)"),
+                  paste0(current_stay, " + col_end + inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + prestige_bin"),
+                  paste0(current_stay, " + col_end + inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + prestige_bin + hs_state")
+                ) 
+              }
+              if(u == "leave_hs") 
+              {
+                formula <- c(
+                  current_hs,
+                  paste0(current_hs, " + col_end"),
+                  paste0(current_hs, " + col_end + inst_group + in_state + (inst_group * in_state)"),
+                  paste0(current_hs, " + col_end + inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + prestige_bin"),
+                  paste0(current_hs, " + col_end + inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + prestige_bin + hs_state")
+                ) 
+              }
+              if(u == "leave_col") 
+              {
+                formula <- c(
+                  current_col,
+                  paste0(current_col, " + col_end"),
+                  paste0(current_col, " + col_end + inst_group + in_state + (inst_group * in_state)"),
+                  paste0(current_col, " + col_end + inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + prestige_bin"),
+                  paste0(current_col," + col_end + inst_group + in_state + (inst_group * in_state) + non_traditional + transfer + col_major + soc_3 + prestige_bin + hs_state")
+                ) 
+              }
+              
+              # Add progress bar
+              #progressr::with_progress({
+              #  p <- progressr::progressor(steps = length(formula))
+              
+              for (f in 1:length(formula)) 
+              {
+                print(paste0("Solving: Specification ",f,s,d,m))
+                form <- formula[f]
+                # Clustered regression
+                model <- fixest::feols(
+                  as.formula(form),
+                  data = data,
+                  cluster = ~hs_cbsa_code
+                )
+                
+                mean_y = round(mean(data[[str_squish(paste0(sub("~.*", "", form)))]], na.rm = TRUE),2)
+
+                models[[paste0(h, s, n, "_avg_", a, "_", f,"_", m, "_", u, "_", d)]] <- model
+                print(paste0("Solved: Specification ",f,s))
+                if(u == "stay") 
+                {
+                  # Extract coefficients and confidence intervals
+                  model_key <- paste0(h, stage[1], norm[1], "_avg_", a, "_", f,"_", m, "_", u, "_", d)
+                  coef_data <- coef_data %>%
+                    bind_rows(
+                      data.frame(
+                        hs_var = hs_var,
+                        col_var = hs_var,
+                        universe = u,
+                        geo = h,
+                        avg = a,
+                        model = f,
+                        migration_end = m,
+                        dep_var = d,
+                        mean_y = mean_y,
+                        hs_coef = coef(model)[hs_var],
+                        hs_conf_low = confint(model)[hs_var, 1],
+                        hs_conf_high = confint(model)[hs_var, 2],
+                        col_coef = coef(model)[hs_var],
+                        col_conf_low = confint(model)[hs_var, 1],
+                        col_conf_high = confint(model)[hs_var, 2]
+                      )
+                    )
+                  hs_coef = coef(model)[hs_var]
+                  col_coef = coef(model)[col_var]
+                } else {# Extract coefficients and confidence intervals
+                  model_key <- paste0(h, stage[1], norm[1], "_avg_", a, "_", f,"_", m, "_", u, "_", d)
+                  coef_data <- coef_data %>%
+                    bind_rows(
+                      data.frame(
+                        hs_var = hs_var,
+                        col_var = col_var,
+                        universe = u,
+                        geo = h,
+                        avg = a,
+                        model = f,
+                        migration_end = m,
+                        dep_var = d,
+                        mean_y = mean_y,
+                        hs_coef = coef(model)[hs_var],
+                        hs_conf_low = confint(model)[hs_var, 1],
+                        hs_conf_high = confint(model)[hs_var, 2],
+                        col_coef = coef(model)[col_var],
+                        col_conf_low = confint(model)[col_var, 1],
+                        col_conf_high = confint(model)[col_var, 2]
+                      )
+                    )
+                    hs_coef = coef(model)[hs_var]
+                    col_coef = coef(model)[col_var]
+                }
+                # Add mean dependent variable value to cumulative list
+                mean_y_row = c(mean_y_row,mean_y) 
+              } # Closes for loop that evaluates formulae
+              #})   For progress bar
+              print(paste("Finished with",u,s,d,sep=" "))
+              for(inst in unique(data$inst_group))
+              {
+                for(in_state in unique(data$in_state))
+                {
+                  
+                  # Determine coefficients for current group
+                  inst_coef <- ifelse(inst == "PF", 0, coef(model)[paste0("inst_group", inst)])
+                  in_state_coef <- ifelse(in_state == "Out-of-State", 0, coef(model)[paste0("in_state", in_state)])
+                  interaction_coef <- ifelse(
+                    inst == "PF" || in_state == "Out-of-State",
+                    0,
+                    coef(model)[paste0("inst_group", inst, ":in_state", in_state)]
+                  )
+        
+                  # Calculate semi-elasticity for high school labor demand (hs_var)
+                  hs_group_semi <- (hs_coef + inst_coef + in_state_coef + interaction_coef)
+              
+                  # Calculate semi-elasticity for college labor demand (col_var)
+                  col_group_semi <- (col_coef + inst_coef + in_state_coef + interaction_coef)
+              
+                  # Store results in dataframe
+                  group_semi_elasticities <- group_semi_elasticities %>%
+                    bind_rows(data.frame(
+                        geo = h,
+                        avg = a,
+                        norm = n,
+                        migration_end = m,
+                        dep_var = d,
+                        stage = s,
+                        universe = u,
+                        inst_group = inst,
+                        in_state = in_state,
+                        hs_semi_elasticity = hs_group_semi,
+                        col_semi_elasticity = col_group_semi
+                        ))
+                  }
+                }
+              
+              # Define control inclusion for each model
+              controls <- list(
+                "Col. Grad. Year FE" = c("No", "Yes", "Yes", "Yes", "Yes", "No", "Yes", "Yes", "Yes", "Yes"),
+                "Major FE" = c("No", "No", "Yes", "Yes", "Yes", "No", "No", "Yes", "Yes", "Yes"),
+                "Transfer FE" = c("No", "No", "Yes", "Yes", "Yes", "No", "No", "Yes", "Yes", "Yes"),
+                "Occp. Group FE" = c("No", "No", "Yes", "Yes", "Yes", "No", "No", "Yes", "Yes", "Yes"),
+                "Occp. Prestige FE" = c("No", "No", "Yes", "Yes", "Yes", "No", "No", "Yes", "Yes", "Yes"),
+                "HS State FE" = c("No", "No", "No", "No", "Yes", "No", "No", "No", "No", "Yes"),
+                "Mean Dep. Var" = mean_y_row
+              )
+            }
+            tsls_models <- list(
+                models[[paste0(h, stage[1], n, "_avg_", a, "_1","_", m, "_", u, "_", d)]],
+                models[[paste0(h, stage[1], n, "_avg_", a, "_2","_", m, "_", u, "_", d)]],
+                models[[paste0(h, stage[1], n, "_avg_", a, "_3","_", m, "_", u, "_", d)]],
+                models[[paste0(h, stage[1], n, "_avg_", a, "_4","_", m, "_", u, "_", d)]],
+                models[[paste0(h, stage[1], n, "_avg_", a, "_5","_", m, "_", u, "_", d)]],
+                models[[paste0(h, stage[2], n, "_avg_", a, "_1","_", m, "_", u, "_", d)]],
+                models[[paste0(h, stage[2], n, "_avg_", a, "_2","_", m, "_", u, "_", d)]],
+                models[[paste0(h, stage[2], n, "_avg_", a, "_3","_", m, "_", u, "_", d)]],
+                models[[paste0(h, stage[2], n, "_avg_", a, "_4","_", m, "_", u, "_", d)]],
+                models[[paste0(h, stage[2], n, "_avg_", a, "_5","_", m, "_", u, "_", d)]])
+            
+            
+            # Output LaTeX table
+            texreg(tsls_models,
+              custom.model.names = rep(paste0("(", 1:5, ")"), 2),
+              label = paste0("table:opt_", h, n, "_", a,"_",d),
+              include.ci = FALSE,
+              caption = paste0(
+               "Probability of returning to high school ", h," within 10 years of college graduation. ",
+              captions[[paste0(u,"_",a)]]),
+              center = FALSE,
+              digits = 3,
+              custom.gof.rows = controls,
+              custom.coef.map = nestedlist,
+              include.rsquared = FALSE,
+              include.adjrs = FALSE,
+              file = paste0(directory, "/Outputs/",specification,"/opt_", h, n, "_", a,"_", m, "_", u,"_",d,".tex"),
+              append = TRUE
+            )
+          }
+        }
+      }
+    }
+  }
+}
+
+write.csv(group_semi_elasticities,file.path(directory,"Data",specification,"group_semi_elasticities.csv"), row.names=FALSE)
+write.csv(coef_data,file.path(directory,"Data",specification,"coef_data_semi.csv"), row.names=FALSE)
+
+
+
+
+## -----------------------------------------------------------------------------
+# Extract semi-elasticities for relevant return measurement
+# First, return to high school labor market
+semi_cbsa <- group_semi_elasticities %>%
+  table.express::filter(geo == "cbsa" & avg == 1 & norm != "_ptile" & stage == "_shock") %>%
+  table.express::select(inst_group,in_state,hs_semi_elasticity)
+# Next, return to high school state
+#semi_state <- group_semi_elasticities %>%
+#  table.express::filter(geo == "state" & avg == 1 & norm != "_ptile" & stage == "_shock") %>%
+#  table.express::select(inst_group,in_state,hs_semi_elasticity)
+
+# Compute predictions for labor market returns across entire sample
+predictions_cbsa <- regression[,.N,by=.(col_end_numeric,inst_group,in_state,same_cbsa_hs,ever_leave_cbsa_hs)] %>%
+  dcast(col_end_numeric + inst_group + in_state ~ same_cbsa_hs + ever_leave_cbsa_hs,
+         value.var = "N", fill = 0)
+setnames(predictions_cbsa, old = c("0_0", "0_1", "1_0", "1_1"), 
+  new = c("weird", "pred_leavers", "pred_stayers", "pred_returners"))
+predictions_cbsa[,pred_shr_returners_base := pred_returners/(pred_returners+pred_leavers)]
+predictions_cbsa <- predictions_cbsa[, .(col_end_numeric,inst_group,in_state,pred_shr_returners_base)]
+# Compute predictions for state returns across entire sample
+predictions_state <- regression[,.N,by=.(col_end_numeric,inst_group,in_state,same_state_hs,ever_leave_state_hs)] %>%
+  dcast(col_end_numeric + inst_group + in_state ~ same_state_hs + ever_leave_state_hs,
+        value.var = "N",fill = 0)
+setnames(predictions_state, old = c("0_0", "0_1", "1_0", "1_1"),
+         skip_absent = TRUE,
+  new = c("weird", "pred_leavers", "pred_stayers", "pred_returners"))
+predictions_state[,pred_shr_returners_base := pred_returners/(pred_returners+pred_leavers)]
+predictions_state <- predictions_state[, .(col_end_numeric,inst_group,in_state,pred_shr_returners_base)]
+
+cbsa_shock_ptile = fread(file.path(data_dir,"intermediate/cbsa_shock.csv"))
+
+# Compute labor market x year of college graduation return rates, to compare against predictions
+empir_cbsa <- regression[,.N,by=.(col_end_numeric,hs_cbsa,inst_group,in_state,same_cbsa_hs,ever_leave_cbsa_hs)] %>%
+  dcast( hs_cbsa + col_end_numeric + inst_group + in_state ~ same_cbsa_hs + ever_leave_cbsa_hs,
+         value.var = "N", fill = 0) %>%
+  merge(cbsa_shock_ptile, by.x = c("hs_cbsa","col_end_numeric"), by.y = c("cbsa_code","year"), all.x=TRUE) %>%
+  merge(predictions_cbsa, by = c("col_end_numeric","inst_group","in_state"),all.x=TRUE) %>% #  Watch whether Cartesian fucks anything up
+  merge(semi_cbsa, by = c("inst_group","in_state"),all.x=TRUE,allow.cartesian = TRUE)
+# Renaming columns based on conditions
+setnames(empir_cbsa, old = c("0_0", "0_1", "1_0", "1_1"),  # Original column names from dcast
+  new = c("weird", "leavers", "stayers", "returners"))
+empir_cbsa[,total_non_stayers := returners+leavers]
+empir_cbsa[,shr_returners := returners/total_non_stayers]
+empir_cbsa[,pred_shr_returners := pred_shr_returners_base + (shock_avg_1 * hs_semi_elasticity)]
+# Next aggregate upward, taking weighted average of predictions and actual return rates
+# for different combinations of in_state and inst_group
+diff_cbsa <- empir_cbsa[, .(shr_returners = weighted.mean(shr_returners,w=total_non_stayers,na.rm=TRUE),
+                             pred_shr_returners = weighted.mean(pred_shr_returners,w=total_non_stayers,na.rm=TRUE),
+                             difference = shr_returners - pred_shr_returners), by = .(col_end_numeric,hs_cbsa)]
+# Between 2000 and 2022, by how many percentage points did the local labor market's return
+# rate exceed the prediction, controlling for year and where natives attended college
+diff_cbsa <- diff_cbsa[, .(shr_returners_cbsa = mean(shr_returners,na.rm=TRUE),
+                           pred_shr_returners_cbsa = mean(pred_shr_returners,na.rm=TRUE),
+                           difference_cbsa = mean(difference, na.rm=TRUE)),by=.(hs_cbsa)]
+
+# Compute state x year of college graduation return rates, to compare against predictions
+#empir_state <- regression[,.N,by=.(col_end_numeric,hs_cbsa,inst_group,in_state,same_state_hs,ever_leave_state_hs)] %>%
+#  dcast( hs_cbsa + col_end_numeric + inst_group + in_state ~ same_state_hs + ever_leave_state_hs,
+#         value.var = "N", fill = 0) %>%
+#  merge(cbsa_shock_ptile, by.x = c("hs_cbsa","col_end_numeric"), by.y = c("cbsa_code","year"), all.x=TRUE) %>%
+#  merge(predictions_state, by = c("col_end_numeric","inst_group","in_state"),all.x=TRUE) %>%
+#  merge(semi_state, by = c("inst_group","in_state"),all.x=TRUE,allow.cartesian = TRUE)
+# Renaming columns based on conditions
+#setnames(empir_state, old = c("0_0", "0_1", "1_0", "1_1"),  # Original column names from dcast
+#  new = c("weird", "leavers", "stayers", "returners"),
+#  skip_absent = TRUE)
+#empir_state[,total_non_stayers := returners+leavers]
+#empir_state[,shr_returners := returners/total_non_stayers]
+#empir_state[,pred_shr_returners := pred_shr_returners_base + (shock_avg_1 * hs_semi_elasticity)]
+# Next aggregate upward, taking weighted average of predictions and actual return rates
+# for different combinations of in_state and inst_group
+#diff_state <- empir_state[, .(shr_returners = weighted.mean(shr_returners,w=total_non_stayers,na.rm=TRUE),
+#                             pred_shr_returners = weighted.mean(pred_shr_returners,w=total_non_stayers,na.rm=TRUE),
+#                             difference= shr_returners - pred_shr_returners), by = .(col_end_numeric,hs_cbsa)]
+# Between 2000 and 2022, by how many percentage points did the local labor market's return
+# rate exceed the prediction, controlling for year and where natives attended college
+#diff_state <- diff_state[, .(shr_returners_state = mean(shr_returners,na.rm=TRUE),
+#                           pred_shr_returners_state = mean(pred_shr_returners,na.rm=TRUE),
+#                           difference_state = mean(difference, na.rm=TRUE)),by=.(hs_cbsa)]
+
+# Merge labor market and state-level analyses into single object for export
+#differences <- merge(diff_state,diff_cbsa,by=c("hs_cbsa"))
+differences <- diff_cbsa
+
+# Export merged file
+write.csv(differences,file.path(directory,"Data",specification,"local_differences.csv"))
+
+

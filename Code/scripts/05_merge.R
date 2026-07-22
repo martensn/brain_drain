@@ -1,0 +1,666 @@
+## ----setup, include=FALSE-----------------------------------------------------
+knitr::opts_chunk$set(echo = TRUE)
+library(educationdata)
+library(tidyverse)
+library(table.express)
+library(data.table)
+
+
+## ----directory, include=FALSE-------------------------------------------------
+
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
+data_dir  <- file.path(directory, "Data")
+out_dir   <- file.path(directory, "Outputs")
+zipcodefilename = "zipcodes.csv"
+# Choose a base year (e.g., 2020) for CPI
+cpi_base_year <- 2020
+
+min_post_grad = 0
+max_post_grad = 50
+
+
+
+## -----------------------------------------------------------------------------
+
+# Import microdata file if not loaded already
+if(!exists("completed"))
+{
+  raw_microdata = fread(file.path(data_dir,"raw/revelio/raw_microdata__05.csv"),
+                  colClasses = c("col_zip" = "character",
+                                 "hs_cnty"= "character"
+                                 ))
+}
+if(exists("completed"))
+{
+  raw_microdata = completed
+}
+
+
+## ----pos import, include=FALSE------------------------------------------------
+
+raw_microdata[,col_unitid := as.integer(col_unitid)]
+# Pull directory of basic information about institutions
+col_cbsas = get_education_data(level = "college-university",
+                                   source = "ipeds",
+                                   topic = "directory",
+                                   filters = list(year = 2021)
+                   ) %>%
+  select(c(unitid,county_fips)) %>%
+  mutate(col_cnty = as.character(str_pad(county_fips,5,"left","0"))) %>%
+  rename(col_unitid = unitid)
+
+raw_microdata <- merge(raw_microdata,col_cbsas, by="col_unitid")
+raw_microdata <- merge(raw_microdata,unified_cbsa, by.x ="col_cnty", by.y = "GeoFIPS") %>%
+  setnames(c("cbsa_code"),c("col_cbsa_code"))
+raw_microdata <- merge(raw_microdata,unified_cbsa, by.x ="hs_cnty", by.y = "GeoFIPS") %>%
+  setnames(c("cbsa_code"),c("hs_cbsa_code"))
+
+
+
+## ----occp-mode----------------------------------------------------------------
+
+# Define a helper function to calculate the mode
+get_mode <- function(x) {
+  x <- x[!is.na(x)]
+  if (length(x) == 0) return(NA)
+  unique_x <- unique(x)
+  unique_x[which.max(tabulate(match(x, unique_x)))]
+}
+
+# Select the columns and apply the mode function across rows
+raw_microdata[, soc_code_mode := apply(.SD, 1, get_mode), .SDcols = paste0("soc_code_", as.character(c(min_post_grad:max_post_grad)))]
+raw_microdata[, cbsa_mode := apply(.SD, 1, get_mode), .SDcols = paste0("cbsa_code_", as.character(c(min_post_grad:max_post_grad)))]
+raw_microdata[, state_mode := apply(.SD, 1, get_mode), .SDcols = paste0("cbsa_state_", as.character(c(min_post_grad:max_post_grad)))]
+
+
+
+
+## ----occp-mode_dup2, eval=FALSE-----------------------------------------------
+# 
+# # Import occupational prestige crosswalk created in step 8
+# occp_prestige <- fread(file.path(data_dir,"intermediate/occupational_prestige.csv")) %>%
+#   as.data.frame() %>%
+#   distinct(socp_raw, .keep_all = TRUE) %>%
+#   select(socp_raw,prestige_bin)
+# 
+# raw_microdata <- merge(raw_microdata,occp_prestige,by.x="soc_code_mode",by.y="socp_raw")
+# 
+# # Initialize an empty data.table to store results
+# return_cbsa <- data.table()
+# return_state <- data.table()
+# 
+# # Loop over years since graduation (0 to 50)
+# for (year in min_post_grad:max_post_grad) {
+#   print(paste("Currently on",year))
+#   # Dynamically construct the column name for the current year
+#   col_name <- paste0("cbsa_code_", year)
+#   cum_cols <- paste0("cbsa_code_",min_post_grad:year)
+# 
+#   # Calculate the share returning to hs_cbsa for this year
+#   stock <- raw_microdata[
+#     , .(shr_return_cbsa = mean(.SD[[1]] == hs_cbsa, na.rm = TRUE)),
+#     by = .(col_unitid,prestige_bin),
+#     .SDcols = col_name
+#   ]
+#   cumulative <- raw_microdata[
+#     , .(shr_ever_return_cbsa = mean(rowSums(.SD == hs_cbsa, na.rm = TRUE) > 0)),
+#     by = .(col_unitid,prestige_bin),
+#     .SDcols = cum_cols
+#   ]
+# 
+#   # Add the current year since graduation to the result
+#   stock[, years := year]
+#   cumulative[, years := year]
+#   return_cbsa_temp <- merge(stock,cumulative,by = c("col_unitid","years","prestige_bin"))
+# 
+#   # Append to the results data.table
+#   return_cbsa <- rbind(return_cbsa, return_cbsa_temp, use.names = TRUE, fill = TRUE)
+# }
+# 
+# # Loop over years since graduation (0 to 50)
+# for (year in min_post_grad:max_post_grad) {
+#   print(paste("Currently on",year))
+#   # Dynamically construct the column name for the current year
+#   col_name <- paste0("cbsa_state_", year)
+#   cum_cols <- paste0("cbsa_state_",min_post_grad:year)
+# 
+#   # Calculate the share returning to hs_cbsa for this year
+#   stock <- raw_microdata[
+#     , .(shr_return_state = mean(.SD[[1]] == hs_state, na.rm = TRUE)),
+#     by = .(col_unitid,prestige_bin),
+#     .SDcols = col_name
+#   ]
+#   cumulative <- raw_microdata[
+#     , .(shr_ever_return_state = mean(rowSums(.SD == hs_state, na.rm = TRUE) > 0)),
+#     by = .(col_unitid,prestige_bin),
+#     .SDcols = cum_cols
+#   ]
+# 
+#   # Add the current year since graduation to the result
+#   stock[, years := year]
+#   cumulative[, years := year]
+#   return_state_temp <- merge(stock,cumulative,by = c("col_unitid","years","prestige_bin"))
+# 
+#   # Append to the results data.table
+#   return_state <- rbind(return_state, return_state_temp, use.names = TRUE, fill = TRUE)
+# }
+# 
+# return <- merge(return_cbsa,return_state,by = c("years","col_unitid","prestige_bin"))
+# 
+# write.csv(return,file.path(data_dir,"intermediate/return_occp.csv"), row.names=FALSE)
+
+
+## ----pos import_dup2, include=FALSE-------------------------------------------
+
+# Check if user ever lived in hs and college CBSA and state
+raw_microdata = raw_microdata[, same_cbsa_hs := Reduce(`|`, lapply(.SD, `==`, hs_cbsa)), .SDcols = paste("cbsa_code",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+raw_microdata = raw_microdata[, same_state_hs := Reduce(`|`, lapply(.SD, `==`, hs_state)), .SDcols = paste("cbsa_state",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+raw_microdata = raw_microdata[, ever_leave_cbsa_hs := Reduce(`|`, lapply(.SD, `!=`, hs_cbsa)), .SDcols = paste("cbsa_code",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+raw_microdata = raw_microdata[, ever_leave_state_hs := Reduce(`|`, lapply(.SD, `!=`, hs_state)), .SDcols = paste("cbsa_state",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+raw_microdata = raw_microdata[, same_cbsa_col := Reduce(`|`, lapply(.SD, `==`, col_cbsa_code)), .SDcols = paste("cbsa_code",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+raw_microdata = raw_microdata[, same_state_col := Reduce(`|`, lapply(.SD, `==`, col_state)), .SDcols = paste("cbsa_state",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+raw_microdata = raw_microdata[, ever_leave_cbsa_col := Reduce(`|`, lapply(.SD, `!=`, col_cbsa_code)), .SDcols = paste("cbsa_code",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+raw_microdata = raw_microdata[, ever_leave_state_col := Reduce(`|`, lapply(.SD, `!=`, col_state)), .SDcols = paste("cbsa_state",as.character(c(min_post_grad:max_post_grad)),sep="_")]
+# Coerce from NA/TRUE to standard 0/1 dummy variable
+cols = c("same_cbsa_hs","same_state_hs","same_cbsa_col","same_state_col","ever_leave_cbsa_hs","ever_leave_state_hs",
+         "ever_leave_state_col","ever_leave_cbsa_col")
+microdata = raw_microdata[, (cols) :=  lapply(.SD, function(x) ifelse(is.na(x)==TRUE, 0, 1)), .SDcols = cols]
+
+# Count number of non-missing years
+microdata[,yrs_included := rowSums(!is.na(.SD)),
+          .SDcols = patterns("^cbsa_code")]
+
+# Loop through levels
+for (level in c("hs", "col")) {
+  # Define the CBSA variable dynamically
+  cbsa_col <- paste0(level, "_cbsa_code")
+  state_col <- paste0(level, "_state")
+  
+  # Calculating year of return to state, relative to college graduation
+  microdata[, paste0("yr_return_", level, "_cbsa") := {
+    comparison_matrix <- lapply(.SD, function(col) as.numeric(col ==  get(cbsa_col)))
+    comparison_matrix <- do.call(cbind,comparison_matrix) 
+    comparison_matrix[!is.na(comparison_matrix)] <- comparison_matrix[!is.na(comparison_matrix)] + 1
+    comparison_matrix[is.na(comparison_matrix)] <- 0
+    match_indices <- max.col(comparison_matrix, ties.method = "first")
+    match_indices[!rowSums(comparison_matrix==2)] <- NA
+    # Subtract 1 from non-NA elements
+    match_indices <- ifelse(is.na(match_indices), NA, match_indices - 1)
+    #print(year_indices[match_indices])
+  }, .SDcols = patterns("^cbsa_code")]
+
+  # Calculating year of return to state, relative to college graduation
+  microdata[, paste0("yr_return_", level, "_state") := {
+    comparison_matrix <- lapply(.SD, function(col) as.numeric(col ==  get(state_col)))
+    comparison_matrix <- do.call(cbind,comparison_matrix) 
+    comparison_matrix[!is.na(comparison_matrix)] <- comparison_matrix[!is.na(comparison_matrix)] + 1
+    comparison_matrix[is.na(comparison_matrix)] <- 0
+    match_indices <- max.col(comparison_matrix, ties.method = "first")
+    match_indices[!rowSums(comparison_matrix==2)] <- NA
+    # Subtract 1 from non-NA elements
+    match_indices <- ifelse(is.na(match_indices), NA, match_indices - 1)
+  }, .SDcols = patterns("^cbsa_state")]
+}
+
+
+## ----filtering----------------------------------------------------------------
+# Define parameters for dynamic condition creation
+levels <- c("hs", "col") # High school and college
+geos <- c("cbsa", "state") # Geographic levels
+ranges <- c("", " > 9", " > 19", " > 29") # Correspond to unc, 10, 20, 30
+groups <- c("unc", "10", "20", "30") # Group labels
+
+# Initialize results
+return_results <- list()
+
+# Loop through levels (hs, col)
+for (level in levels) {
+  for (geo in geos) {
+    # Create conditions for the current level and geography
+    conditions <- lapply(ranges, function(range) {
+      # Dynamically create condition as a string
+      cond_str <- paste0(
+        "ever_leave_", geo, "_", level, " == 1 & same_", geo, "_", level, " == 1",
+        ifelse(range != "", paste0(" & yrs_included", range), "")
+      )
+      # Parse and evaluate the condition
+      parse(text = cond_str)
+    })
+    
+    # Apply conditions to data and store results
+    return_results[[paste0(level, "_", geo)]] <- rbindlist(
+      lapply(seq_along(conditions), function(i) {
+        # Evaluate the condition and compute counts and shares
+        microdata[eval(conditions[[i]]) & !is.na(get(paste0("yr_return_", level, "_", geo))),
+          .(N = .N),
+          by = .(get(paste0("yr_return_", level, "_", geo)))
+        ][, `:=`(
+          group = groups[i], # Add group label
+          type = paste0("return_", level, "_", geo) # Add type label
+        )]
+      })
+    )
+  }
+}
+# Assuming `results` is a list of data.tables
+return_by_year <- rbindlist(return_results)
+
+# Split the 'type' column into 'return', 'level', 'geo' using `tstrsplit`
+return_by_year[, c("return", "level", "geo") := tstrsplit(type, "_", fixed = TRUE)]
+
+# Remove the original 'return' column
+return_by_year[, type := NULL]
+return_by_year[, return := NULL]
+
+# Calculate the share of N within each group
+return_by_year[, shr := N / sum(N), by = .(group, level, geo)]  
+
+# Order results (optional)
+setorder(return_by_year, get, group)
+
+# Rename column for easier intepretation
+setnames(return_by_year, "get", "year")
+
+# Conditional on returning to home state, when do people do it
+write.csv(return_by_year,file.path(data_dir,"intermediate/return_by_year.csv"), row.names=FALSE)
+
+
+## ----filtering_dup2-----------------------------------------------------------
+
+birth_outliers = microdata %>%
+  # Remove obvious birth outliers
+  table.express::filter(col_end > 1981 & col_end < 2022 & birth > 1929 & birth > 1929 & birth < 2003)
+
+territory_hs_col = birth_outliers %>%
+  table.express::filter(!hs_state %in% c("GU","PR","AS","VI")) %>%
+  table.express::filter(!col_state %in% c("GU","PR","AS","VI"))
+
+birth_outliers = length(unique(birth_outliers$user_id))
+territory_hs_col = length(unique(territory_hs_col$user_id))
+
+microdata = microdata %>%
+  # Remove obvious birth outliers
+  table.express::filter(col_end > 1981 & col_end < 2023 & birth > 1929 & birth < 2003) %>%
+  # Remove profiles from US territories since no CBP data
+  table.express::filter(!hs_state %in% c("GU","PR","AS","VI")) %>%
+  table.express::filter(!col_state %in% c("GU","PR","AS","VI"))
+
+
+
+## ----distance, echo=FALSE-----------------------------------------------------
+
+# Obtain list of college zip codes from IPEDS
+#inst_zip <- get_education_data(
+#    level = "college-university",
+#    source = "ipeds",
+#    topic = "directory",
+#    filters = list(year = 2021),
+#    add_labels = TRUE) %>%
+#  select(c("unitid","zip")) %>%
+#  mutate(col_zip = str_extract(zip, "^.{5}"))
+
+# Merge into microdata
+#microdata <- merge(microdata, inst_zip, by.x = "col_unitid", by.y = "unitid", all.x = TRUE)
+
+# Obtain list of high school ZIP codes from NCES
+hs_zip <- all_hs %>%
+  select(hs_unitid,ZIP) %>%
+  rename(hs_zip = ZIP)
+
+# Merge into microdata
+microdata <- merge(microdata, hs_zip, by = "hs_unitid", all.x = TRUE)
+
+# https://stackoverflow.com/questions/55408526/r-find-the-distance-between-two-us-zipcode-columns
+## Convert the zip codes to data.table so we can join on them
+## using the centroid of the zipcodes (lng and lat).
+dt_zips <- as.data.table(read.csv(file.path(data_dir,"raw/census_geo/zipcodes.csv"),
+                                  colClasses = c("character","numeric","numeric")))
+
+# Ensure ZIP code for educational institution is standard five digits
+microdata[
+  , `:=`(
+    col_zip = str_sub(col_zip,1,5),
+    hs_zip = str_sub(hs_zip,1,5)
+  )
+]
+
+## Attach origin lon & lat using a join
+microdata[
+  dt_zips
+  , on = .(col_zip = zipcode)
+  , `:=`(
+    lng_start = lng
+    , lat_start = lat
+  )
+]
+
+## Attach destination lon & lat using a join
+microdata[
+  dt_zips
+  , on = .(hs_zip = zipcode)
+  , `:=`(
+    lng_end = lng
+    , lat_end = lat
+  )
+]
+
+## Calculate the distance
+microdata[
+  , distance_metres := geodist::geodist_vec(
+    x1 = lng_start
+    , y1 = lat_start
+    , x2 = lng_end
+    , y2 = lat_end
+    , paired = TRUE
+    , measure = "haversine"
+  )
+]
+
+microdata[
+  , `:=`(
+    distance_km = distance_metres / 1000,
+    distance_mi = distance_metres * 0.000621371
+  )
+]
+
+microdata[, dist := cut(x = distance_mi, 
+                   breaks = c(0,50,100,150,200,250,500,1000,10000),
+                   #labels = TRUE, 
+                   include.lowest = TRUE)]
+
+
+
+## ----occp-prestige------------------------------------------------------------
+
+#posfilename3 = "cleaned_pos_educ_sample.csv"
+bls_occupation_filename = "occupation.xlsx"
+bls_education_filename = "education.xlsx"
+occupational_prestige_filename = "OccupationalPrestigeRatings.csv"
+
+# Import occupational prestige data from Harvard Dataverse
+# https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/G1E4BF
+raw_prestige = read_csv(file.path(data_dir,"raw/bls/OccupationalPrestigeRatings.csv"),
+                                  col_types = cols_only(`ONET SOC 2018 Code` = col_character(),
+                                                        `OPR Job Rating` = col_double(),
+                                                        `ONET SOC 2018 Title` = col_character())) %>%
+  rename(prestige = `OPR Job Rating`,
+         socp_raw = `ONET SOC 2018 Code`,
+         socp_title = `ONET SOC 2018 Title`)
+
+# Import educational attainment by detailed occupation
+# https://www.bls.gov/emp/documentation/education-training-system.htm
+soc_educ <- readxl::read_excel(file.path(data_dir,"intermediate/education__top.xlsx"), 
+                               col_types = c("text","text","numeric","numeric","numeric","numeric","numeric","numeric","numeric"),
+                                sheet = "Table 5.3")[-1, -1] %>%
+  mutate(shr_ba = as.numeric(`...7`) + as.numeric(`...8`) + as.numeric(`...9`)) %>% # Ensure columns are numeric
+  select(shr_ba,`...2`) %>%  # Select the last column (which is now the rightmost)
+  rename(socp = `...2`) 
+  # Rename the rightmost column
+# Import employment by detailed occupation
+# https://www.bls.gov/emp/tables/occupational-projections-and-characteristics.htm
+raw_occp <- readxl::read_excel(file.path(data_dir,"raw/bls/occupation.xlsx"), 
+                               col_types = c("text","text","text","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric"),
+                                sheet = "Table 1.2")[-1, ]
+# Import distribution of occupations in LI data
+#pos_summary = fread(file.path(data_dir,"intermediate/soc_li_distribution.csv"))  
+
+  
+occp_prestige = raw_prestige %>%
+  #dplyr::mutate(socp = str_sub(socp_raw, end = -4)) %>%
+  dplyr::mutate(socp = socp_raw) %>%
+  dplyr::filter(!is.na(socp)) %>%
+  dplyr::group_by(socp,socp_raw) %>%
+  dplyr::summarize(prestige = max(prestige, na.rm = TRUE)) %>%
+  # These two codes (for fine artists and door to door salespeople) don't have ratings
+  dplyr::filter(!socp %in% c("27-1013","41-9091"))
+
+# Extract names of different occupational groupings to improve comprehensibility
+soc_labels <- raw_occp %>%
+  filter(`...3` == "Summary") %>% 
+  select("Table 1.2 Occupational projections, 2023–33, and worker characteristics, 2023 (Numbers in thousands)",`...2`) %>% 
+  rename(socp = `...2`,soc_title = "Table 1.2 Occupational projections, 2023–33, and worker characteristics, 2023 (Numbers in thousands)" ) %>%
+  mutate(last_3 = substr(socp, start = 5, stop = 7),
+         mid_1 = substr(socp, start = 4, stop = 4),
+         soc_3 = substr(socp, start = 1, stop = 4),
+         soc_2 = substr(socp, start = 1, stop = 2))
+# Extract names for two-digit SOCs
+soc_2_labels <- soc_labels %>%
+  filter(mid_1 == "0" & soc_2 != "00") %>%
+  mutate(soc_2_title=str_replace_all(soc_title," occupations","")) %>%
+  select(soc_2_title,soc_2)
+# Extract names for three-digit SOCs
+soc_3_labels <- soc_labels %>%
+  filter(mid_1 != "0" & last_3 == "000") %>%
+  rename(soc_3_title=soc_title) %>%
+  select(soc_3_title,soc_3)
+  
+# Extract detailed occupation employment counts from BLS data 
+soc_occp <- raw_occp  %>%
+  filter(`...3` == "Line item") %>% 
+  select("Table 1.2 Occupational projections, 2023–33, and worker characteristics, 2023 (Numbers in thousands)",`...2`, `...4`) %>% 
+  rename(socp = `...2`, emp_2023 = `...4`,soc_title = "Table 1.2 Occupational projections, 2023–33, and worker characteristics, 2023 (Numbers in thousands)" )
+
+# Identify SOCs that appear in LI data but not BLS
+microdata_socp <- microdata[,socp := substr(soc_code_mode, start = 1, stop = 7)] 
+micro_socp <- unique(microdata_socp$socp)
+misfit_socp_list <- micro_socp[!micro_socp %in% soc_occp$socp]
+
+#micro_socp8 <- unique(microdata$soc_code_mode)
+#misfit_socp8_list <- micro_socp8[!micro_socp8 %in% occp_prestige$socp_raw]
+#misfit_socp8 <- data.frame(socp_raw = misfit_socp8_list,
+#           emp_2023 = NA,
+#           soc_title = NA,
+#           shr_ba = NA,
+#           col_grad = NA,
+#           socp = substr(misfit_socp8_list, start = 1, stop = 7),
+#          prestige = NA)
+
+# Merge prestige ratings, share with BAs, and estimated prevalence in 2022
+#soc_full = rbind(soc_occp,misfit_socp) %>%
+soc_full = soc_occp %>%
+  left_join(soc_educ, by = "socp") %>%
+  # Calculate number of college grads in occupation
+  mutate(col_grad = (shr_ba/100) * as.numeric(emp_2023) * 1000) %>%
+  left_join(occp_prestige, by = "socp") %>%
+  #rbind(misfit_socp8) %>%
+  mutate(soc_3 = substr(socp, start = 1, stop = 4),
+         soc_2 = substr(socp, start = 1, stop = 2)) %>%
+  left_join(soc_3_labels, by = "soc_3") %>%
+  left_join(soc_2_labels, by = "soc_2")
+
+# For SOC codes missing a prestige rating, I take the average rating of other jobs
+# in the same 3-digit code, weighted by their frequency among college graduates in 2022
+prestige_imputation_3 = soc_full %>%
+  group_by(soc_3) %>%
+  summarize(prestige_imp_3 = weighted.mean(prestige, w = col_grad, na.rm = TRUE))
+prestige_imputation_2 = soc_full %>%
+  group_by(soc_2) %>%
+  summarize(prestige_imp_2 = weighted.mean(prestige, w = col_grad, na.rm = TRUE))
+
+# Impute prestige bin for occupations in LI data but not BLS
+misfit_socp <- data.frame(socp = misfit_socp_list,
+           emp_2023 = NA,
+           soc_title = NA,
+           col_grad = NA,
+           shr_bls = NA,
+           shr_ba = NA,
+           prestige_bin = NA,
+           prestige = NA
+           ) %>%
+  mutate(soc_3 = substr(socp, start = 1, stop = 4),
+         soc_2 = substr(socp, start = 1, stop = 2)) %>%
+  left_join(soc_3_labels, by = "soc_3") %>%
+  left_join(soc_2_labels, by = "soc_2") %>%
+  left_join(prestige_imputation_3, by = "soc_3") %>%
+  left_join(prestige_imputation_2, by = "soc_2") %>%
+  mutate(prestige_imp = case_when(!is.na(prestige) ~ prestige,
+                              (is.nan(prestige) | is.na(prestige)) & (!is.nan(soc_3) | !is.nan(soc_3)) ~ prestige_imp_3,
+                              !is.nan(prestige_imp_2) ~ prestige_imp_2))
+
+# Calculate total workers and find bin thresholds
+total_workers <- sum(soc_full$col_grad, na.rm = TRUE)
+workers_per_bin <- total_workers / 3
+
+# Place all occupations into bins and merge LI data
+soc_ba = soc_full %>%
+  left_join(prestige_imputation_3, by = "soc_3") %>%
+  left_join(prestige_imputation_2, by = "soc_2") %>%
+  mutate(prestige_imp = case_when(!is.na(prestige) ~ prestige,
+                              (is.nan(prestige) | is.na(prestige)) & (!is.nan(soc_3) | !is.nan(soc_3)) ~ prestige_imp_3,
+                              !is.nan(prestige_imp_2) ~ prestige_imp_2)) %>%
+  mutate(prestige_imp = ifelse(is.nan(prestige_imp)==TRUE,prestige_imp_2,prestige_imp)) %>%
+  arrange(prestige_imp) %>%
+  mutate(cum_workers = cumsum(col_grad)) %>%
+  mutate(prestige_bin = case_when(cum_workers <= workers_per_bin ~ "Low",
+                                  cum_workers <= 2 * workers_per_bin ~ "Middle",
+                                  TRUE ~ "High")) %>%
+  mutate(shr_bls = col_grad/sum(col_grad)) %>%
+  select(-c(cum_workers,socp_raw)) %>%
+  rbind(misfit_socp) %>%
+  arrange(prestige_imp) %>%
+  tidyr::fill(prestige_bin, .direction = "downup")
+
+write.csv(soc_ba,file.path(data_dir,"intermediate/soc_ba.csv"), row.names=FALSE)
+
+
+soc_merge = soc_ba %>%
+  select("soc_title","socp","prestige_imp","prestige_bin") %>%
+  filter(!is.na(socp)) %>%
+  distinct(socp, .keep_all = TRUE)
+
+write.csv(soc_ba,file.path(data_dir,"intermediate/soc_merge.csv"), row.names=FALSE)
+
+
+# Subset to educator codes
+teacher_recodes <- soc_occp %>%
+  filter(substr(socp,1,4)=="25-2" & socp != "25-2032") %>%
+  left_join(soc_educ, by = "socp") %>%
+  mutate(col_grad = (shr_ba/100) * as.numeric(emp_2023) * 1000) %>%
+  mutate(weights = col_grad/sum(col_grad))
+
+cumulative_weights <- cumsum(teacher_recodes$weights)
+soc_recodes <- paste0(teacher_recodes$socp,".00")
+
+microdata[, random_value := runif(.N)]
+microdata[, soc_code_mode := fifelse(
+    soc_code_mode %in% c("19-3093.00","19-2011.00","19-1011.00"),
+    fcase(
+      random_value <= cumulative_weights[1], soc_recodes[1],
+      random_value <= cumulative_weights[2], soc_recodes[2],
+      random_value <= cumulative_weights[3], soc_recodes[3],
+      random_value <= cumulative_weights[4], soc_recodes[4],
+      random_value <= cumulative_weights[5], soc_recodes[5],
+      random_value <= cumulative_weights[6], soc_recodes[6],
+      random_value <= cumulative_weights[7], soc_recodes[7],
+      random_value <= cumulative_weights[8], soc_recodes[8],
+      random_value <= cumulative_weights[9], soc_recodes[9],
+      random_value <= cumulative_weights[10], soc_recodes[10],
+      random_value <= cumulative_weights[11], soc_recodes[11]
+    ),
+    soc_code_mode
+)]
+microdata <- microdata[,random_value :=NULL]
+microdata <- microdata[,socp := substr(soc_code_mode,1,7)]
+microdata = merge(microdata, soc_merge, by = "socp",all.x=TRUE)
+
+# Recount the occupational distribution for subsequent figure and table production
+soc_li_dist <- microdata[,.(count = .N),by=.(soc_code_mode)]
+soc_li_dist[,shr_li := (count/sum(count))]
+soc_li_dist[,count := NULL]
+write.csv(soc_li_dist,file.path(data_dir,"intermediate/soc_li_distribution.csv"), row.names=FALSE)
+
+
+
+## ----merge shocks-------------------------------------------------------------
+
+# Only keep deciles for merge, removing raw shock calculations 
+#cbsa_shock_merge = cbsa_shock_ptile %>%
+#  select(cbsa_code,year,starts_with("ptile_avg"),starts_with("avg"))
+cols = c("hs_shock_avg_1","hs_shock_avg_3","hs_shock_avg_5","hs_shock_avg_7","col_shock_avg_1","col_shock_avg_3","col_shock_avg_5","col_shock_avg_7","V1")
+microdata[, (cols) := NULL]
+
+microdata[
+  cbsa_shock_ptile
+  , on = .(hs_cbsa_code = cbsa_code,
+           col_end = year)
+  , `:=`(
+    hs_cbsa_actual = cbsa_actual,
+    hs_cbsa_proj = cbsa_proj,
+    hs_cbsa_proj_change = cbsa_proj_change,
+    hs_shock_ptile_1 = ptile_shock_avg_1,
+    hs_shock_ptile_3 = ptile_shock_avg_3,
+    hs_shock_ptile_5 = ptile_shock_avg_5,
+    hs_shock_ptile_7 = ptile_shock_avg_7,
+    hs_shock_1 = shock_avg_1,
+    hs_shock_3 = shock_avg_3,
+    hs_shock_5 = shock_avg_5,
+    hs_shock_7 = shock_avg_7,
+    hs_growth_ptile_1 = ptile_growth_avg_1,
+    hs_growth_ptile_3 = ptile_growth_avg_3,
+    hs_growth_ptile_5 = ptile_growth_avg_5,
+    hs_growth_ptile_7 = ptile_growth_avg_7,
+    hs_growth_1 = growth_avg_1,
+    hs_growth_3 = growth_avg_3,
+    hs_growth_5 = growth_avg_5,
+    hs_growth_7 = growth_avg_7
+  )
+]
+
+microdata[
+  cbsa_shock_ptile
+  , on = .(col_cbsa_code = cbsa_code,
+           col_end = year)
+  , `:=`(
+    col_cbsa_actual = cbsa_actual,
+    col_cbsa_proj = cbsa_proj,
+    col_cbsa_proj_change = cbsa_proj_change,
+    col_shock_ptile_1 = ptile_shock_avg_1,
+    col_shock_ptile_3 = ptile_shock_avg_3,
+    col_shock_ptile_5 = ptile_shock_avg_5,
+    col_shock_ptile_7 = ptile_shock_avg_7,
+    col_shock_1 = shock_avg_1,
+    col_shock_3 = shock_avg_3,
+    col_shock_5 = shock_avg_5,
+    col_shock_7 = shock_avg_7,
+    col_growth_ptile_1 = ptile_growth_avg_1,
+    col_growth_ptile_3 = ptile_growth_avg_3,
+    col_growth_ptile_5 = ptile_growth_avg_5,
+    col_growth_ptile_7 = ptile_growth_avg_7,
+    col_growth_1 = growth_avg_1,
+    col_growth_3 = growth_avg_3,
+    col_growth_5 = growth_avg_5,
+    col_growth_7 = growth_avg_7
+  )
+]
+
+
+
+## ----merge shocks_dup2--------------------------------------------------------
+
+# Export full sample
+write.csv(microdata,file.path(data_dir,"intermediate/microdata.csv"), row.names=FALSE)
+# Export sample to ease testing
+microdata_sample <- microdata[sample(.N,100000)]
+write.csv(microdata_sample,file.path(data_dir,"intermediate/microdata_sample__06.csv"), row.names=FALSE)
+
+
+
+## ----merge shocks_dup3--------------------------------------------------------
+
+# Compress size of file to speed up import, export, and exploration of data
+# Ensures the number of shocks and same geography criteria can vary
+patterns_list <- c("^hs","^col","^same","^ever","^yr")
+pattern_cols <- names(microdata)[Reduce(`|`, lapply(patterns_list, function(pat) grepl(pat, names(microdata))))]
+selected_cols <- c("user_id","transfer", "work_start", "birth", "distance_mi",
+                   "state_mode","cbsa_mode",
+                    "dist","soc_code_mode","prestige_imp","soc_title","prestige_bin",pattern_cols)
+
+microdata <- microdata[, .SD, .SDcols = selected_cols]
+
+write.csv(microdata,file.path(data_dir,"intermediate/microdata_compressed.csv"), row.names=FALSE)
+
+
+

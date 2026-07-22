@@ -71,7 +71,7 @@ users = open_dataset(file.path(data_dir,"intermediate/uwdbhdlkbnzhaqxd.csv"), fo
 
 users_ = users %>% filter(user_id %in% both__$user_id) %>% collect()
 setDT(users_)
-users_ = users[user_id %in% both__$user_id]
+#users_ = users[user_id %in% both__$user_id]
 
 users_[
   ,

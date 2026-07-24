@@ -149,12 +149,24 @@ derive_short_subunit <- function(x) {
 }
 
 # Create state fips crosswalk
-state_fips = fips_codes %>% 
-  select(state,state_code) %>% 
+state_fips = fips_codes %>%
+  select(state,state_code) %>%
   distinct() %>%
   mutate(state_fips = as.numeric(state_code)) %>%
   select(state,state_fips) %>%
   rename(state_abbr = state)
+saveRDS(state_fips,file.path(data_dir,"intermediate/state_fips.rds"))
+
+# [Relocated from 01_col_hs_crosswalk.R, 2026-07-25 — Phase 1 crosswalk consolidation]
+# Build input_col fresh from the raw education extract every run, rather than
+# depending on a cached .rds nothing else in the repo regenerates.
+educ_file_dir = file.path(data_dir,"raw/revelio/2026.04.09_education.csv")
+input <- fread(educ_file_dir, select=c("university_name","rsid","degree","university_country","university_location"))
+gc()
+
+input_col = input[!is.na(rsid),.N, by = .(university_name,university_country,rsid,degree,university_location)]
+input_col[,clean_name := tolower(university_name)]
+saveRDS(input_col,file.path(data_dir,"intermediate/input_col.rds"))
 
 # These steps are slow
 zcta <- zctas(cb = TRUE, year = 2010)      # ZCTA polygons

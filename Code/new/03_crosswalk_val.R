@@ -143,35 +143,40 @@ schools <- readRDS(file.path(data_dir,"intermediate/schools.rds")) %>%
   # Remove territorial colleges and universities
   filter(!state_abbr %in% c("AS","GU","MP","PR","VI"))
 
-matched_hs <- readRDS(file.path(data_dir,"intermediate/matched_hs.rds"))
-unmatched_hs <- readRDS(file.path(data_dir,"intermediate/unmatched_hs.rds"))
+hs_alias <- readRDS(file.path(data_dir,"intermediate/hs_alias.rds"))
 
-# Identify instances of strings matching to multiple names
-dup_rsid_hs = matched_hs %>%
-  distinct() %>%
-  group_by(rsid) %>% 
-  summarize(n = n()) %>% 
-  filter(n > 1)
+# [CHANGED 2026-07-25 -- Phase 1: fix HS/college asymmetry] Read hs_strings.rds
+# (02_embed_new.R's classify+string+alias+embed output) instead of 01's
+# matched_hs.rds/unmatched_hs.rds, mirroring how the college section above
+# already reads col_strings.rds. This brings HS matching up to the same
+# embedding-recovery treatment colleges already get. Renamed to match_type to
+# match what 04_col_hs_construct.R expects on the HS side (it reads
+# string_method on the college side -- an existing asymmetry in 04 itself,
+# not something to change here).
+matched_hs <- readRDS(file.path(data_dir,"intermediate/hs_strings.rds")) %>%
+  rename(match_type = string_method)
 
-# Create a de-duplicated set of strings
-# We won't be able to de-duplicate until we can pick the right ambiguously-named
-# high school based on college location
-matches_hs = matched_hs %>%
-  left_join(schools %>% 
+# matched_hs is one row per rsid, with ambiguous_name flagging whether the
+# matched alias is shared by multiple hs_ids -- unlike the old matched_hs.rds,
+# it only carries the one hs_id the embedding/exact-match step happened to
+# attach, not every candidate. Rebuild the full candidate set for ambiguous
+# names by rejoining to hs_alias, which does have every hs_id sharing a given
+# alias; keep the main crosswalk one-row-per-rsid, blanking hs_id/school
+# metadata for ambiguous cases until 04 resolves them (same as before).
+rsid_id_dup_crosswalk = matched_hs %>%
+  filter(ambiguous_name == 1) %>%
+  select(-hs_id) %>%
+  inner_join(hs_alias %>% select(hs_id,alias), by = c("clean_name" = "alias")) %>%
+  left_join(schools %>%
               select(hs_id,hs_name,hs_agency_id,hs_agency_name,n_grads,state_abbr),
             by = c("hs_id"))
-rsid_id_dup_crosswalk = matches_hs %>%
-  filter(rsid %in% dup_rsid_hs$rsid)
 saveRDS(rsid_id_dup_crosswalk,file.path(data_dir,"intermediate/rsid_id_dup_crosswalk.rds"))
 
-hs_rsid_crosswalk = matches_hs %>%
-  mutate(ambiguous_name = if_else(rsid %in% dup_rsid_hs$rsid,1,0),
-         hs_id = if_else(ambiguous_name == 1,NA,hs_id),
-         hs_agency_id = if_else(ambiguous_name == 1,NA,hs_agency_id),
-         hs_agency_name = if_else(ambiguous_name == 1,NA,hs_agency_name),
-         hs_name = if_else(ambiguous_name == 1,NA,hs_name),
-         n_grads = if_else(ambiguous_name == 1,NA,n_grads),
-         state_abbr = if_else(ambiguous_name ==1,NA,state_abbr)) %>%
+hs_rsid_crosswalk = matched_hs %>%
+  mutate(hs_id = if_else(ambiguous_name == 1,NA,hs_id)) %>%
+  left_join(schools %>%
+              select(hs_id,hs_name,hs_agency_id,hs_agency_name,n_grads,state_abbr),
+            by = c("hs_id")) %>%
   ungroup() %>%
   distinct()
 

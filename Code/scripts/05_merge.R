@@ -42,12 +42,52 @@ if(exists("completed"))
 ## ----pos import, include=FALSE------------------------------------------------
 
 raw_microdata[,col_unitid := as.integer(col_unitid)]
+
+# [ADDED 2026-07-25 -- Phase 1 verification] The Urban Institute educationdata
+# API has already been confirmed flaky elsewhere in this pipeline
+# (00_alias_generation.R, 02_col_chars.Rmd both needed retry/cache wrappers
+# after live failures). This specific college-university/ipeds/directory
+# pull doesn't error on a bad response -- it can silently return a partial
+# page, which showed up here as a silent ~92% collapse in the final microdata
+# row count (2.27M raw rows -> 181K) on one run, with no error or warning at
+# all. Wrapped with the same retry/cache pattern, plus an explicit sanity
+# check on row count (a known-good pull returns 6,289 institutions) so a
+# partial pull errors loudly instead of silently corrupting the sample.
+cached_pull <- function(cache_name, fetch_expr, max_attempts = 3, retry_delay = 20) {
+  cache_path <- file.path(data_dir, "intermediate", "api_cache", paste0(cache_name, ".rds"))
+  if (file.exists(cache_path)) {
+    return(readRDS(cache_path))
+  }
+  expr <- substitute(fetch_expr)
+  env <- parent.frame()
+  result <- NULL
+  for (attempt in seq_len(max_attempts)) {
+    result <- tryCatch(eval(expr, env), error = function(e) {
+      cat(sprintf("cached_pull('%s'): attempt %d/%d failed: %s\n",
+                  cache_name, attempt, max_attempts, conditionMessage(e)))
+      NULL
+    })
+    if (!is.null(result)) break
+    if (attempt < max_attempts) Sys.sleep(retry_delay)
+  }
+  if (is.null(result)) {
+    stop(sprintf("cached_pull('%s'): all %d attempts failed", cache_name, max_attempts))
+  }
+  dir.create(dirname(cache_path), showWarnings = FALSE, recursive = TRUE)
+  saveRDS(result, cache_path)
+  result
+}
+
 # Pull directory of basic information about institutions
-col_cbsas = get_education_data(level = "college-university",
+col_cbsas_raw = cached_pull("col_cbsas_directory_2021", get_education_data(level = "college-university",
                                    source = "ipeds",
                                    topic = "directory",
                                    filters = list(year = 2021)
-                   ) %>%
+                   ))
+if (nrow(col_cbsas_raw) < 5000) {
+  stop(sprintf("college-university/ipeds/directory/2021 pull returned only %d rows (expected ~6,289) -- likely a partial/flaky API response, not a real data change. Delete Data/intermediate/api_cache/col_cbsas_directory_2021.rds to retry.", nrow(col_cbsas_raw)))
+}
+col_cbsas = col_cbsas_raw %>%
   select(c(unitid,county_fips)) %>%
   mutate(col_cnty = as.character(str_pad(county_fips,5,"left","0"))) %>%
   rename(col_unitid = unitid)

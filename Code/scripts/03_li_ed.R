@@ -25,241 +25,70 @@ library(data.table)
 `%nin%` = Negate(`%in%`)
 
 
-## ----import, echo=FALSE-------------------------------------------------------
-# Remove problematic rows
-#x1 = readLines(file.path(data_dir,"raw/revelio/raw_educ_STATES_AK-MD.csv"))
-#x1_edit = x1[-c(11891030)]
-#x1_df = read.table(x1_edit[1:5])
-#  stringi::stri_split_fixed(x1_edit[1:5],","))
-#STATES_MI-WY.csv
+## ----ed match, echo=FALSE-----------------------------------------------------
+both_final <- readRDS(file.path(data_dir,"intermediate/both_final.rds"))
+schools <- readRDS(file.path(data_dir,"intermediate/schools.rds"))
+colleges <- readRDS(file.path(data_dir,"intermediate/colleges.rds"))
+unified_cbsa <- fread(file.path(data_dir,"raw/census_geo/unified_cbsa.csv"),
+                      colClasses = c(GeoFIPS = "character"))
 
-ed_li1 = read_delim(file.path(data_dir,"raw/revelio/raw_educ_STATES_AK-MD.csv"))
-ed_li2 = read_delim(file.path(data_dir,"raw/revelio/raw_educ_STATES_MI-WY.csv"))
+hs_match = both_final %>%
+  mutate(hs_id = as.character(hs_id)) %>%
+  left_join(schools %>% mutate(hs_id = as.character(hs_id)) %>%
+              select(hs_id,hs_fips,state_abbr), by = "hs_id") %>%
+  left_join(unified_cbsa %>% select(GeoFIPS,cbsa_code), by = c("hs_fips" = "GeoFIPS")) %>%
+  transmute(user_id,
+            hs_start = NA_real_,
+            # 04_li_ed_pos.Rmd's birth-year step expects a plain year number
+            # (the old code extracted this from a "YYYY-MM-DD" string via
+            # str_sub); hs_end/ba_end here are Date/IDate objects, so extract
+            # the year explicitly rather than letting as.numeric() downstream
+            # silently return a day-count instead.
+            hs_end = as.numeric(format(as.Date(hs_end), "%Y")),
+            hs_name = hs_string,
+            hs_unitid = hs_id,
+            hs_state = state_abbr,
+            hs_cnty = hs_fips,
+            hs_cbsa = cbsa_code)
 
-#ed_li1 = fread(file.path(data_dir,"raw/revelio/raw_educ_STATES_AK-MD.csv"),
-#              drop = c('world_rank'))
-              #select = c("user_id","educ_startdate","educ_enddate",
-              #         "university_name","degree","field",
-              #         "university_country","alt_name"),
-#              sep = ",")
+col_match = both_final %>%
+  # ba_unitid/ba_opeid are cast to character in 04_col_hs_construct.R;
+  # colleges.rds's unitid/opeid come straight from the raw IPEDS pull and
+  # are numeric -- cast explicitly rather than relying on left_join's
+  # implicit coercion, since a silent type mismatch here would just drop
+  # every row with no error.
+  left_join(colleges %>% mutate(unitid = as.character(unitid), opeid = as.character(opeid)) %>%
+              select(unitid,opeid,col_fips,system_opeid),
+            by = c("ba_unitid" = "unitid", "ba_opeid" = "opeid")) %>%
+  transmute(user_id,
+            col_start = NA_real_,
+            col_end = as.numeric(format(as.Date(ba_end), "%Y")),
+            col_name = ba_school,
+            col_major = ba_degree,
+            col_unitid = ba_unitid,
+            col_opeid = ba_opeid,
+            col_super_opeid = system_opeid)
 
+# 04_col_hs_construct.R only keeps users with both a resolved HS and BA
+# college match, so every row already qualifies -- no separate intersect()
+# needed.
+both = both_final %>% distinct(user_id)
+col_users = col_match %>% distinct(user_id)
+hs_users = hs_match %>% distinct(user_id)
 
-#ed_li2 = fread(file.path(data_dir,"raw/revelio/raw_educ_STATES_MI-WY.csv"),
- #             drop = c('world_rank'),
-#              fill=TRUE,
-#              sep = ",")
+# Users with more than one BA-level record already carry that in
+# ba_transfer_* fields on the same row (04_col_hs_construct.R), rather than
+# needing a separate multi-row count.
+transfer = both_final %>%
+  filter(!is.na(ba_transfer_school)) %>%
+  distinct(user_id) %>%
+  pull(user_id)
 
-ed_li = rbind(ed_li1,ed_li2) %>% select(-c(world_rank)) %>% as.data.table()
-rm(ed_li2,ed_li1)
-# Remove redundant intermediate objects to save memory
-# Filter out associates degrees
-ed_li = ed_li[degree != "Associate"]
-# Filter universities outside US
-# Simplifies encoding by removing institutions with foreign accents
-ed_li = ed_li[university_country %in% c("United States","\\N")]
-# I convert to ASCII because it avoids headaches associated with non-English characters
-# Since my analysis focuses on American educational institutions,
-# foreign names are not very prevalent
-ed_li$university_name = iconv(ed_li$university_name, from = "UTF-8", to = "ASCII", sub = "")
-
-# Remove extra spaces and punctuation from institution names
-ed_li = ed_li[, alt_name := str_trim(str_to_lower(gsub("[[:punct:]]"," ",university_name)))]
-# Remove observations with empty institution name
-ed_li = ed_li[-which(ed_li$alt_name == ""), ]
-# Remove "main campus" to improve matches
-ed_li = ed_li[, alt_name := gsub("main campus","",alt_name)]
-
-ed_li_sample = ed_li %>%
-  sample_frac(0.01)
-
-clean_university_names <- function(name) 
-{
-  #name <- gsub("\\bat\\b", "",name,ignore.case = TRUE)
-  # Remove everything after "University of [name]" or "[name] State University"
-  # if "college", "school", "department", or "division" appear after
-  contains_keywords <- grepl("college|school|department|division", name, ignore.case = TRUE)
-  # Pattern to identify if the string contains "college", "school", "department", or "division"
-  if (contains_keywords) {
-    # Remove all text after "University of [name]" or "[name] State University"
-    name <- sub("^(University of [^ ]+).*", "\\1", name, ignore.case = TRUE)
-    name <- sub("([^ ]+ State University).*", "\\1", name, ignore.case = TRUE)
-    name <- sub("([^ ]+ University).*", "\\1", name, ignore.case = TRUE)
-  }
-  
-  # Next remove any instances of colleges at universities
-  # Deletes any word up to "at" if the string includes "college" prior
-  # to "at" and "university" after
-  # Example: College of Engineering at Western Michigan University 
-  pattern_1 <- "(?i)college\\s+.*?\\bat\\b\\s+.*\\buniversity\\b"
-  
-  # Check if the input_string matches the pattern
-  #if (str_detect(name, pattern_1)) {
-    # Remove any words before and including "at"
-  #  name <- str_replace(name, "^.*?\\bat\\b\\s*", "")
-  #}
-  
-  return(trimws(name)) # Trim any trailing whitespace
-}
-
-# Apply the cleaning function to the alt_name column
-#ed_li_sample[, clean_name := sapply(alt_name,clean_university_names)]
-
-
-
-
-
-## ----col split, echo=FALSE----------------------------------------------------
-
-hs_match = ed_li[all_hs, on = "alt_name"]
-# Identify all LI entries that aren't high schools
-not_hs = ed_li[!all_hs, on = "alt_name"]
-
-# Count incidences of different alt_name strings
-name_counts <- not_hs[, .N, by = alt_name]
-
-# Filter observations with more than 100 occurrences
-frequent_names <- name_counts[N > 3]
-
-# Clean the filtered alt_name strings
-frequent_names[, clean_name := sapply(alt_name, clean_university_names)]
-
-# Merge the cleaned names back with the original dataset
-not_hs <- merge(not_hs, frequent_names[, .(alt_name, clean_name)], by = "alt_name", all.x = TRUE)
-
-# Replace original alt_name with cleaned names where available
-not_hs[, clean_name := ifelse(is.na(clean_name), alt_name, clean_name)]
-
-# Step 1: Merge on clean_name1
-merged1 <- merge(not_hs, name_crosswalk_1, by.x = "clean_name", by.y = "clean_name1", all.x = TRUE)
-merged1[, c("clean_name2","system_name") := NULL]
-
-# Remove duplicate columns to keep merges clean
-merged2 = merged1[is.na(unitid)]
-merged2[, c("unitid","opeid","super_opeid") := NULL]
-# Step 2: Merge remaining unmatched rows on clean_name2
-merged2 <- merge(merged2, name_crosswalk_2, by.x = "clean_name", by.y = "clean_name2", all.x = TRUE)
-merged2[, c("clean_name1","system_name") := NULL]
-
-# Combine matched rows from first merge with new matched rows
-col_match <- rbind(merged1[!is.na(unitid)], merged2, fill = TRUE)
-rm(merged1)
-
-# Identify rows with missing data
-misfits <- rbind(col_match[is.na(unitid)], merged2[is.na(unitid)], fill = TRUE)
-# Combine all matched rows
-col_match <- rbind(col_match[!is.na(unitid)], merged2[!is.na(unitid)], fill = TRUE)
-
-# Counts missing institution names
-misfit_counts <- misfits[, .N, by = alt_name] %>%
-  filter(N > 50)
-write.csv(misfit_counts, file.path(data_dir,"intermediate/misfits_3.csv"))
-
-# Upload manual correction of some large institutions
-# Potential expansion possible
-misfits_correction <- read_delim(file.path(data_dir,"intermediate/misfits_correction.csv")) %>%
-  mutate(opeid = as.numeric(str_sub(opeid,2,6))) %>%
-  filter(is.na(opeid) == FALSE) %>%
-  distinct(alt_name,unitid,opeid) %>%
-  left_join(superope_ope_crosswalk, by = "opeid") %>%
-  select(-c("institution_name","superopeid_name","multi"))
-
-# Remove columns to simplify merge
-misfits[, c("unitid","opeid","super_opeid") := NULL]
-misfits <- misfits[alt_name %in% misfits_correction$alt_name]
-
-# Merge with corrections
-#misfits <- misfits[-which(is.na(misfits$alt_name)), ]
-misfits <- merge(misfits, misfits_correction, by.x = "alt_name", by.y = "alt_name", all.x = TRUE)
-col_match <- rbind(col_match[!is.na(unitid)],misfits[!is.na(unitid)])
-
-# Remove duplicate columns to keep merges clean
-merged3 = misfits[is.na(unitid)]
-merged3[, c("unitid","opeid","super_opeid") := NULL]
-# Step 3: Merge remaining unmatched rows on system_name
-merged3 <- merge(merged3, name_crosswalk_3, by.x = "alt_name", by.y = "system_name", all.x = TRUE)
-merged3[, c("clean_name1","clean_name2") := NULL]
-
-col_match <- rbind(col_match[!is.na(unitid)],merged3[!is.na(unitid)])
-rm(misfits,misfits_correction)
-
-# Count the most common universities as a sanity check
-inst_counts <- col_match[, .N, by = unitid] 
-inst_counts <- merge(inst_counts,name_crosswalk_1, by.x = "unitid", by.y = "unitid", all.x = FALSE)
-write.csv(inst_counts,file.path(data_dir,"intermediate/inst_counts.csv"))
-
-
-## -----------------------------------------------------------------------------
-
-replacements <- c("junior" = "", "senior" = "", "middle" = "", "jrsr" = "","the" = "",
-                  "high" = "", "hs" = "", "school" = "", "h s" = "", "city" = "")
-
-# Extract stripped high school names
-nces_alt_name = all_hs %>%
-  mutate(stripped_name1 = str_replace_all(alt_name, replacements)) %>%
-  mutate(stripped_name2 = str_replace_all(stripped_name1, "\\s{2,}", " "))
-
-# Extract alt_names matched with an alt_name
-college_names = unique(col_match$alt_name)
-
-# Extract unique high school names in LinkedIn data
-li_alt_name = frequent_names %>%
-  filter(!clean_name %in% college_names) %>%
-  mutate(stripped_name1 = str_replace_all(alt_name, replacements)) %>%
-  mutate(stripped_name2 = str_replace_all(stripped_name1, "\\s{2,}", " ")) %>%
-  # Filter to only include stripped_names that appear in the NCES
-  filter(stripped_name2 %in% nces_alt_name$stripped_name2)
-
-duplicated_hs <- all_hs[duplicated(stripped_name2) | duplicated(stripped_name2, fromLast = TRUE)]
-
-
-stripped_hs = li_alt_name[,c("alt_name","stripped_name2")] 
-
-# Added stripped name to still_hs and hs_match
-# This merge should be on stripped_name2?
-still_hs = not_hs[stripped_hs, on = "alt_name"]
-
-
-#hs_match = stripped_hs[hs_match, on = "alt_name"]
-rm(merged2,merged3)
-
-
-
-## ----obs----------------------------------------------------------------------
-
-# Extract user IDs for people listing baccalaureate institution on LI
-col_users = col_match %>% table.express::select(user_id)
-
-hs_match <- hs_match[,c("user_id","educ_startdate","educ_enddate","university_name",
-                       "degree","field","university_country","clean_name","stripped_name2","alt_name")]
-#setnames(hs_match, old = "i.stripped_name2", new = "stripped_name2")
-hs_match <- rbind(hs_match,still_hs)
-# Extract user IDs for people listing high school on LI
-hs_users = hs_match %>% table.express::select(user_id)
-
-# Create list of people listing both high school and baccalaureate institutions
-# Wait on creating both until data extracted from position file
-both = as.data.table(intersect(col_users$user_id,hs_users$user_id)) %>%
-  setnames("V1","user_id")
-
-# Find users with multiple baccalaureate institutions
-transfer = both[col_match, on = "user_id"] %>%
-  # Remove users who listed the same baccalaureate institution twice
-  distinct(user_id,alt_name)
-
-# Create list of users with multiple users
-transfer = transfer[, .(count = .N), by = user_id] %>%
-  table.express::filter(count > 1)
-
-# Remove extra column
-transfer = transfer[,c("count"):=NULL]
-
-transfer = intersect(both$user_id,transfer$user_id)
-
-rm(ed_li,not_hs)
+rm(both_final)
 gc()
 
 
-## ----obs_dup2-----------------------------------------------------------------
+## ----obs----------------------------------------------------------------------
 
 col_users_length = length(unique(col_users$user_id))
 both_hs_col_length = length(unique(both$user_id))

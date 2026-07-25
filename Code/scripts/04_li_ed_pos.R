@@ -80,80 +80,18 @@ write.csv(pos_summary,file.path(data_dir,"intermediate/soc_li_distribution.csv")
 
 
 ## ----filter, include=FALSE----------------------------------------------------
-# Merging high school and college experiences into one file
-both_col = both[col_match, on = "user_id"]
-both_hs = both[hs_match, on = "user_id"]
-merge_col_hs = both_col[both_hs, on = "user_id"] %>%
-  # Remove rows that only include high school 
-  table.express::filter(is.na(university_name)==FALSE) %>%
-  # Rename merged columns to avoid confusion between hs and col data
-  setnames(c("user_id","educ_startdate","educ_enddate","university_name","field","alt_name",
-             "unitid","opeid","super_opeid",
-             "i.educ_startdate","i.educ_enddate","i.university_name",
-             "i.clean_name","i.alt_name","stripped_name2"),
-           c("user_id","col_start","col_end","col_name","col_major","col_alt_name",
-             "col_unitid","col_opeid","col_super_opeid",
-             "hs_start","hs_end","hs_name","hs_clean_name","hs_alt_name",
-             "hs_stripped_name2"), skip_absent = TRUE) %>%
-  # Compress college and high school start and end dates into numeric year instead of character date
-  table.express::mutate(col_start = as.numeric(str_sub(col_start, start = 1, end = 4)),
-                        col_end = as.numeric(str_sub(col_end, start = 1, end = 4)),
-                        hs_start = as.numeric(str_sub(hs_start, start = 1, end = 4)),
-                        hs_end = as.numeric(str_sub(hs_end, start = 1, end = 4))) %>%
+merge_col_hs = col_match[hs_match, on = "user_id", nomatch = NULL] %>%
+  table.express::filter(is.na(col_name)==FALSE) %>%
   table.express::mutate(col_length = col_end - col_start)
 
-# Remove unnecessary columns
-merge_col_hs = merge_col_hs[,c("i.university_country","i.degree","i.field") := NULL]
-
-
-rm(col_match,hs_match,hs_users,both_col,both_hs) 
+rm(col_match,hs_match,hs_users)
 gc()
 
 
 ## ----merge hs col, include=FALSE----------------------------------------------
-
-# Convert transfer to a data.table for anti-join below
-transfer = as.data.table(transfer) %>%
-  setnames("transfer","user_id",skip_absent=TRUE)
-
-# Users who only list one baccalaureate institution 
-no_trans_merge_col_hs = merge_col_hs[!transfer, on = "user_id"] %>%
-  table.express::mutate(transfer = 0) %>%
-  table.express::filter(is.na(col_length)==FALSE)
-
-# Identify transfer students in merge_col_hs
-# 334014269
-trans_merge_col_hs = merge_col_hs[transfer, on = "user_id", nomatch=NULL] %>%
-  table.express::filter(is.na(col_name)==FALSE) %>%
-  table.express::mutate(transfer = 1) %>%
-  # Calculate length of time spent at each institution
-  table.express::mutate(col_length = col_end - col_start) 
-
-# Aggregating to see total number of years spent baccalaureate institutions
-trans_length = trans_merge_col_hs[, .(col_length = sum(col_length)), by = user_id] %>%
-  table.express::filter(is.na(col_length)==FALSE)
-
-# Select the latest baccalaureate institution 
-trans_latest = trans_merge_col_hs[trans_merge_col_hs[, .I[which.max(col_end)], by=user_id]$V1]
-
-# Preserve earliest recorded baccalaureate institution for age imputation
-trans_earliest = trans_merge_col_hs[trans_merge_col_hs[, .I[which.min(col_start)], by=user_id]$V1]
-trans_earliest = trans_earliest[,c("user_id","col_start")]  
-
-# Remove single-institution data
-trans_latest = trans_latest[,c("col_start","col_length"):=NULL]
-
-# Replace col_length with measure across all institutions
-trans_latest = trans_latest[trans_length, on = "user_id"]
-trans_merge_col_hs = trans_latest[trans_earliest, on = "user_id"]
-
-# Re-combine with transfer variables
-merge_col_hs = rbind(trans_merge_col_hs,no_trans_merge_col_hs) %>%
+merge_col_hs = merge_col_hs %>%
+  table.express::mutate(transfer = as.integer(user_id %in% transfer)) %>%
   table.express::filter(is.na(col_name)==FALSE)
-
-# Remove redundant intermediate objects to save memory
-rm(no_trans_merge_col_hs, trans_merge_col_hs, trans_latest, trans_length, trans_earliest)
-gc()  
 
 
 ## ----earliest job, include=FALSE----------------------------------------------
@@ -188,91 +126,6 @@ merge_col_hs <- merge(merge_col_hs, inst_zip, by.x = "col_unitid", by.y = "uniti
 #work_extent = work_earliest[work_latest, on = "user_id"]
 
 #rm(work_latest,work_earliest)
-
-
-## -----------------------------------------------------------------------------
-
-duplicated_hs_name = unique(duplicated_hs$stripped_name2)
-nondup <- merge_col_hs %>%
-  table.express::filter(!hs_stripped_name2 %in% duplicated_hs_name)
-nd = merge(nondup, nces_alt_name, by.x = "hs_stripped_name2", by.y = "stripped_name2")
-anti_nd = nondup[!nces_alt_name, on = .(hs_stripped_name2 = stripped_name2)]
-anti_nd_freq = anti_nd[, .N, by = hs_clean_name]
-nd[,c("LON","LAT") := NULL]
-
-dup <- merge_col_hs %>%
-  table.express::filter(hs_stripped_name2 %in% duplicated_hs_name)
-d = merge(dup, nces_alt_name, by.x = "hs_stripped_name2", by.y = "stripped_name2", allow.cartesian = TRUE)
-
-# https://stackoverflow.com/questions/55408526/r-find-the-distance-between-two-us-zipcode-columns
-## Convert the zip codes to data.table so we can join on them
-## using the centroid of the zipcodes (lng and lat).
-dt_zips <- as.data.table(read.csv(file.path(data_dir,"raw/census_geo/zipcodes.csv"),
-                                  colClasses = c("character","numeric","numeric")))
-
-dt_zips[,c("X") := NULL]
-# Ensure ZIP code for educational institution is standard five digits
-d[
-  , `:=`(
-    #col_zip = str_sub(col_zip,1,5),
-    hs_zip = str_sub(ZIP,1,5)
-  )
-]
-
-## Attach origin lon & lat using a join
-d[
-  dt_zips
-  , on = .(col_zip = zipcode)
-  , `:=`(
-    lng_start = lng
-    , lat_start = lat
-  )
-]
-
-## Attach destination lon & lat using a join
-#d[
-#  dt_zips
-#  , on = .(hs_zip = zipcode)
-#  , `:=`(
-#    lng_end = lng
-#    , lat_end = lat
-#  )
-#]
-
-## Calculate the distance
-d[
-  , distance_metres := geodist::geodist_vec(
-    x1 = lng_start
-    , y1 = lat_start
-    , x2 = LON
-    , y2 = LAT
-    , paired = TRUE
-    , measure = "haversine"
-  )
-]
-
-# Select the closest college
-d = d[d[, .I[which.min(distance_metres)], by=user_id]$V1]
-
-# Remove columns from distance calculation to ease rbind
-d[,c("lng_start","lat_start","LON","LAT","distance_metres","hs_zip") := NULL]
-
-merge_col_hs = rbind(d,nd)
-
-merge_col_hs[, `:=`(user_id = user_id, hs_unitid = hs_unitid,hs_name = hs_name,
-           hs_start = hs_start,hs_end = hs_end,hs_state = STATE,hs_cnty = GeoFIPS,
-           hs_cbsa = cbsa_code,col_unitid = col_unitid,col_opeid = col_opeid,
-           col_super_opeid = col_super_opeid,col_name = col_name,col_start = col_start,
-           col_end = col_end,col_major = col_major,transfer = transfer,work_start = work_start,
-           hs_stripped_name2 = NULL, clean_name.x = NULL, col_alt_name = NULL,
-           degree.x = NULL, university_country = NULL, hs_clean_name = NULL, hs_alt_name = NULL,
-           CITY = NULL, ZIP = NULL, NMCNTY= NULL, cbsa_code = NULL, degree.y = NULL, alt_name = NULL,
-           clean_name.y = NULL, stripped_name1 = NULL, NAME = NULL, STATE = NULL, 
-           GeoFIPS = NULL, zip = NULL)]
-
-rm(d,nd,dup,nondup,frequent_names,duplicated_hs_name,name_counts,nces_alt_name,li_alt_name)
-gc()
-
 
 
 ## ----birth year, include=FALSE------------------------------------------------

@@ -29,6 +29,37 @@ private_school_address_filename = "ELSI_csv_export_6390455368533882136542.csv"
 study_start_year = 2000
 study_end_year = 2013
 
+# [ADDED 2026-07-25 -- Phase 1] Disk-caching + retry-with-backoff for the
+# Urban Institute educationdata API, reused verbatim from 02_col_chars.Rmd's
+# cached_pull() (added there during the earlier environment triage after the
+# same API proved flaky -- three fresh-environment runs each hit "Query page
+# not found" at a different point mid-pull). Delete the relevant .rds under
+# intermediate/api_cache/ to force a refresh.
+cached_pull <- function(cache_name, fetch_expr, max_attempts = 3, retry_delay = 20) {
+  cache_path <- file.path(data_dir, "intermediate", "api_cache", paste0(cache_name, ".rds"))
+  if (file.exists(cache_path)) {
+    return(readRDS(cache_path))
+  }
+  expr <- substitute(fetch_expr)
+  env <- parent.frame()
+  result <- NULL
+  for (attempt in seq_len(max_attempts)) {
+    result <- tryCatch(eval(expr, env), error = function(e) {
+      cat(sprintf("cached_pull('%s'): attempt %d/%d failed: %s\n",
+                  cache_name, attempt, max_attempts, conditionMessage(e)))
+      NULL
+    })
+    if (!is.null(result)) break
+    if (attempt < max_attempts) Sys.sleep(retry_delay)
+  }
+  if (is.null(result)) {
+    stop(sprintf("cached_pull('%s'): all %d attempts failed", cache_name, max_attempts))
+  }
+  dir.create(dirname(cache_path), showWarnings = FALSE, recursive = TRUE)
+  saveRDS(result, cache_path)
+  result
+}
+
 first_non_missing <- function(x) {
   x <- x[!is.na(x)]
   if (length(x) == 0) {
@@ -196,20 +227,20 @@ county_shrunk = county_centroids %>%
   st_drop_geometry()
 
 # Create file of all public high school graduating classes since 1986
-raw_public_dir = get_education_data(level = "schools",
+raw_public_dir = cached_pull("raw_public_dir", get_education_data(level = "schools",
                                     source = "ccd",
                                     topic = "directory",
                                     filters = list(year = c((study_start_year-7):(study_end_year-3)),
                                                    school_level = c(3,6,7))
-)
-raw_public_enroll = get_education_data(level = "schools",
+))
+raw_public_enroll = cached_pull("raw_public_enroll", get_education_data(level = "schools",
                                        source = "ccd",
                                        topic = "enrollment",
                                        filters = list(year = c((study_start_year-7):(study_end_year-3)),
                                                       grade = 12,
                                                       race = 99,
                                                       sex = 99)
-)
+))
 
 
 # Summarize public school enrollment
@@ -444,7 +475,7 @@ raw_institutions = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_directory.
 
 
 # Pull degrees awarded data
-raw_deg_award = get_education_data(level = "college-university",
+raw_deg_award = cached_pull("raw_deg_award_00", get_education_data(level = "college-university",
                                    source = "ipeds",
                                    topic = "completions-cip-2",
                                    filters = list(award_level = c(4,7),
@@ -452,19 +483,19 @@ raw_deg_award = get_education_data(level = "college-university",
                                                   #fips = 26,
                                                   race = 99,
                                                   sex = 99,
-                                                  majornum = 1))
+                                                  majornum = 1)))
 saveRDS(raw_deg_award,file.path(data_dir,"intermediate/raw_deg_award"))
 
 # Pull degrees awarded data
 # Only pull even years because reporting isn't mandatory in odd years
-raw_instate = get_education_data(level = "college-university",
+raw_instate = cached_pull("raw_instate_00", get_education_data(level = "college-university",
                                  source = "ipeds",
                                  topic = "fall-enrollment",
                                  filters = list(year = c(1994,1996,1998,2000,2002,2004,2006,2008,2010),
                                                 type_of_freshman = 99,
                                                 fips = c(1:56),
                                                 state_of_residence = c(1:58)),
-                                 subtopic = list("residence")) 
+                                 subtopic = list("residence")))
 
 # Import CIP-2 award data
 deg_award_2000 = fread(file.path(data_dir,"raw/ipeds/colleges_ipeds_completions-2digcip_2000.csv"))
@@ -497,11 +528,14 @@ deg_award = rbind(deg_award_2000,deg_award_2010,deg_award_2020) %>%
 
 # Remove any institutions in which 80 percent of degrees awarded were sub-BA
 # in 2000, 2010, and 2020
+# [FIXED 2026-07-25 -- Phase 1] Dropped the left_join to `colleges` here: it
+# created a circular dependency (colleges's own construction, below, excludes
+# institutions using sub_ba$unitid) and every downstream use of sub_ba only
+# ever reads unitid, never the joined descriptive columns -- the join was
+# unused dead weight, not a real dependency. This is why the script couldn't
+# run top-to-bottom as a plain script before.
 sub_ba = deg_award %>%
-  filter(lt_ba_2000 > 0.75 & lt_ba_2010 > 0.75 & lt_ba_2020 > 0.75) %>%
-  left_join(colleges %>% 
-              select(unitid,inst_name,inst_control,state_abbr,deg_awarded),
-            by = "unitid")
+  filter(lt_ba_2000 > 0.75 & lt_ba_2010 > 0.75 & lt_ba_2020 > 0.75)
 # Collapse raw file so that each OPEID-unitid combo has a single address
 geo <- raw_institutions %>%
   as_tibble() %>%

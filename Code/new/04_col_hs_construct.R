@@ -904,6 +904,17 @@ a=0.5
   # Deterministic or probabilistic factor+ a column with probability (geq 1 and non-missing)
   both__ = rbind(hs_prob,hs_det) %>% as_tibble()
   
+  # [CHANGED 2026-07-25 -- Phase 1] both__ (saved below as both_final.rds) is
+  # already fully built at this point. Everything from here through the end
+  # of this block is diagnostic-only calibration (comparing probabilistic vs.
+  # deterministic HS match quality against IPEDS in-state shares) -- not
+  # required for the actual output. Wrapped in tryCatch so a bug in this
+  # calibration code (there's at least one confirmed one: line ~959 below
+  # referenced a `unitid` column that doesn't exist in that piped object,
+  # beyond the unitid/opeid character-vs-integer mismatches already fixed)
+  # can't block saving both_final.rds.
+  tryCatch({
+
   # Construct weights so the IPEDS shares aren't skewed toward older cohorts
   # who attended colleges when they were less geographically diverse
   col_grad_wt = both__ %>%
@@ -924,6 +935,11 @@ a=0.5
            ) %>%
     group_by(unitid,year) %>%
     summarize(enroll_in = sum(enroll_in), enroll_out = sum(enroll_out)) %>%
+    # [FIXED 2026-07-25 -- Phase 1] unitid here is integer (raw IPEDS CSV);
+    # ba_unitid in col_grad_wt is character (both__ casts it that way) --
+    # cast explicitly, same fix as the join in 03_li_ed.Rmd.
+    ungroup() %>%
+    mutate(unitid = as.character(unitid)) %>%
     inner_join(as_tibble(col_grad_wt), by = c("unitid"="ba_unitid","year"="ba_end")) %>%
     mutate(ipeds_instate_shr = enroll_in/(enroll_in+enroll_out)) %>%
     group_by(unitid) %>%
@@ -939,11 +955,16 @@ a=0.5
     group_by(ba_unitid,ba_opeid,hs_id_match) %>%
     summarize(in_state = mean(in_state,na.rm=TRUE)) %>%
               #hs_end = mean(hs_end,na.rm=TRUE)) %>%
-    left_join(colleges %>% select(unitid,opeid,inst_name), by = c("ba_unitid"="unitid","ba_opeid"="opeid")) %>%
+    # [FIXED 2026-07-25 -- Phase 1] Same unitid/opeid character-vs-integer
+    # mismatch as the col_instate join above -- ba_unitid/ba_opeid are
+    # character, colleges$unitid/opeid are integer.
+    left_join(colleges %>% mutate(unitid = as.character(unitid), opeid = as.character(opeid)) %>%
+                select(unitid,opeid,inst_name), by = c("ba_unitid"="unitid","ba_opeid"="opeid")) %>%
     pivot_wider(id_cols=c(ba_unitid,ba_opeid,inst_name),
                 names_from = hs_id_match,
                 values_from = in_state) %>%
-    left_join(colleges %>% select(unitid,opeid,inst_control), by = c("ba_unitid"="unitid","ba_opeid"="opeid")) %>%
+    left_join(colleges %>% mutate(unitid = as.character(unitid), opeid = as.character(opeid)) %>%
+                select(unitid,opeid,inst_control), by = c("ba_unitid"="unitid","ba_opeid"="opeid")) %>%
     left_join(col_instate %>% select(unitid,ipeds_instate_shr), by = c("ba_unitid"="unitid")) %>%
     left_join(
       both %>% as_tibble() %>% count(ba_unitid, ba_opeid, name = "n") %>% mutate(unitid = as.character(unitid)),
@@ -963,6 +984,11 @@ a=0.5
     )
   )
 #}
-  
-saveRDS(both__,file.path(data_dir,"intermediate/both_final.rds"))  
+
+  }, error = function(e) {
+    cat("Diagnostic calibration block failed (not fatal, both_final.rds is unaffected):\n")
+    cat(" ", conditionMessage(e), "\n")
+  })
+
+saveRDS(both__,file.path(data_dir,"intermediate/both_final.rds"))
 

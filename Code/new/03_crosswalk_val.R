@@ -2,6 +2,7 @@ library(data.table)
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(readr)
 
 library(dotenv)
 library(here)

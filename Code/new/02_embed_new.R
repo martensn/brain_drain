@@ -1,4 +1,8 @@
-Sys.setenv(RETICULATE_PYTHON = "/usr/local/bin/python3")
+# [CHANGED 2026-07-25 -- Phase 1] Hardcoded POSIX path replaced; this machine's
+# actual Python install. CODEBASE_AUDIT.md flagged the original path as a hard
+# portability blocker on Windows -- move to .env if this needs to travel
+# across machines again.
+Sys.setenv(RETICULATE_PYTHON = "C:/Program Files/Python313/python.exe")
 library(readxl)
 library(reticulate)
 library(matrixStats)
@@ -11,7 +15,7 @@ library(tidyverse)
 library(table.express)
 library(data.table)
 
-use_python("/usr/local/bin/python3", required = TRUE)
+use_python("C:/Program Files/Python313/python.exe", required = TRUE)
 py_config()
 
 set.seed(49)

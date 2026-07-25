@@ -30,7 +30,16 @@ both_final <- readRDS(file.path(data_dir,"intermediate/both_final.rds"))
 schools <- readRDS(file.path(data_dir,"intermediate/schools.rds"))
 colleges <- readRDS(file.path(data_dir,"intermediate/colleges.rds"))
 unified_cbsa <- fread(file.path(data_dir,"raw/census_geo/unified_cbsa.csv"),
-                      colClasses = c(GeoFIPS = "character"))
+                      # 00_crosswalks.Rmd explicitly casts cbsa_code to
+                      # character (pseudo-CBSA codes like "09999" would
+                      # otherwise round-trip through the CSV as plain
+                      # integers). This session-chain re-read needs to match
+                      # that cast, or it silently overwrites the in-session
+                      # unified_cbsa object 05_merge.Rmd relies on later with
+                      # an integer-typed cbsa_code -- which then fails to
+                      # join against cbsa_shock_ptile's character cbsa_code
+                      # (01_shocks.Rmd) with a hard type-mismatch error.
+                      colClasses = c(GeoFIPS = "character", cbsa_code = "character"))
 
 hs_match = both_final %>%
   mutate(hs_id = as.character(hs_id)) %>%

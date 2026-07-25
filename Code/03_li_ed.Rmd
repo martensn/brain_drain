@@ -103,6 +103,14 @@ both = both_final %>% distinct(user_id)
 col_users = col_match %>% distinct(user_id)
 hs_users = hs_match %>% distinct(user_id)
 
+# 04_li_ed_pos.Rmd joins into `both`/`col_users` with data.table's `x[i, on=]`
+# syntax; both_final.rds's tibble-ness (04_col_hs_construct.R's as_tibble())
+# carries through distinct(), so without this they're plain tibbles and
+# `[.tbl_df` gets dispatched instead of `[.data.table` -- the join then
+# errors trying to use the join table as a bare row index.
+setDT(both)
+setDT(col_users)
+
 # Users with more than one BA-level record already carry that in
 # ba_transfer_* fields on the same row (04_col_hs_construct.R), rather than
 # needing a separate multi-row count.

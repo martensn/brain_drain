@@ -86,7 +86,7 @@ for (i in seq_along(complier_chars)) {
 }
 
 stargazer(compliers[,1:6],
-          summary=FALSE)
+          summary=FALSE,
        label = paste0("table:compliers"),
        #include.ci = FALSE,
        caption = paste0("Complier means"),

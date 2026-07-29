@@ -1,21 +1,23 @@
 # Handoff — BRAIN_DRAIN
 
 ## Status
-Phase 1 (embedding-based HS/college crosswalk) and Phase 2 (25-year parquet
-position-data rewiring) are landed and verified. Phase A.3b (two newly-found
-bugs — single-year-2021 IPEDS pulls silently dropping 247 real institutions;
-`04_col_hs_construct.R` leaving `ba_school` NA despite a valid resolved
-`ba_unitid`) are fixed and confirmed end-to-end. Full pipeline reruns clean:
-`microdata.csv` = 3,593,431 rows (pre-Phase-1 baseline was 3,097,275, +15.9%).
-Working tree has uncommitted changes; no commits made yet this session.
+Phase 1 (crosswalk), Phase 2 (parquet position rewiring), and Phase A.3b
+(institution-lookup fixes) are landed and verified. Phase A.3's before/after
+diff is done — waterfall + current-sample plausibility checks (a true
+row-level pre-Phase-1 baseline was never preserved, so this was a deliberate
+scope choice). Producing the diff surfaced and fixed 4 more bugs: a duplicate
+row in `unified_cbsa`, two missing `row.names=FALSE` writes (stray `V1.x`/
+`V1.y` columns), a missing `all.x=TRUE` on `05_merge.Rmd`'s `hs_cnty` merge,
+and a fan-out bug in `college_lookup.R`'s `resolve_college()` for overlapping
+IPEDS-year eras. `microdata.csv` = 3,603,589 rows, zero duplicate `user_id`s,
+no stray columns (pre-Phase-1 baseline: 3,097,275, +16.3%). Committed as
+`c6543b5`. Working tree clean.
 
 ## Next steps
-- [ ] Commit this session's changes (`Code/college_lookup.R`, the
-      `04_col_hs_construct.R` backfill, `04_li_ed_pos.Rmd`/`05_merge.Rmd`
-      IPEDS-pull fixes, regenerated `Code/scripts/*.R`) plus the still-open
-      7 files from Phase A.1
-- [ ] Phase A.3: produce the formal before/after diff (3,097,275 →
-      3,593,431) and apply the tolerance-fork decision
+- [x] Apply the tolerance-fork decision (Phase A safeguard 5): **inside
+      tolerance, proceed** — the full +16.3% traces to specific verified
+      causes (vintage fix, institution-lookup backfill, 4 bug fixes), no
+      plausibility red flags
 - [ ] Phase A.4: tag `phase1-crosswalk-consolidated`, merge
       `phase1-crosswalk-consolidation` → `master`, resolve
       `d_sample_construction.R`'s fate
@@ -23,16 +25,14 @@ Working tree has uncommitted changes; no commits made yet this session.
 
 ## Key files
 - `D:\Users\martensn\.claude\plans\yes-let-s-resolve-this-misty-kahan.md` —
-  live master plan, current through Phase A.3b
-- `Code/college_lookup.R` — new shared era-aware institution-resolution helper
-- `Code/new/04_col_hs_construct.R`, `Code/04_li_ed_pos.Rmd`,
-  `Code/05_merge.Rmd` — this session's fixes
-- `Data/intermediate/both_final.rds`, `Data/intermediate/microdata.csv` —
-  regenerated outputs
+  live master plan, current through Phase A.3's diff
+- `Code/college_lookup.R` — shared era-aware institution-resolution helper
+- `Data/intermediate/microdata.csv` — regenerated, verified duplicate-free
 
 ## Decisions
-- `unitid` alone is not a unique institution key (354 span multiple
-  opeid-eras) — `col_match`'s `(unitid, opeid)` join stays as-is; new lookups
-  key on `unitid` + reference year via `resolve_college()`
-- Widening `00_alias_generation.R`'s 2000-2013 institution row-universe is
-  deferred as its own task (touches the already-verified crosswalk)
+- `unitid` alone isn't a unique institution key — lookups key on `unitid` +
+  reference year via `resolve_college()`
+- Chose waterfall + plausibility checks over reconstructing a true row-level
+  baseline (would mean re-running superseded code against preserved inputs)
+- Chugach/Copper River Alaska GeoFIPS mismatch (`00_crosswalks.Rmd:88`)
+  noted, left unfixed — confirmed zero rows affected

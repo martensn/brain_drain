@@ -7,7 +7,6 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(educationdata)
 library(tidyverse)
 library(table.express)
 library(data.table)
@@ -25,6 +24,8 @@ out_dir   <- file.path(directory, "Outputs")
 zipcodefilename = "zipcodes.csv"
 # Choose a base year (e.g., 2020) for CPI
 cpi_base_year <- 2020
+
+source(file.path(here::here(), "Code", "college_lookup.R"))
 
 min_post_grad = 0
 max_post_grad = 50
@@ -54,57 +55,32 @@ With this code chunk, CBSA classifications can be changed by rerunning steps 1 a
 
 raw_microdata[,col_unitid := as.integer(col_unitid)]
 
-# [ADDED 2026-07-25 -- Phase 1 verification] The Urban Institute educationdata
-# API has already been confirmed flaky elsewhere in this pipeline
-# (00_alias_generation.R, 02_col_chars.Rmd both needed retry/cache wrappers
-# after live failures). This specific college-university/ipeds/directory
-# pull doesn't error on a bad response -- it can silently return a partial
-# page, which showed up here as a silent ~92% collapse in the final microdata
-# row count (2.27M raw rows -> 181K) on one run, with no error or warning at
-# all. Wrapped with the same retry/cache pattern, plus an explicit sanity
-# check on row count (a known-good pull returns 6,289 institutions) so a
-# partial pull errors loudly instead of silently corrupting the sample.
-cached_pull <- function(cache_name, fetch_expr, max_attempts = 3, retry_delay = 20) {
-  cache_path <- file.path(data_dir, "intermediate", "api_cache", paste0(cache_name, ".rds"))
-  if (file.exists(cache_path)) {
-    return(readRDS(cache_path))
-  }
-  expr <- substitute(fetch_expr)
-  env <- parent.frame()
-  result <- NULL
-  for (attempt in seq_len(max_attempts)) {
-    result <- tryCatch(eval(expr, env), error = function(e) {
-      cat(sprintf("cached_pull('%s'): attempt %d/%d failed: %s\n",
-                  cache_name, attempt, max_attempts, conditionMessage(e)))
-      NULL
-    })
-    if (!is.null(result)) break
-    if (attempt < max_attempts) Sys.sleep(retry_delay)
-  }
-  if (is.null(result)) {
-    stop(sprintf("cached_pull('%s'): all %d attempts failed", cache_name, max_attempts))
-  }
-  dir.create(dirname(cache_path), showWarnings = FALSE, recursive = TRUE)
-  saveRDS(result, cache_path)
-  result
-}
+# [CHANGED 2026-07-28 -- Phase A.3b fix] Was a single-year-2021 IPEDS API
+# pull (get_education_data(..., filters=list(year=2021))) for col_cbsas,
+# joined via a default inner merge() -- any col_unitid not in that one
+# snapshot silently dropped the entire row (109,441 of them: Penn State Main
+# Campus, University of Phoenix-Arizona, Kennesaw State, etc. -- likely IPEDS
+# unitid consolidation/splits across years, not a real absence). colleges.rds
+# (built in 00_alias_generation.R) already covers these institutions via a
+# comprehensive 2000-2024 pull, and its col_fips is already zero-padded, so
+# no county_fips/str_pad re-derivation is needed. resolve_college()
+# (Code/college_lookup.R) picks the era-correct row for the ~10% of unitids
+# that were renamed/re-OPEID'd over time, using each user's own col_end, and
+# preserves every row regardless of match (equivalent to all.x=TRUE) --
+# together with the change below, geo lookup failures now NA the CBSA
+# columns instead of silently dropping the person. See
+# yes-let-s-resolve-this-misty-kahan.md's 2026-07-28 finding.
+colleges_lookup <- readRDS(file.path(data_dir, "intermediate/colleges.rds"))
+setDT(colleges_lookup)
+setDT(raw_microdata)
 
-# Pull directory of basic information about institutions
-col_cbsas_raw = cached_pull("col_cbsas_directory_2021", get_education_data(level = "college-university",
-                                   source = "ipeds",
-                                   topic = "directory",
-                                   filters = list(year = 2021)
-                   ))
-if (nrow(col_cbsas_raw) < 5000) {
-  stop(sprintf("college-university/ipeds/directory/2021 pull returned only %d rows (expected ~6,289) -- likely a partial/flaky API response, not a real data change. Delete Data/intermediate/api_cache/col_cbsas_directory_2021.rds to retry.", nrow(col_cbsas_raw)))
-}
-col_cbsas = col_cbsas_raw %>%
-  select(c(unitid,county_fips)) %>%
-  mutate(col_cnty = as.character(str_pad(county_fips,5,"left","0"))) %>%
-  rename(col_unitid = unitid)
+raw_microdata <- resolve_college(raw_microdata, "col_unitid", "col_end", colleges_lookup,
+                                  select_cols = c("col_fips"))
+raw_microdata[, col_cnty := col_fips]
+raw_microdata[, col_fips := NULL]
+rm(colleges_lookup)
 
-raw_microdata <- merge(raw_microdata,col_cbsas, by="col_unitid")
-raw_microdata <- merge(raw_microdata,unified_cbsa, by.x ="col_cnty", by.y = "GeoFIPS") %>%
+raw_microdata <- merge(raw_microdata,unified_cbsa, by.x ="col_cnty", by.y = "GeoFIPS", all.x = TRUE) %>%
   setnames(c("cbsa_code"),c("col_cbsa_code"))
 raw_microdata <- merge(raw_microdata,unified_cbsa, by.x ="hs_cnty", by.y = "GeoFIPS") %>%
   setnames(c("cbsa_code"),c("hs_cbsa_code"))
@@ -332,9 +308,17 @@ write.csv(return_by_year,file.path(data_dir,"intermediate/return_by_year.csv"), 
 
 ```{r filtering}
 
+# [CHANGED 2026-07-27 -- Phase 2 arrow rewiring] col_end's upper bound predates
+# work_history_end's extension to 2025 (04_li_ed_pos.Rmd) -- traced via a
+# diagnostic waterfall: of ~895K rows lost in this file, 880,251 failed
+# col_end < 2023 alone, almost entirely 2023-2025 graduates the new, wider
+# position-year coverage newly made visible upstream, only to be dropped right
+# back out here. Extended to 2026 to match, per user decision. (The two
+# instances here already disagreed with each other pre-existing -- 2022 vs
+# 2023 -- both now aligned to the same bound.)
 birth_outliers = microdata %>%
   # Remove obvious birth outliers
-  table.express::filter(col_end > 1981 & col_end < 2022 & birth > 1929 & birth > 1929 & birth < 2003)
+  table.express::filter(col_end > 1981 & col_end < 2026 & birth > 1929 & birth > 1929 & birth < 2003)
 
 territory_hs_col = birth_outliers %>%
   table.express::filter(!hs_state %in% c("GU","PR","AS","VI")) %>%
@@ -345,7 +329,7 @@ territory_hs_col = length(unique(territory_hs_col$user_id))
 
 microdata = microdata %>%
   # Remove obvious birth outliers
-  table.express::filter(col_end > 1981 & col_end < 2023 & birth > 1929 & birth < 2003) %>%
+  table.express::filter(col_end > 1981 & col_end < 2026 & birth > 1929 & birth < 2003) %>%
   # Remove profiles from US territories since no CBP data
   table.express::filter(!hs_state %in% c("GU","PR","AS","VI")) %>%
   table.express::filter(!col_state %in% c("GU","PR","AS","VI"))

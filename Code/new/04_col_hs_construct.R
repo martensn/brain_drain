@@ -12,6 +12,8 @@ data_dir  <- file.path(directory, "Data")
 out_dir   <- file.path(directory, "Outputs")
 data_dir = file.path(directory,"Data")
 
+source(file.path(here::here(), "Code", "college_lookup.R"))
+
 #------------------------------------------------------------
 # 1. Precompute high-school candidate tables
 #------------------------------------------------------------
@@ -635,6 +637,37 @@ ba <- rbindlist(
   use.names = TRUE,
   fill = TRUE
 )
+
+# [Phase A.3b fix, 2026-07-28] The chosen_source == "default" paths above can
+# resolve a valid ba_unitid (via a numeric-ID column: extra_unitid/col_unitid)
+# while leaving ba_school/ba_state/ba_opeid NA, because those come from a
+# separate raw-string column that isn't guaranteed to co-occur with the
+# resolved ID -- a data-lineage quirk in the extra/transfer-record dedup
+# above, not a genuine non-match. Verified: 436,746 of both_final's rows have
+# ba_school NA, and 100% of those have a valid ba_unitid present in
+# colleges.rds -- there is no population of strings that were tried and
+# failed to match. col_match's only downstream validity check is
+# is.na(col_name) (= ba_school), so without this backfill these users get
+# silently discarded despite being genuinely matched to a real institution.
+# See yes-let-s-resolve-this-misty-kahan.md's 2026-07-28 finding.
+colleges_lookup <- readRDS(file.path(data_dir, "intermediate/colleges.rds"))
+setDT(colleges_lookup)
+
+need_backfill <- ba[is.na(ba_school) & !is.na(ba_unitid)]
+if (nrow(need_backfill) > 0) {
+  # Resolve against the era-correct colleges.rds row (some unitids were
+  # renamed/re-OPEID'd over time -- see college_lookup.R) using the person's
+  # own graduation year, so name/state/opeid stay internally consistent.
+  need_backfill[, backfill_year := suppressWarnings(as.integer(format(ba_end, "%Y")))]
+  resolved <- resolve_college(need_backfill, "ba_unitid", "backfill_year", colleges_lookup,
+                               select_cols = c("inst_name", "state_abbr", "opeid"))
+  ba[resolved, on = "user_id",
+     `:=`(ba_school = fifelse(is.na(ba_school), i.inst_name, ba_school),
+          ba_state  = fifelse(is.na(ba_state),  i.state_abbr, ba_state),
+          ba_opeid  = fifelse(is.na(ba_opeid),  i.opeid, ba_opeid))]
+  rm(resolved)
+}
+rm(need_backfill, colleges_lookup)
 
 # Existing 4-year extra matches
 col_transfer_dedup <- col_transfer[

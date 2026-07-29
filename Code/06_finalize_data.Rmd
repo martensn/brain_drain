@@ -239,7 +239,7 @@ max <- migration_ends[1]
 
 # These generate data used to show the linearity of the dependent variable
 cohort_return_hs <- regression[ever_leave_cbsa_hs_10 == 1, mean(same_cbsa_hs_10 == 1, na.rm = TRUE), by = .(col_end)]
-cohort_return_col <- regression[ever_leave_cbsa_col == 1, mean(same_cbsa_col_10 == 1, na.rm = TRUE), by = .(col_end)]
+cohort_return_col <- regression[ever_leave_cbsa_col_10 == 1, mean(same_cbsa_col_10 == 1, na.rm = TRUE), by = .(col_end)]
 write.csv(cohort_return_hs,file.path(data_dir,"intermediate/cohort_return_hs_10.csv"),row.names = FALSE)
 write.csv(cohort_return_col,file.path(data_dir,"intermediate/cohort_return_col_10.csv"),row.names = FALSE)
 

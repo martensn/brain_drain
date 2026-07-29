@@ -35,7 +35,7 @@ Most of what follows is code hygiene. These six are different in kind — they'r
    ```
    On a genuinely fresh run this throws `object 'shifts' not found`. If it "works" today, it's because a stale `shifts` from an earlier interactive run is still sitting in the session — meaning `intermediate/shifts.csv` may reflect an older computation, not the one that just ran. Worth confirming the currently-saved `shifts.csv` actually corresponds to the latest `cbp_nat_chg` logic.
 
-5. **`09_plots.Rmd:41` resets `specification` to `"pre_2000"`, while `06_finalize_data.Rmd`/`07_regressions.Rmd` both use `"great_recession"`.** In a genuine single-session 00→09 run, every plot-input read in `09_plots.Rmd` (`file.path(directory,"Data",specification,...)`) would come from `Data/pre_2000/`, not the `Data/great_recession/` folder 06/07/08 just populated. Either this is intentional (plots are meant to be generated from a separately re-run `pre_2000` pass — in which case the "run 00→10 in one session" framing needs a documented exception here) or it's a stale leftover from whichever `specification` was last plotted. Worth confirming which one produced the submission's actual figures.
+5. ~~**`09_plots.Rmd:41` resets `specification` to `"pre_2000"`, while `06_finalize_data.Rmd`/`07_regressions.Rmd` both use `"great_recession"`.**~~ **[CONFIRMED NOT A BUG — 2026-07-29, author's correction]** Intentional by design: `specification` is meant to be a configurable toggle so the same plotting code can be re-run under multiple cohort windows (`pre_2000`/`great_recession`/`post_2000`/`pooled`) without a separate script per specification. `06_finalize_data.Rmd`/`07_regressions.Rmd` using a different default is expected, not a mismatch to reconcile. Dropped from Phase B scope in the resolution plan.
 
 6. **`Code/measure_return.R` is mislabeled — it's `measure_leave`'s logic under `measure_return`'s name, inverted.** Diffed byte-for-byte against `06_finalize_data.Rmd`'s live `measure_return`/`measure_leave` pair: this standalone file's body matches `measure_leave`, not `measure_return`. It's also missing its own assignment (`measure_return <- function(...)`  never actually happens — the file is just an anonymous function literal) and has no `measure_leave` companion. **Because nothing in this codebase uses `source()`, this file currently has zero effect on the live pipeline** — `06_finalize_data.Rmd` defines and uses its own correct, self-contained versions. No danger today, but it's a landmine: if it's ever copied into an interactive session under the assumption that it's an authoritative definition of `measure_return`, every result built on it would be silently inverted. Recommend deleting it or fixing the label + adding the missing companion.
 
@@ -53,8 +53,7 @@ A recurring, cross-cutting finding: **because nothing in this codebase calls `so
 
 ### 1a. Root pipeline (`00`–`10`)
 
-Numeric order holds reasonably well through `00→08`. Two breaks:
-- **`09_plots.Rmd` expects `specification = "pre_2000"`**, not the `"great_recession"` that `06`/`07`/`08` leave in session (see §0.5).
+Numeric order holds reasonably well through `00→08`. One break:
 - **`10_roi.Rmd` is effectively disconnected** from a fresh run: it `load()`s a git-ignored, 197MB `Code/06_workspace.RData` snapshot that doesn't exist on a fresh clone (and if it does exist locally, silently overwrites whatever `00`-`09` just built in-session); it reads `results/regression_data__06.csv`, a pre-July-2026-reorg filename nothing in `00`-`09` produces; and it rebuilds `institutional_characteristics` with `year=2021` only, vs. `02_col_chars.Rmd`'s `year=2000:2013` panel — two different objects with the same name and purpose, already drifted.
 - `13_9b_plots_old.Rmd` and `Code/03_dedup_col.R` exist alongside this numbering but are explicitly legacy/out-of-lineage (the former by its own `_old` suffix, the latter by a header comment naming a `Code/new/` dependency) — flagging their presence in case they're meant to be deleted rather than confused for part of the active sequence.
 
@@ -144,7 +143,6 @@ Given this supports a journal submission and needs to be reproducible by you (an
 
 **Uncertain, would need an actual run to confirm:**
 - Whether `01_shocts.Rmd`'s stale-`shifts` scenario (§0.4) has actually ever produced a wrong `shifts.csv` in practice, or whether the script has always happened to be run in an order that avoids it.
-- Whether `09_plots.Rmd`'s `pre_2000` vs `great_recession` mismatch (§0.5) reflects the actual generation process for the submitted figures, or is a stale default nobody's hit yet.
 - Whether `08_data_generation.Rmd`'s `return_to_both` bug (§0.2) actually reaches any submitted table, or dead-ends at the unexported `problems` diagnostic.
 - Whether other pre-2026-reorg `.rds` files carry the same `IDate` double-storage corruption as `both_final.rds` — this audit did not enumerate and check every `.rds` on disk.
 - The exact current install state of R 4.6.0 vs. 4.5.2 (this audit is a static code read, not a live environment probe).

@@ -588,7 +588,7 @@ soc_merge = soc_ba %>%
   filter(!is.na(socp)) %>%
   distinct(socp, .keep_all = TRUE)
 
-write.csv(soc_ba,file.path(data_dir,"intermediate/soc_merge.csv"), row.names=FALSE)
+write.csv(soc_merge,file.path(data_dir,"intermediate/soc_merge.csv"), row.names=FALSE)
 
 
 # Subset to educator codes

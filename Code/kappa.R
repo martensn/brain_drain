@@ -13,7 +13,7 @@ out_dir   <- file.path(directory, "Outputs")
 # Run beginning of step 6 first
 
 
-regression[,return_to_both := same_cbsa_col_10 * same_cbsa_col_10]
+regression[,return_to_both := same_cbsa_hs_10 * same_cbsa_col_10]
 problems <- regression[return_to_both == 1 & col_in_not_hs_cbsa == 1]
 
 # Import residual measurements of places with amenities

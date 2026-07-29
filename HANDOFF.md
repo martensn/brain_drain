@@ -29,19 +29,21 @@ the join complete, and is also fixed. Verified: `institutional_characteristics.c
 now has exactly one row per `unitid` (3,510 = 3,510), and a full
 `06_finalize_data.R` rerun completes cleanly end to end.
 
-**Not yet done**: `09_plots.Rmd` and `10_roi.Rmd` haven't been re-run against
-the fixed `institutional_characteristics.csv` — they're the scripts whose
-figures/tables could actually change. Working tree clean, all committed and
-pushed to `origin/master`.
+**Deliberately deferred (your call, 2026-07-29)**: `09_plots.Rmd` and
+`10_roi.Rmd` haven't been re-run against the fixed
+`institutional_characteristics.csv`, and won't be right now — explicitly set
+aside, not forgotten. Working tree clean, all committed and pushed to
+`origin/master`. **Active phase: Phase C** (retire `Code/new/` as a folder).
 
 ## Next steps
-- [ ] Re-run `09_plots.Rmd` (and `10_roi.Rmd`, separately — it rebuilds its
-      own `institutional_characteristics` from a different, already-flagged
+- [ ] **(Deferred, revisit deliberately)** Re-run `09_plots.Rmd` (and
+      `10_roi.Rmd`, separately — it rebuilds its own
+      `institutional_characteristics` from a different, already-flagged
       year=2021-only pull) against the fixed data, and compare any figures
       that use institution-level covariates (`inst_group`, mobility
       measures, degree mix, `region`, acceptance rate) against the
       originally-submitted versions
-- [ ] Phase C: retire `Code/new/` as a folder structure
+- [ ] Phase C: retire `Code/new/` as a folder structure (active now)
 - [ ] Phase D: cross-cutting hygiene (`CENSUS_KEY` case mismatches, move
       secrets to `.env`, output-dir creation)
 - [ ] Phase E: `renv` pinning

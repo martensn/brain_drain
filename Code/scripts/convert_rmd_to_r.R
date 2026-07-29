@@ -1,4 +1,4 @@
-# Converts the root numbered .Rmd pipeline (00_crosswalks.Rmd .. 10_roi.Rmd)
+# Converts the root numbered .Rmd pipeline (00_crosswalks.Rmd .. 09_plots.Rmd)
 # into plain .R scripts under Code/scripts/, so the pipeline can be run
 # non-interactively via `Rscript Code/scripts/run_pipeline.R`.
 #
@@ -50,8 +50,7 @@ rmd_files <- c(
   "Code/06_finalize_data.Rmd",
   "Code/07_regressions.Rmd",
   "Code/08_data_generation.Rmd",
-  "Code/09_plots.Rmd",
-  "Code/10_roi.Rmd"
+  "Code/09_plots.Rmd"
 )
 
 dir.create("Code/scripts", showWarnings = FALSE)

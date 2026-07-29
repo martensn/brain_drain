@@ -1,5 +1,7 @@
 # Non-interactive driver for the root numbered pipeline (converted from the
-# 00_crosswalks.Rmd .. 10_roi.Rmd sequence by convert_rmd_to_r.R).
+# 00_crosswalks.Rmd .. 09_plots.Rmd sequence by convert_rmd_to_r.R). 10_roi.Rmd
+# was archived to Code/Old/ (2026-07-29) -- confirmed genuinely broken (reads
+# a pre-reorg path that no longer exists), not just fragile.
 #
 # Run from the repo root:
 #   Rscript Code/scripts/run_pipeline.R [last_stage]
@@ -17,7 +19,7 @@
 stages <- c(
   "00_crosswalks", "01_shocks", "02_col_chars", "02_hs_chars",
   "03_li_ed", "04_li_ed_pos", "05_merge", "06_finalize_data",
-  "07_regressions", "08_data_generation", "09_plots", "10_roi"
+  "07_regressions", "08_data_generation", "09_plots"
 )
 
 args <- commandArgs(trailingOnly = TRUE)

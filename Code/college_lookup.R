@@ -47,10 +47,22 @@ resolve_college <- function(dt, unitid_col, year_col, colleges,
   )
 
   # Exact era match: unitid matches AND the reference year falls inside
-  # [start_year, end_year]. mult="first" guards against overlapping windows.
+  # [start_year, end_year].
   eligible <- work[!is.na(.._unitid) & !is.na(.._year)]
   exact <- eligible[cols, on = .(.._unitid = unitid, .._year >= start_year, .._year <= end_year),
                      nomatch = NULL, mult = "first"]
+  # [CHANGED 2026-07-29 -- Phase A.3 diff] mult="first" bounds matches per row
+  # of `cols` (colleges, the join's i-argument here), not per input row --
+  # it does NOT guard against overlapping windows the way the comment above
+  # used to claim. Two colleges.rds unitids (197674: [2000,2013] and
+  # [2011,2012]; 178989: [2008,2013] and [2000,2012]) have windows that
+  # actually overlap, not just sit in sequential eras -- a person whose
+  # reference year falls in the overlap matched both rows, producing an
+  # exact duplicate row downstream (caught via a duplicate-user_id check on
+  # microdata.csv, 2 people affected). Dedup by .._row_id, keeping the first
+  # -- cols is sorted by -end_year above, so this deterministically prefers
+  # the most recent overlapping era.
+  exact <- exact[!duplicated(.._row_id)]
   exact <- exact[, c(".._row_id", select_cols), with = FALSE]
 
   need_fallback <- work[!.._row_id %in% exact$.._row_id]

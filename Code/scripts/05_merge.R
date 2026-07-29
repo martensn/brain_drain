@@ -71,7 +71,14 @@ rm(colleges_lookup)
 
 raw_microdata <- merge(raw_microdata,unified_cbsa, by.x ="col_cnty", by.y = "GeoFIPS", all.x = TRUE) %>%
   setnames(c("cbsa_code"),c("col_cbsa_code"))
-raw_microdata <- merge(raw_microdata,unified_cbsa, by.x ="hs_cnty", by.y = "GeoFIPS") %>%
+# [CHANGED 2026-07-29 -- Phase A.3 diff] Was a default inner join -- any
+# hs_cnty not found in unified_cbsa (genuinely missing hs_cnty, or one of a
+# handful of obscure/historical county FIPS codes -- ~182 non-NA rows,
+# 0.005% of raw_microdata__05.csv -- absent from the Census county source
+# entirely) silently dropped the whole person, the same class of bug already
+# fixed for col_cnty just above. all.x=TRUE makes a missing match NA the CBSA
+# columns instead, consistent with the col_cnty merge and with Bug 1's fix.
+raw_microdata <- merge(raw_microdata,unified_cbsa, by.x ="hs_cnty", by.y = "GeoFIPS", all.x = TRUE) %>%
   setnames(c("cbsa_code"),c("hs_cbsa_code"))
 
 

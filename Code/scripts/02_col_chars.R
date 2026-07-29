@@ -504,6 +504,6 @@ institutional_characteristics <- institutional_characteristics %>%
 
 ## ----gradrate_dup2------------------------------------------------------------
 
-write.csv(institutional_characteristics, file.path(data_dir,"intermediate/institutional_characteristics.csv"))
+write.csv(institutional_characteristics, file.path(data_dir,"intermediate/institutional_characteristics.csv"), row.names = FALSE)
   
 

@@ -97,7 +97,7 @@ pos_summary <- position[, .(n = .N), by = .(onet_code)] %>%
   group_by(socp) %>%
   summarize(shr_li = sum(shr_li))
 
-write.csv(pos_summary,file.path(data_dir,"intermediate/soc_li_distribution.csv"))
+write.csv(pos_summary,file.path(data_dir,"intermediate/soc_li_distribution.csv"), row.names = FALSE)
 
 
 
@@ -399,8 +399,15 @@ completed_melt = completed[, ..cols] %>%
   
 numerator = completed_melt[, .(count = .N), by = c("value","variable")]
 
-write.csv(numerator,file.path(data_dir,"intermediate/numerator.csv"))
-write.csv(completed,file.path(data_dir,"raw/revelio/raw_microdata__05.csv"))
+write.csv(numerator,file.path(data_dir,"intermediate/numerator.csv"), row.names = FALSE)
+# [CHANGED 2026-07-29 -- Phase A.3 diff] row.names=FALSE added -- this write
+# was missing it (the only other omission besides unified_cbsa.csv, already
+# fixed in 00_crosswalks.Rmd), producing an unnamed leading index column that
+# fread reads back as "V1". 05_merge.Rmd reads this file as raw_microdata and
+# merges it against unified_cbsa twice; with both sides carrying a stray "V1"
+# before this fix, the merges suffixed them V1.x/V1.y, which is exactly how
+# they ended up polluting the final microdata.csv.
+write.csv(completed,file.path(data_dir,"raw/revelio/raw_microdata__05.csv"), row.names = FALSE)
 
 
 rm(position,all_col_unrated,almost_completed,barrons,barrons_chetty,big_chungus,both,

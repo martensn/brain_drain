@@ -129,10 +129,23 @@ cbsa_na = county %>%
   
 
 # Join counties with CBSA codes and psuedo-coded non-CBSA counties
+# [CHANGED 2026-07-29 -- Phase A.3 diff] The source `county` table carries a
+# duplicate row for GeoFIPS 02261 (Alaska's since-reorganized Valdez-Cordova
+# Census Area) -- both copies already agree on cbsa_code (2999), so this was
+# never a conflicting-mapping bug, just a literal duplicate row that fanned
+# out into two identical copies of every person whose hs_cnty/col_cnty is
+# 02261 once 05_merge.Rmd joins against this table (found via a duplicate-
+# user_id check on microdata.csv, 82 people affected). distinct() on GeoFIPS
+# makes this crosswalk one-row-per-county regardless of upstream duplication.
 unified_cbsa = rbind(cbsa_fips,cbsa_na) %>%
+  distinct(GeoFIPS, .keep_all = TRUE) %>%
   as.data.table()
 
-write.csv(unified_cbsa,file.path(data_dir,"raw/census_geo/unified_cbsa.csv"))
+# [CHANGED 2026-07-29] row.names=FALSE added -- this was the one write.csv in
+# the codebase without it, producing a stray index column that fread reads
+# back as "V1" and that survives into microdata.csv as V1.x/V1.y after
+# 05_merge.Rmd's two merges against this table.
+write.csv(unified_cbsa,file.path(data_dir,"raw/census_geo/unified_cbsa.csv"), row.names = FALSE)
 
 cbsa_code_name = cbsa[c(1,4)] %>%
   rename("cbsa_code" = `CBSA Code`,

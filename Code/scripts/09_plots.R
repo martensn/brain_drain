@@ -32,6 +32,12 @@ directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses n
 data_dir  <- file.path(directory, "Data")
 out_dir   <- file.path(directory, "Outputs")
 specification = "pre_2000"
+# [FIXED -- 2026-07-29, Phase D] Every write below assumes this exists;
+# create it rather than erroring on first write with a bare "cannot open
+# file" (CODEBASE_AUDIT.md sec 3). Re-run after changing `specification`
+# above to a different value -- this creates that value's directory too.
+dir.create(file.path(data_dir, specification), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(out_dir, specification), recursive = TRUE, showWarnings = FALSE)
 # Automate filtering
 cohort_list <- list(post_2000 = c(2000:2013),
                 pre_2000 = c(1982:1999),
@@ -2045,7 +2051,7 @@ ggsave(file = paste(directory,"/Outputs/",specification,"/cohort_levels.png",sep
 #       # API call for one state and one age group at a time
 #       temp <- getCensus(
 #         name = "pep/int_charagegroups",
-#         key = Sys.getenv("census_key"),
+#         key = census_key,
 #         vintage = 2000,
 #         vars = c("DATE_","STATE","COUNTY","AGEGROUP","POP"),
 #         region = "county:*",

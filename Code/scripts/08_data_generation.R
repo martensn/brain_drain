@@ -23,6 +23,14 @@ load_dot_env(here::here(".env"))
 directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
 data_dir  <- file.path(directory, "Data")
 out_dir   <- file.path(directory, "Outputs")
+# [FIXED -- 2026-07-29, Phase D] `specification` isn't set in this script --
+# it's a bare in-session reference to whatever 07_regressions.Rmd set it to
+# (no file-based fallback, same pattern CODEBASE_AUDIT.md flagged
+# elsewhere). That directory should already exist from 07_regressions.Rmd's
+# own dir.create(), but this script shouldn't assume an earlier one ran --
+# create it defensively too (idempotent, harmless if it already exists).
+dir.create(file.path(data_dir, specification), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(out_dir, specification), recursive = TRUE, showWarnings = FALSE)
 
 
 

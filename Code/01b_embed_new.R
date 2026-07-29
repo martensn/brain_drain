@@ -1,8 +1,10 @@
-# [CHANGED 2026-07-25 -- Phase 1] Hardcoded POSIX path replaced; this machine's
-# actual Python install. CODEBASE_AUDIT.md flagged the original path as a hard
-# portability blocker on Windows -- move to .env if this needs to travel
-# across machines again.
-Sys.setenv(RETICULATE_PYTHON = "C:/Program Files/Python313/python.exe")
+# [CHANGED 2026-07-29 -- Phase D] RETICULATE_PYTHON moved into .env, per
+# CODEBASE_AUDIT.md's portability recommendation (was hardcoded to this
+# machine's Python install as of the 2026-07-25 Windows-path fix).
+library(dotenv)
+library(here)
+load_dot_env(here::here(".env"))
+
 library(readxl)
 library(reticulate)
 library(matrixStats)
@@ -15,13 +17,10 @@ library(tidyverse)
 library(table.express)
 library(data.table)
 
-use_python("C:/Program Files/Python313/python.exe", required = TRUE)
+use_python(Sys.getenv("RETICULATE_PYTHON"), required = TRUE)
 py_config()
 
 set.seed(49)
-library(dotenv)
-library(here)
-load_dot_env(here::here(".env"))
 directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
 data_dir  <- file.path(directory, "Data")
 out_dir   <- file.path(directory, "Outputs")

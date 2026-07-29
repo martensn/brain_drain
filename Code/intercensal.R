@@ -61,7 +61,7 @@ get_agegroup <- function(states, agegroups = 5:18) {
       # API call for one state and one age group at a time
       temp <- getCensus(
         name = "pep/int_charagegroups",
-        key = Sys.getenv("census_key"),
+        key = census_key,
         vintage = 2000,
         vars = c("DATE_","STATE","COUNTY","AGEGROUP","POP"),
         region = "county:*",

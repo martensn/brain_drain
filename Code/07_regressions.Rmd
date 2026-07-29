@@ -34,6 +34,11 @@ directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses n
 data_dir  <- file.path(directory, "Data")
 out_dir   <- file.path(directory, "Outputs")
 specification = "great_recession"
+# [FIXED -- 2026-07-29, Phase D] Every write below assumes this exists;
+# create it rather than erroring on first write with a bare "cannot open
+# file" (CODEBASE_AUDIT.md sec 3).
+dir.create(file.path(data_dir, specification), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(out_dir, specification), recursive = TRUE, showWarnings = FALSE)
 
 geos = c("cbsa")
 dep_var = c("same","yagan")

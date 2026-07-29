@@ -224,7 +224,7 @@ max <- migration_ends[1]
 
 # These generate data used to show the linearity of the dependent variable
 cohort_return_hs <- regression[ever_leave_cbsa_hs_10 == 1, mean(same_cbsa_hs_10 == 1, na.rm = TRUE), by = .(col_end)]
-cohort_return_col <- regression[ever_leave_cbsa_col == 1, mean(same_cbsa_col_10 == 1, na.rm = TRUE), by = .(col_end)]
+cohort_return_col <- regression[ever_leave_cbsa_col_10 == 1, mean(same_cbsa_col_10 == 1, na.rm = TRUE), by = .(col_end)]
 write.csv(cohort_return_hs,file.path(data_dir,"intermediate/cohort_return_hs_10.csv"),row.names = FALSE)
 write.csv(cohort_return_col,file.path(data_dir,"intermediate/cohort_return_col_10.csv"),row.names = FALSE)
 
@@ -275,15 +275,14 @@ for (max in migration_ends) {
 
 ## ----sumstat------------------------------------------------------------------
 
+## [FIXED -- 2026-07-29] institutional_characteristics.csv already carries a
+## `region` column (02_col_chars.Rmd builds it the same way, state.abb/
+## state.region, but also maps DC -> South). This block used to redundantly
+## rebuild a less-complete version and re-merge it, colliding into
+## region.x/region.y and breaking every downstream `by=.(region)` grouping
+## below -- unreachable until institutional_characteristics.csv's duplicate-
+## unitid bug (fixed the same session) let this merge actually complete.
 institutional_characteristics <- fread(file.path(data_dir,"intermediate/institutional_characteristics.csv"))
-
-state_region_crosswalk <- data.table(state = state.abb,
-                                     region = state.region)
-
-institutional_characteristics <- merge(
-  institutional_characteristics, state_region_crosswalk,
-  by.x = "state_abbr", by.y = "state", all.x = TRUE
-)
 
 cohort_x_grad <- as.data.frame(as.table(prop.table(table(regression$birth,regression$col_end), margin = 2)))
 names(cohort_x_grad) <- c("birth","col_end","shr")

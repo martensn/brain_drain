@@ -31,6 +31,7 @@ load_dot_env(here::here(".env"))
 directory <- Sys.getenv("BRAIN_DRAIN_ROOT")  # kept for any Outputs/-only uses not touched by this reorg
 data_dir  <- file.path(directory, "Data")
 out_dir   <- file.path(directory, "Outputs")
+source(file.path(here::here(), "Code", "college_lookup.R"))
 
 aaufilename = "AAU.xlsx"
 mobilityfilename = "mrc_table2.xlsx"
@@ -116,16 +117,32 @@ aau = read_excel(file.path(data_dir,"raw/rankings_membership/AAU__06.xlsx"),
   select(c(unitid,aau)) %>%
   as.data.table()
 
-# Pull directory of basic information about institutions
-raw_institutions = cached_pull("raw_institutions", {
-  get_education_data(level = "college-university",
-                                   source = "ipeds",
-                                   topic = "directory",
-                                   filters = list(year = 2000:2013)
-                   ) %>%
-  filter(inst_category == 2) %>%
-  select(c(unitid,state_abbr,inst_name,inst_control,land_grant,county_fips))
-})
+# Basic institution directory info, sourced from colleges.rds (built in
+# Code/new/00_alias_generation.R) rather than a fresh IPEDS directory pull.
+# [FIXED -- 2026-07-29] The old pull (get_education_data(..., filters =
+# list(year = 2000:2013))) never collapsed the year dimension: an institution
+# existing across multiple IPEDS years got one row per year (up to 14), and
+# inst_name/land_grant/county_fips can differ across those years (renames,
+# status changes, geocoding improvements) -- so every downstream join on
+# unitid silently fanned out (95% of unitids had duplicate rows, up to 20x).
+# colleges.rds already solves the same "one row per unitid, era-aware"
+# problem via resolve_college() (see Code/college_lookup.R) -- reusing it
+# here instead of re-deriving a year-collapse policy from scratch.
+raw_institutions = {
+  colleges_dt <- readRDS(file.path(data_dir, "intermediate/colleges.rds"))
+  setDT(colleges_dt)
+  # No per-row reference year applies here (this table describes
+  # institutions generally, not a specific person's enrollment spell), so
+  # every row falls to resolve_college()'s fallback path -- each unitid's
+  # most-recent era on file, the same tie-break already used for the
+  # analogous overlapping-era case elsewhere in the pipeline.
+  skeleton <- data.table(unitid = unique(colleges_dt$unitid), .._year = NA_real_)
+  resolve_college(skeleton, "unitid", ".._year", colleges_dt,
+                   select_cols = c("state_abbr", "inst_name", "inst_control",
+                                   "land_grant", "col_fips")) %>%
+    rename(county_fips = col_fips) %>%
+    select(-.._year)
+}
 
 # Pull acceptance rate data
 raw_acceptance = cached_pull("raw_acceptance", {
@@ -425,7 +442,7 @@ mobility = raw_mobility %>%
   left_join(unit_super_opeid_weights, by = "super_opeid") %>%
   # Remove missing data
   filter(!is.na(unitid) & !is.na(count) & !is.na(unitid_shr)) %>%
-  # Reweight mobility estimates to the unitid level 
+  # Reweight mobility estimates to the unitid level
   mutate(mobility_n = count * unitid_shr,
          par_bottom60 = (par_q1 + par_q2 + par_q3) * mobility_n,
          par_top20 = par_q4 * mobility_n,
@@ -437,6 +454,33 @@ mobility = raw_mobility %>%
   rename(mobility_rate = mr_kq5_pq1) %>%
   select(c("super_opeid","unitid","mobility_n","par_mean","par_bottom60","par_top20","par_top01",
            "mobility_rate","k_mean","k_bottom60","k_top20","k_top01"))
+
+# [FIXED -- 2026-07-29] A unitid can span more than one super_opeid (comment
+# above: OI couldn't cleanly aggregate every super_opeid into one unitid), so
+# `mobility` had one row per (unitid, super_opeid) pair -- joining it
+# straight onto institutional_characteristics by unitid alone fanned out
+# every such unitid. mobility_n/par_*/k_bottom60/k_top20/k_top01 are already
+# unitid_shr-scaled counts, so summing them across a unitid's super_opeid
+# rows completes the weighting scheme the code already started (rather than
+# leaving it half-applied); par_mean/mobility_rate/k_mean are rates, so they
+# take a mobility_n-weighted average instead of a sum.
+mobility = mobility %>%
+  group_by(unitid) %>%
+  summarize(
+    # weighted.mean() below needs the pre-collapse, one-row-per-super_opeid
+    # mobility_n as weights -- computed first, under its own name, so it
+    # isn't shadowed by the summed (one-row-per-unitid) mobility_n later.
+    par_mean = weighted.mean(par_mean, w = mobility_n, na.rm = TRUE),
+    mobility_rate = weighted.mean(mobility_rate, w = mobility_n, na.rm = TRUE),
+    k_mean = weighted.mean(k_mean, w = mobility_n, na.rm = TRUE),
+    mobility_n = sum(mobility_n, na.rm = TRUE),
+    par_bottom60 = sum(par_bottom60, na.rm = TRUE),
+    par_top20 = sum(par_top20, na.rm = TRUE),
+    par_top01 = sum(par_top01, na.rm = TRUE),
+    k_bottom60 = sum(k_bottom60, na.rm = TRUE),
+    k_top20 = sum(k_top20, na.rm = TRUE),
+    k_top01 = sum(k_top01, na.rm = TRUE)
+  )
 
 institutional_characteristics <- institutional_characteristics %>%
   left_join(mobility, by = "unitid")

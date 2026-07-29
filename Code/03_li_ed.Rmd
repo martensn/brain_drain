@@ -43,7 +43,7 @@ Declare %nin% so we can filter observations
 [CHANGED 2026-07-25 -- Phase 1 wiring] Replaces the old raw-education-import,
 crosswalk-waterfall, and (in 04_li_ed_pos.Rmd) distance-based HS
 disambiguation with the resolved output of the Phase 1 crosswalk
-consolidation (Code/new/00_alias_generation.R through 04_col_hs_construct.R:
+consolidation (Code/01a_alias_generation.R through Code/01d_col_hs_construct.R:
 classify + string + alias + embedding matching, de-duplicated colleges,
 IPEDS-probabilistic HS resolution). `both_final.rds` only keeps users with
 both a resolved HS and BA college match (04_col_hs_construct.R enforces this

@@ -1,5 +1,6 @@
 ## =============================================================================
-## 07_acs_reweight.R
+## acs_reweight.R (formerly Code/new/07_acs_reweight.R -- Code/new/ retired
+## 2026-07-29, Phase C)
 ## State-level ACS PUMS reweighting of the LI sample (Item 2, referee 2's
 ## "try reweighting to ACS" ask). Floor scope only: state-level cells.
 ## County-level stretch goal is sketched but NOT implemented here (see the
@@ -7,10 +8,10 @@
 ## county geography isn't available in any currently-persisted object -- see
 ## "STRETCH GOAL" section.
 ##
-## Run this in the same long R session as the rest of Code/new/ (no source()
-## anywhere in this repo, per convention) -- specifically AFTER Code/new/
-## 05_demographics.R (for both_demo.rds / the *_prob columns) has been run at
-## least once so that file exists on disk.
+## Run this in the same long R session as Code/demographics.R (no source()
+## anywhere in this repo, per convention) -- specifically AFTER
+## Code/demographics.R (for both_demo.rds / the *_prob columns) has been run
+## at least once so that file exists on disk.
 ##
 ## Table B (Section 9) additionally requires `regression` to already exist in
 ## memory, i.e. this script's Section 9 must be run in the same session AFTER
@@ -40,7 +41,7 @@ directory <- Sys.getenv("BRAIN_DRAIN_ROOT")
 data_dir  <- file.path(directory, "Data")
 out_dir   <- file.path(directory, "Outputs")
 
-# Explicit key call -- Code/new/06_census.R's get_pums() call relies on some
+# Explicit key call -- Code/Old/06_census.R (archived)'s get_pums() call relies on some
 # ambient cached key instead of reading .env directly; don't copy that.
 # CENSUS_KEY is the case used in .env/.env.example (Code/intercensal.R reads
 # a lowercase "census_key" for a *different* API wrapper -- that's a separate,
@@ -67,8 +68,8 @@ AGE_BREAKS <- seq(20, 70, by = 5)
 # is there to catch).
 SMALL_CELL_THRESHOLD <- 30
 
-# 6-category race scheme, reused verbatim from Code/new/06_census.R lines
-# 145-151, and the *_prob column names from Code/new/05_demographics.R.
+# 6-category race scheme, reused verbatim from Code/Old/06_census.R (archived) lines
+# 145-151, and the *_prob column names from Code/demographics.R.
 RACE_LABELS <- c("white", "black", "asian", "native", "multiple", "hispanic")
 RACE_PROB_COLS <- c("white_prob", "black_prob", "api_prob",
                      "native_prob", "multiple_prob", "hispanic_prob")
@@ -174,7 +175,7 @@ for (i in seq_along(state_list)) {
   )
   setDT(pull)
 
-  # Filter immediately, matching Code/new/06_census.R's existing thresholds:
+  # Filter immediately, matching Code/Old/06_census.R (archived)'s existing thresholds:
   # esr %in% c(1,2,3) (currently employed -- resolved decision, see plan),
   # SCHL > 20 (BA+), PWGTP < 10000 (drops a known PUMS weight-outlier
   # artifact, copied from 06_census.R for consistency).
@@ -198,7 +199,7 @@ print(pums_filt[, .N, by = MIG])
 ## SECTION 4: race recode (reused verbatim) + origin-state construction
 ## -----------------------------------------------------------------------
 
-# Verbatim from Code/new/06_census.R lines 145-151: HISP != "01" always maps
+# Verbatim from Code/Old/06_census.R (archived) lines 145-151: HISP != "01" always maps
 # to "hispanic" regardless of RAC2P; only HISP == "01" (not Hispanic) rows
 # get split into white/black/asian/native/multiple by RAC2P.
 pums_filt[, race := fcase(
@@ -296,7 +297,7 @@ li[!is.na(origin_state) & !is.na(age_bucket), w_state_age := weights(li_raked_ag
 # Each person contributes RACE_PROB_COLS as soft/fractional mass across the
 # 6 race categories, rather than a single stochastic draw_category() pick
 # (which would inject pure noise into the raking targets -- deliberate
-# departure from Code/new/05_demographics.R's pattern, per the plan).
+# departure from Code/demographics.R's pattern, per the plan).
 li_long <- melt(
   li[!is.na(origin_state) & !is.na(age_bucket) & !is.na(white_prob)],
   id.vars = setdiff(names(li), RACE_PROB_COLS),

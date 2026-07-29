@@ -118,7 +118,7 @@ aau = read_excel(file.path(data_dir,"raw/rankings_membership/AAU__06.xlsx"),
   as.data.table()
 
 # Basic institution directory info, sourced from colleges.rds (built in
-# Code/new/00_alias_generation.R) rather than a fresh IPEDS directory pull.
+# Code/01a_alias_generation.R) rather than a fresh IPEDS directory pull.
 # [FIXED -- 2026-07-29] The old pull (get_education_data(..., filters =
 # list(year = 2000:2013))) never collapsed the year dimension: an institution
 # existing across multiple IPEDS years got one row per year (up to 14), and

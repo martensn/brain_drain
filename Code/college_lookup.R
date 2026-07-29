@@ -10,7 +10,7 @@
 # against each row's [start_year, end_year] window picks the era-correct one.
 # See yes-let-s-resolve-this-misty-kahan.md's 2026-07-28 finding/correction.
 #
-# Used by Code/new/04_col_hs_construct.R (ba_school/ba_state/ba_opeid
+# Used by Code/01d_col_hs_construct.R (ba_school/ba_state/ba_opeid
 # backfill), Code/04_li_ed_pos.Rmd (inst_zip/col_state), and Code/05_merge.Rmd
 # (col_cbsas) -- kept in one place so the three usages can't drift apart.
 

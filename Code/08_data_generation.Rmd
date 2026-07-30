@@ -42,6 +42,17 @@ out_dir   <- file.path(directory, "Outputs")
 dir.create(file.path(data_dir, specification), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(out_dir, specification), recursive = TRUE, showWarnings = FALSE)
 
+# [FIXED -- 2026-07-29] `geos` is also a bare in-session reference with no
+# own definition here -- 06_finalize_data.Rmd sets it to c("cbsa","state"),
+# but 07_regressions.Rmd (which runs in between) narrows it to c("cbsa")
+# only for its own regression loop, and this script silently inherited that
+# narrowed value. Result: the returners_state_*.csv / bin_state_*.csv /
+# all_bin_shares_state_*.csv files 09_plots.Rmd expects (it sets its own
+# wide geos = c("cbsa","state")) were never actually generated. Reset here
+# explicitly rather than relying on 06's original value surviving 07's
+# narrowing.
+geos = c("cbsa","state")
+
 ```
 
 ##    Age Distribution

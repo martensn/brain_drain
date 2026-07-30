@@ -320,8 +320,20 @@ institutional_characteristics = raw_institutions %>%
   mutate(avg_acceptance = if_else(is.na(avg_acceptance),99,avg_acceptance)) %>%
   left_join(aau, by = "unitid") %>%
   mutate(aau = if_else(is.na(aau),0,aau),
-         inst_group = case_when(inst_control == 1 & (land_grant == 1 | aau == 1) ~ "PF",
-                                inst_control == 1 & land_grant == 2 & aau == 0 ~ "RPU",
+         # [FIXED -- 2026-07-29] land_grant==1/2 (not-land-grant/land-grant)
+         # was the old live get_education_data() API's encoding. colleges.rds
+         # (built from a static IPEDS directory CSV, Code/01a_alias_generation.R)
+         # encodes the same concept as a 0/1 flag instead (0=not land-grant,
+         # 1=land-grant) -- verified against known land-grant flagships
+         # (Penn State/Ohio State/Purdue/Auburn Main Campus all land_grant==1,
+         # 85 total, matching the real-world count). Reusing the old 1/2
+         # thresholds against the new 0/1 field silently zeroed out the
+         # entire RPU category (every land-grant public university
+         # misclassified as "PF"), caught when 08_data_generation.Rmd's
+         # complier regression errored on a constant dependent variable for
+         # inst_group=="RPU" -- zero such rows existed post-fix, until now.
+         inst_group = case_when(inst_control == 1 & (land_grant == 0 | aau == 1) ~ "PF",
+                                inst_control == 1 & land_grant == 1 & aau == 0 ~ "RPU",
                                 inst_control == 2 ~ "Private, Non-Profit",
                                 inst_control == 3 ~ "Private, For-Profit"))
 

@@ -357,8 +357,8 @@ pick_earliest_level <- function(dt, levels, prefix) {
   out
 }
 
-input_ <- fread(file.path(data_dir,"raw/revelio/2026.04.09_education.csv"), 
-                select=c("user_id","university_name","enddate","rsid","degree"))
+input_ <- fread(file.path(data_dir,"raw/revelio/2026.04.09_education.csv"),
+                select=c("user_id","university_name","enddate","rsid","degree","startdate","field"))
 setDT(input_)
 
 col_rsid_crosswalk <- readRDS(file.path(data_dir,"intermediate/col_rsid_crosswalk.rds"))
@@ -381,6 +381,7 @@ input_hs <- input_[
     hs_string = university_name,
     hs_rsid = rsid,
     hs_end = enddate,
+    hs_start = startdate,
     hs_id,
     hs_ambiguous_name = ambiguous_name,
     hs_match_type = match_type
@@ -401,7 +402,9 @@ input_col <- input_[
     col_string = university_name,
     col_rsid = rsid,
     col_end = enddate,
+    col_start = startdate,
     degree,
+    col_field = field,
     col_opeid = opeid,
     col_unitid = unitid,
     col_system_indicator = system_indicator,
@@ -468,7 +471,7 @@ col_transfer_dedup <- col_transfer[
 
 # Join extra rows to built HS/college data
 colts <- col_transfer_dedup[, .(
-  user_id, university_name, degree, enddate, state_abbr, extra_opeid, extra_unitid
+  user_id, university_name, degree, enddate, startdate, field, state_abbr, extra_opeid, extra_unitid
 )][
   both_,
   on = "user_id",
@@ -479,16 +482,21 @@ colts <- col_transfer_dedup[, .(
     university_name,
     degree,
     enddate,
+    startdate,
+    field,
     state_abbr,
     extra_opeid,
     extra_unitid,
     #hs_string,
     hs_end,
+    hs_start,
     #hs_id,
     col_string,
     col_opeid,
     col_unitid,
     col_end,
+    col_start,
+    col_field,
     col_degree = i.degree,
     col_state
   )
@@ -515,6 +523,8 @@ earliest_li <- colts[
     li_earliest_university_name = university_name,
     li_earliest_degree = degree,
     li_earliest_enddate = enddate,
+    li_earliest_startdate = startdate,
+    li_earliest_field = field,
     li_earliest_opeid = extra_opeid,
     li_earliest_unitid = extra_unitid,
     li_earliest_state = state_abbr
@@ -525,6 +535,8 @@ colts[earliest_li, on = "user_id", `:=`(
   li_earliest_university_name = i.li_earliest_university_name,
   li_earliest_degree = i.li_earliest_degree,
   li_earliest_enddate = i.li_earliest_enddate,
+  li_earliest_startdate = i.li_earliest_startdate,
+  li_earliest_field = i.li_earliest_field,
   li_earliest_opeid = i.li_earliest_opeid,
   li_earliest_unitid = i.li_earliest_unitid,
   li_earliest_state = i.li_earliest_state
@@ -571,6 +583,20 @@ ba_corrected[
       chosen_source == "default" & !is.na(li_earliest_enddate), li_earliest_enddate,
       rep(TRUE, .N), as.IDate(col_end)
     ),
+    ba_start = fcase(
+      chosen_source == "extra_ba", startdate,
+      chosen_source == "og_ba", col_start,
+      chosen_source == "earliest", li_earliest_startdate,
+      chosen_source == "default" & !is.na(li_earliest_startdate), li_earliest_startdate,
+      rep(TRUE, .N), as.IDate(col_start)
+    ),
+    ba_field = fcase(
+      chosen_source == "extra_ba", as.character(field),
+      chosen_source == "og_ba", as.character(col_field),
+      chosen_source == "earliest", as.character(li_earliest_field),
+      chosen_source == "default" & !is.na(li_earliest_field), as.character(li_earliest_field),
+      default = NA_character_
+    ),
     ba_opeid = fcase(
       chosen_source == "extra_ba", as.character(extra_opeid),
       chosen_source == "og_ba", as.character(col_opeid),
@@ -608,8 +634,10 @@ ba_corrected = ba_corrected[
     ba_degree,
     ba_state,
     ba_end,
+    ba_start,
     ba_opeid,
     ba_unitid,
+    ba_field,
     chosen_source,
     ba_corrected_flag
   )
@@ -625,9 +653,11 @@ ba <- rbindlist(
         ba_school = col_string,
         ba_degree = degree,
         ba_end = col_end,
+        ba_start = col_start,
         ba_opeid = col_opeid,
         ba_unitid = col_unitid,
         ba_state = col_state,
+        ba_field = col_field,
         chosen_source = "default",
         ba_corrected_flag = 0L
       )
@@ -772,6 +802,7 @@ hs_dt <- unique(
           hs_string,
           hs_degree = "High School",
           hs_end = hs_end,
+          hs_start = hs_start,
           hs_id = hs_id,
           hs_ambiguous_name
         )
@@ -831,8 +862,8 @@ setcolorder(
   both,
   c(
     "user_id",
-    "hs_string", "hs_degree", "hs_end", "hs_id", "hs_ambiguous_name",
-    "ba_school", "ba_degree", "ba_end", "ba_opeid", "ba_unitid","ba_state",
+    "hs_string", "hs_degree", "hs_end", "hs_start", "hs_id", "hs_ambiguous_name",
+    "ba_school", "ba_degree", "ba_end", "ba_start", "ba_opeid", "ba_unitid","ba_state", "ba_field",
     "ba_transfer_school", "ba_transfer_degree", "ba_transfer_end", "ba_transfer_opeid", "ba_transfer_unitid",
     "chosen_source", "ba_corrected_flag",
     "associate_school", "associate_degree", "associate_end", "associate_opeid", "associate_unitid",

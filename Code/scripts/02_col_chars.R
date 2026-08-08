@@ -137,9 +137,22 @@ raw_institutions = {
   # most-recent era on file, the same tie-break already used for the
   # analogous overlapping-era case elsewhere in the pipeline.
   skeleton <- data.table(unitid = unique(colleges_dt$unitid), .._year = NA_real_)
+  # [FIXED -- 2026-08-07] resolve_college() returns a data.table (it's
+  # shared with Code/01d_col_hs_construct.R/04_li_ed_pos.Rmd/05_merge.Rmd,
+  # which need that). But table.express (attached earlier in the session
+  # by 01_shocks.Rmd, when this runs via the continuous
+  # Code/scripts/run_pipeline.R chain) registers select.data.table, and
+  # the bare select() below silently dispatches to it instead of
+  # dplyr::select() -- collapsing the whole table to a single unnamed
+  # column instead of dropping .._year, which then makes county_fips
+  # vanish for every downstream consumer with no error until the first
+  # bare reference to it fails ("object 'county_fips' not found"). This
+  # block is otherwise a plain dplyr/tibble chain, so convert to a tibble
+  # right at the data.table handoff, before any further dplyr verbs run.
   resolve_college(skeleton, "unitid", ".._year", colleges_dt,
                    select_cols = c("state_abbr", "inst_name", "inst_control",
                                    "land_grant", "col_fips")) %>%
+    as_tibble() %>%
     rename(county_fips = col_fips) %>%
     select(-.._year)
 }

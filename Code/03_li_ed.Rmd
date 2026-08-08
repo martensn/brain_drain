@@ -48,9 +48,19 @@ classify + string + alias + embedding matching, de-duplicated colleges,
 IPEDS-probabilistic HS resolution). `both_final.rds` only keeps users with
 both a resolved HS and BA college match (04_col_hs_construct.R enforces this
 via an inner join), so the old `both`/`intersect`/multi-pass transfer-detection
-logic collapses considerably. Known gap, not a priority right now:
-`both_final.rds` doesn't track start dates, so `hs_start`/`col_start` are NA
-here -- richer age imputation using college start date is a follow-up.
+logic collapses considerably.
+
+[CHANGED 2026-08-07 -- Memo 1 prerequisite] `hs_start`/`col_start` were
+previously hardcoded NA here with a "known gap" note -- raw Revelio education
+records actually carry `startdate` at ~100% coverage right next to `enddate`,
+it just was never read into `01d_col_hs_construct.R`'s `fread()`. Fixed there
+(now threads `hs_start`/`ba_start` through the same per-user derivation/
+reconciliation logic already used for `hs_end`/`ba_end`), so these are now
+real values, not placeholders. Also added `col_field` (real major/field-of-
+study, from raw data's `field` column, likewise never read in before) --
+distinct from the existing `col_major`, which is actually degree-level
+(Bachelor/Master/etc.) via `ba_degree`, not a field of study; left `col_major`
+alone rather than risk breaking existing downstream degree-level logic.
 
 ```{r ed match, echo=FALSE}
 both_final <- readRDS(file.path(data_dir,"intermediate/both_final.rds"))
@@ -74,7 +84,7 @@ hs_match = both_final %>%
               select(hs_id,hs_fips,state_abbr), by = "hs_id") %>%
   left_join(unified_cbsa %>% select(GeoFIPS,cbsa_code), by = c("hs_fips" = "GeoFIPS")) %>%
   transmute(user_id,
-            hs_start = NA_real_,
+            hs_start = as.numeric(format(as.Date(hs_start), "%Y")),
             # 04_li_ed_pos.Rmd's birth-year step expects a plain year number
             # (the old code extracted this from a "YYYY-MM-DD" string via
             # str_sub); hs_end/ba_end here are Date/IDate objects, so extract
@@ -97,10 +107,11 @@ col_match = both_final %>%
               select(unitid,opeid,col_fips,system_opeid),
             by = c("ba_unitid" = "unitid", "ba_opeid" = "opeid")) %>%
   transmute(user_id,
-            col_start = NA_real_,
+            col_start = as.numeric(format(as.Date(ba_start), "%Y")),
             col_end = as.numeric(format(as.Date(ba_end), "%Y")),
             col_name = ba_school,
             col_major = ba_degree,
+            col_field = ba_field,
             col_unitid = ba_unitid,
             col_opeid = ba_opeid,
             col_super_opeid = system_opeid)

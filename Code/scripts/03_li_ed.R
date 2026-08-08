@@ -47,7 +47,7 @@ hs_match = both_final %>%
               select(hs_id,hs_fips,state_abbr), by = "hs_id") %>%
   left_join(unified_cbsa %>% select(GeoFIPS,cbsa_code), by = c("hs_fips" = "GeoFIPS")) %>%
   transmute(user_id,
-            hs_start = NA_real_,
+            hs_start = as.numeric(format(as.Date(hs_start), "%Y")),
             # 04_li_ed_pos.Rmd's birth-year step expects a plain year number
             # (the old code extracted this from a "YYYY-MM-DD" string via
             # str_sub); hs_end/ba_end here are Date/IDate objects, so extract
@@ -70,10 +70,11 @@ col_match = both_final %>%
               select(unitid,opeid,col_fips,system_opeid),
             by = c("ba_unitid" = "unitid", "ba_opeid" = "opeid")) %>%
   transmute(user_id,
-            col_start = NA_real_,
+            col_start = as.numeric(format(as.Date(ba_start), "%Y")),
             col_end = as.numeric(format(as.Date(ba_end), "%Y")),
             col_name = ba_school,
             col_major = ba_degree,
+            col_field = ba_field,
             col_unitid = ba_unitid,
             col_opeid = ba_opeid,
             col_super_opeid = system_opeid)

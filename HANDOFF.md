@@ -1,7 +1,9 @@
 # Handoff — BRAIN_DRAIN
 
 ## Status
-**The full codebase-consolidation resolution plan (Phases A-F) is closed.** `master` reflects all of it, pushed to `origin`. Group 1 in the research plan (`purrfect-mapping-acorn.md`: item 1 skeleton pass, SCI pilot, item 4, reweighting, advisor outreach) is now unblocked.
+**The full codebase-consolidation resolution plan (Phases A-F) is closed.** `master` reflects all of it, pushed to `origin`.
+
+**[2026-08-07] Research plan pivoted from resubmission to a memo-based wind-down** (see `purrfect-mapping-acorn.md`, rewritten that day) — the next few weeks before PhD coursework starts target 2-3 short memos, not a resubmission. Advisor outreach is no longer tracked in that plan. **Memo 1** (reweighting the LI sample toward different sub-populations, isolating the effect of the HS-listing sample restriction) is in progress — its Step 0 prerequisite (below) is done.
 
 **Phase A**: Phase 1 (crosswalk) + Phase 2 (position rewiring) landed and verified. `microdata.csv` = 3,603,589 rows (+16.3% vs. pre-Phase-1 baseline, inside tolerance).
 
@@ -21,6 +23,10 @@
 06/07/08 now run cleanly end-to-end. `09_plots.Rmd` verified clean through these fixes (isolated via a temporary, uncommitted `specification` override, not a real code change). **Deliberately stopped** at a second instance of the same bug pattern (`col_grad_micro`, a live 51-state Census PUMS pull) — per your call, `09_plots.Rmd` isn't worth fully debugging right now given the rejection and expected rewrite. Logged as a known open issue.
 
 Working tree clean, all committed and pushed to `origin/master`.
+
+**[2026-08-07] Memo 1, Step 0 done**: `hs_start`/`col_start`/`col_field` (real major) were previously hardcoded gaps (`03_li_ed.Rmd` set `hs_start`/`col_start` to `NA_real_` with a "known gap" comment; `col_major` was actually degree-level, not field-of-study — raw data's real `field` column was never read in). Confirmed pure code gaps, not data gaps: `startdate` is ~100% complete in the raw Revelio file, right next to `enddate`. Fixed in `Code/01d_col_hs_construct.R` by threading `startdate`/`field` through the full multi-source `chosen_source` BA-record reconciliation (the same pattern already used for `hs_end`/`ba_end`, applied at every touch point — more involved than a simple parallel derivation) and in `Code/03_li_ed.Rmd` (replaced the `NA_real_` placeholders, added `col_field`). Verified directly against `both_final.rds`, not just "it runs": `hs_start`/`ba_start` 100% populated, internally consistent (`ba_start <= ba_end` in 5,239,539/5,239,695 rows), `ba_field` ~44% populated with sane real majors (Business, Engineering, Economics, ...) — a genuine fix versus the old `col_major`, which held degree-level strings, not fields of study.
+
+Verifying this surfaced an unrelated, previously-unknown bug: `02_col_chars.Rmd`'s Phase B `raw_institutions` rewrite (2026-07-29) never actually ran in a continuous full-pipeline session before now — `table.express` (attached earlier by `01_shocks.Rmd` in that continuous session) registers a `select.data.table` S3 method that silently mangled `raw_institutions` (collapsed to one unnamed column) when the file's bare `select()` call dispatched to it instead of `dplyr::select()`, making `county_fips` vanish downstream with no error until first use. Fixed with `as_tibble()` right at the `resolve_college()` data.table→dplyr handoff. Verified: `02_col_chars` now runs clean, `institutional_characteristics` builds with 3,510 rows (matches `colleges.rds`'s known distinct-`unitid` count exactly).
 
 ## Known open issues (not fixed, deliberately)
 - `09_plots.Rmd`: `col_grad_micro` (~line 2570) and likely more instances of the same "commented-out expensive step, live downstream usage" pattern in the file's remaining ~800 lines. Fix when this file gets its expected rewrite, not before.
@@ -44,3 +50,5 @@ Working tree clean, all committed and pushed to `origin/master`.
 - `06_census.R`, `10_roi.Rmd`, `demo.R`/`03_dedup_col.R`, `e_scrape.R`/`a_hs_col_construct.R`, `09b_plots_old.Rmd`: archived to `Code/Old/` — each confirmed genuinely broken, superseded, or actively dangerous before archiving
 - `renv`'s manifest deliberately excludes `Code/Old/`'s dependencies and `blsAPI` (CRAN-removed)
 - `09_plots.Rmd`/`10_roi.Rmd` submitted-figure diff and full `col_grad_micro`-pattern debugging both explicitly deprioritized (paper rejected, figure code expected to be rewritten) — not silently dropped, logged above
+- **[2026-08-07] `table.express`, once attached anywhere earlier in a continuous session (e.g. by `01_shocks.Rmd`), registers S3 methods like `select.data.table` that silently change bare `select()`/`mutate()` behavior on data.table objects for the rest of that session** — any file that hands a data.table off into a plain dplyr/tibble chain (like `02_col_chars.Rmd`'s `resolve_college()` output) needs an explicit `as_tibble()` at that handoff, or an explicit `dplyr::`-qualified verb, to avoid this. Worth checking for elsewhere if similar data.table→dplyr handoffs get added.
+- **[2026-08-07]** `hs_start`/`col_start`/`col_field` (real major, from raw data's `field` column) are now real, populated fields on `both_final.rds` and downstream — not the `NA_real_`/mislabeled placeholders they used to be. Any code still assuming `col_major` is a field-of-study variable should use `col_field` instead; `col_major` remains degree-level (Bachelor/Master/etc.) on purpose, left alone to avoid breaking existing degree-level logic.

@@ -1,7 +1,7 @@
-# BRAIN_DRAIN
+# Plugging the [Brain] Drain
 
-Labor migration / "brain drain" of college graduates -- college and high-school
-characteristics, migration patterns, and wage returns.
+Exploring variation in the migration decisions of college graduates
+based on their baccalaureate institution
 
 ## Layout
 
@@ -67,8 +67,3 @@ classification, path rewrite log, verification reports) is in `migration/`.
 
 Legacy scripts, not touched by the 2026 reorg -- paths in there are stale.
 Retained for reference only, not guaranteed to run.
-
-## Known issues
-
-- `Data/intermediate/hs_alias_resp.rds` is truncated (pre-existing, confirmed
-  not caused by the reorg -- needs to be regenerated or restored from backup).

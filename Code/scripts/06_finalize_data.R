@@ -89,7 +89,14 @@ dist_bins = levels(regression$dist)[-1]
 
 
 # Select only the 'unitid' and 'inst_group' columns from institutional_characteristics
+# [FIXED -- 2026-08-09, same bug class as 02_col_chars's county_fips fix
+# (commit f885f9a): fread() returns a data.table and table.express is
+# attached earlier in the continuous run_pipeline.R session, so a bare
+# select() here risks silently dispatching to
+# table.express::select.data.table instead of dplyr::select(). Convert at
+# the data.table handoff, before the select(), matching that fix's pattern.
 inst_group <- fread(file.path(data_dir,"intermediate/institutional_characteristics.csv")) %>%
+  as_tibble() %>%
   select(unitid,inst_group)#institutional_characteristics[,c("unitid", "inst_group")]
 
 # Merge the two data.tables on 'unitid'

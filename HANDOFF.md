@@ -1,54 +1,27 @@
 # Handoff — BRAIN_DRAIN
 
 ## Status
-**The full codebase-consolidation resolution plan (Phases A-F) is closed.** `master` reflects all of it, pushed to `origin`.
+Codebase-consolidation resolution plan (Phases A-F) closed 2026-07-29, pushed to `origin`. Research plan pivoted 2026-08-07 from resubmission to a memo-based wind-down before PhD coursework starts (`purrfect-mapping-acorn.md`) — 2-3 short memos, no resubmission goal, advisor outreach not tracked here. Memo 1 (reweighting the LI sample vs. ACS, isolating the HS-listing sample restriction's effect): Step 0 (real `hs_start`/`col_start`/`col_field`, plus an unrelated `table.express`/`county_fips` bug) done 2026-08-07 (`f885f9a`, `c6e51be`). **Step 1 (define both populations) done 2026-08-10**: Column 1 built (`Data/intermediate/column1_population.rds`, 34,467,516 users, no HS requirement) via new standalone `Code/memo1_column1_construct.R`; Column 2 regenerated end-to-end to reflect Step 0's fix (`Data/intermediate/column2_regression_refresh.rds`, 3,092,892 users). Column 1 is an **11.14x** expansion over Column 2 — the headline number for the memo. Superset check 95.66% clean; the remainder is explained, not a bug (see Decisions). All local commits, including this session's, still **not pushed** to `origin`, by design.
 
-**[2026-08-07] Research plan pivoted from resubmission to a memo-based wind-down** (see `purrfect-mapping-acorn.md`, rewritten that day) — the next few weeks before PhD coursework starts target 2-3 short memos, not a resubmission. Advisor outreach is no longer tracked in that plan. **Memo 1** (reweighting the LI sample toward different sub-populations, isolating the effect of the HS-listing sample restriction) is in progress — its Step 0 prerequisite (below) is done.
-
-**Phase A**: Phase 1 (crosswalk) + Phase 2 (position rewiring) landed and verified. `microdata.csv` = 3,603,589 rows (+16.3% vs. pre-Phase-1 baseline, inside tolerance).
-
-**Phase B**: 5 catalogued bugs resolved. Verifying them surfaced a much bigger, pre-existing bug: `institutional_characteristics.csv` had duplicate rows for 95% of institutions. **May have silently affected the originally-submitted (JOLE-rejected) paper's figures/tables** — deliberately not chased further (moot given the rejection, per your call).
-
-**Phase C**: `Code/new/` retired. Four crosswalk scripts folded into the root pipeline as `Code/01a_alias_generation.R` .. `Code/01d_col_hs_construct.R`. Two more landmines found and archived along the way (`demo.R`, `a_hs_col_construct.R` silently writing to paths the live scripts now own).
-
-**Phase D**: cross-cutting hygiene — `CENSUS_KEY` case fix, `RETICULATE_PYTHON` moved into `.env`, output-directory creation added.
-
-**Phase E**: environment pinned with `renv` — 47-package curated manifest, 202 total incl. transitive deps, R 4.6.0. `blsAPI` excluded (CRAN removed it).
-
-**Phase F**: scoped re-verification (`06_finalize_data.R → 07_regressions.R → 08_data_generation.R → 09_plots.R`, run together for the first time this session) surfaced **four more real bugs**:
-- `02_col_chars.Rmd`: Phase B's `colleges.rds` fix silently zeroed out the entire "RPU" institution category (an encoding mismatch — old API's 1/2 land_grant coding vs. `colleges.rds`'s 0/1). Corrupted a real analysis variable, not just a crash. Verified fix against known land-grant flagships.
-- `08_data_generation.Rmd`: inherited a `geos` variable narrowed by `07_regressions.Rmd`, so state-level output files were never generated. Reset explicitly.
-- `09_plots.Rmd`: three stale reads assumed a stray CSV column two source files no longer have (fixed); a phantom `num_bins=25` value nothing upstream produces (corrected); `raw_lm`'s construction commented out with live downstream usage (restored).
-
-06/07/08 now run cleanly end-to-end. `09_plots.Rmd` verified clean through these fixes (isolated via a temporary, uncommitted `specification` override, not a real code change). **Deliberately stopped** at a second instance of the same bug pattern (`col_grad_micro`, a live 51-state Census PUMS pull) — per your call, `09_plots.Rmd` isn't worth fully debugging right now given the rejection and expected rewrite. Logged as a known open issue.
-
-Working tree clean, all committed and pushed to `origin/master`.
-
-**[2026-08-07] Memo 1, Step 0 done**: `hs_start`/`col_start`/`col_field` (real major) were previously hardcoded gaps (`03_li_ed.Rmd` set `hs_start`/`col_start` to `NA_real_` with a "known gap" comment; `col_major` was actually degree-level, not field-of-study — raw data's real `field` column was never read in). Confirmed pure code gaps, not data gaps: `startdate` is ~100% complete in the raw Revelio file, right next to `enddate`. Fixed in `Code/01d_col_hs_construct.R` by threading `startdate`/`field` through the full multi-source `chosen_source` BA-record reconciliation (the same pattern already used for `hs_end`/`ba_end`, applied at every touch point — more involved than a simple parallel derivation) and in `Code/03_li_ed.Rmd` (replaced the `NA_real_` placeholders, added `col_field`). Verified directly against `both_final.rds`, not just "it runs": `hs_start`/`ba_start` 100% populated, internally consistent (`ba_start <= ba_end` in 5,239,539/5,239,695 rows), `ba_field` ~44% populated with sane real majors (Business, Engineering, Economics, ...) — a genuine fix versus the old `col_major`, which held degree-level strings, not fields of study.
-
-Verifying this surfaced an unrelated, previously-unknown bug: `02_col_chars.Rmd`'s Phase B `raw_institutions` rewrite (2026-07-29) never actually ran in a continuous full-pipeline session before now — `table.express` (attached earlier by `01_shocks.Rmd` in that continuous session) registers a `select.data.table` S3 method that silently mangled `raw_institutions` (collapsed to one unnamed column) when the file's bare `select()` call dispatched to it instead of `dplyr::select()`, making `county_fips` vanish downstream with no error until first use. Fixed with `as_tibble()` right at the `resolve_college()` data.table→dplyr handoff. Verified: `02_col_chars` now runs clean, `institutional_characteristics` builds with 3,510 rows (matches `colleges.rds`'s known distinct-`unitid` count exactly).
-
-## Known open issues (not fixed, deliberately)
-- `09_plots.Rmd`: `col_grad_micro` (~line 2570) and likely more instances of the same "commented-out expensive step, live downstream usage" pattern in the file's remaining ~800 lines. Fix when this file gets its expected rewrite, not before.
-- `09_plots.Rmd`/`10_roi.Rmd` were never re-run against the fixed `institutional_characteristics.csv` to check whether the Phase B duplicate-row bug reached the submitted paper's actual figures — deprioritized as moot (paper already rejected).
-- `Data/pre_2000/` (and other non-`great_recession` specification directories) lack complete state-level source data — a data-population gap distinct from any code bug; would need its own `06→07→08` run under that specification if ever needed.
+## Next steps
+- [ ] Extend `Code/acs_reweight.R`: ACS PUMS pull + reweighting (race/sex/age/region/top-10-MSA/major/migration rows) — Memo 1 Step 2
+- [ ] Build geography helpers: `hs_region` (via `state.region`), hardcoded top-10 CBSA codes — Step 4
+- [ ] Operationalize migration-behavior row(s), assemble the 4-column table, write the memo — Step 4/5
+- [ ] `06_finalize_data.R`/`.Rmd` never persists `regression` to disk (found this session) — the July 1 `regression_data__06.csv` was a manual export, not a `run_pipeline.R` artifact. This session's fresh copy (`column2_regression_refresh.rds`) is a one-off; add a real `saveRDS`/`fwrite` to the pipeline before relying on this again
+- [ ] Push local commits to `origin` when ready
 
 ## Key files
-- `D:\Users\martensn\.claude\plans\yes-let-s-resolve-this-misty-kahan.md` — the (now closed) resolution plan, full detail on every phase
-- `Code/01a_alias_generation.R` .. `Code/01d_col_hs_construct.R` — the crosswalk-construction sub-sequence
-- `Code/college_lookup.R` — shared era-aware institution-resolution helper
-- `Code/Old/README.md` — every 2026-07-29 archival decision and why
-- `renv.lock` / `renv/` — pinned environment, R 4.6.0, 202 packages
-- `.env` / `.env.example` — holds `RETICULATE_PYTHON` now too
-- `Data/intermediate/microdata.csv` — verified duplicate-free
-- `Data/intermediate/institutional_characteristics.csv` — verified duplicate-free, RPU classification corrected
+- `D:\Users\martensn\.claude\plans\velvet-churning-galaxy.md` — granular Memo 1 execution plan, step-by-step
+- `D:\Users\martensn\.claude\plans\purrfect-mapping-acorn.md` — higher-level research plan
+- `D:\Users\martensn\.claude\plans\wild-imagining-kurzweil.md` — Step 1 execution plan (Column 1 restriction map, verification criteria)
+- `Code/memo1_column1_construct.R` — Column 1 build: standalone, 4 checkpointed sections, not wired into `run_pipeline.R`. Checkpoints in `Data/intermediate/column1_*.rds`
+- `Code/scripts/run_pipeline_column2_refresh.R` — regenerates Column 2 from `01d` onward without re-running `01a`/`01b`/`01c`'s expensive one-time geocoding/embedding calls
+- `Code/01d_col_hs_construct.R`, `Code/03_li_ed.Rmd` — Step 0's fixes
+- `Code/acs_reweight.R` — starting point for the ACS pull/reweighting
 
 ## Decisions
-- `unitid` alone isn't a unique institution key — lookups key on `unitid` + reference year via `resolve_college()`
-- `09_plots.Rmd`'s `specification` toggle is intentional design, not a bug
-- Institution directory data in `02_col_chars.Rmd` sourced from `colleges.rds` rather than a fresh IPEDS pull; `inst_group`'s `land_grant` thresholds corrected to match its 0/1 encoding
-- `06_census.R`, `10_roi.Rmd`, `demo.R`/`03_dedup_col.R`, `e_scrape.R`/`a_hs_col_construct.R`, `09b_plots_old.Rmd`: archived to `Code/Old/` — each confirmed genuinely broken, superseded, or actively dangerous before archiving
-- `renv`'s manifest deliberately excludes `Code/Old/`'s dependencies and `blsAPI` (CRAN-removed)
-- `09_plots.Rmd`/`10_roi.Rmd` submitted-figure diff and full `col_grad_micro`-pattern debugging both explicitly deprioritized (paper rejected, figure code expected to be rewritten) — not silently dropped, logged above
-- **[2026-08-07] `table.express`, once attached anywhere earlier in a continuous session (e.g. by `01_shocks.Rmd`), registers S3 methods like `select.data.table` that silently change bare `select()`/`mutate()` behavior on data.table objects for the rest of that session** — any file that hands a data.table off into a plain dplyr/tibble chain (like `02_col_chars.Rmd`'s `resolve_college()` output) needs an explicit `as_tibble()` at that handoff, or an explicit `dplyr::`-qualified verb, to avoid this. Worth checking for elsewhere if similar data.table→dplyr handoffs get added.
-- **[2026-08-07]** `hs_start`/`col_start`/`col_field` (real major, from raw data's `field` column) are now real, populated fields on `both_final.rds` and downstream — not the `NA_real_`/mislabeled placeholders they used to be. Any code still assuming `col_major` is a field-of-study variable should use `col_field` instead; `col_major` remains degree-level (Bachelor/Master/etc.) on purpose, left alone to avoid breaking existing degree-level logic.
+- Column 2 ("actual sample") = `06_finalize_data.Rmd`'s broad `regression` table, not the tighter `regression_cbsa_10`/`state_10`
+- `table.express`, once attached earlier in a session, masks `select()`/`mutate()` for data.tables via S3 dispatch — hand data.tables off to `as_tibble()` before plain dplyr chains. Found and fixed two more live instances this session (`05_merge.Rmd`'s `hs_zip`, which feeds `dist`, a hard filter in `06_finalize_data.Rmd`; and `06_finalize_data.Rmd`'s own `inst_group` merge) beyond the original `02_col_chars.Rmd`/`county_fips` case — same bug class, same `as_tibble()` fix.
+- Column 1 structurally can't use HS-anchored birth-year imputation (`birth1 = hs_end - 18`, `04_li_ed_pos.Rmd` line 245) — only the cruder `birth2 = col_start - 18`, which assumes immediate HS-to-college enrollment. This systematically undercounts non-traditional-timing students (gap year, delayed enrollment, career-changers) relative to Column 2, and fully explains the superset gap (134,195 of Column 2's 3,092,892 users, 86.4% directly attributable, concentrated among "Non-Traditional" students) — worth a sentence in the memo, not something to fix (fixing it would require HS data, defeating Column 1's purpose).
+- Column 1's population (50.45M pre-filter) is ~10x larger than initially assumed, since dropping the HS join removes the pipeline's main narrowing step — full pipeline re-runs from `01d` onward take ~6 hrs at Column 2's scale (skip `01a`/`01b`/`01c`, unaffected by Step 0); Column 1's build is far more expensive still (Section 2's position-matching alone: chunked `user_id %% 50` processing, ~35 chunks/9hrs, survived a mid-run machine reboot via per-chunk checkpointing)
+- Remember to re-run `Code/scripts/convert_rmd_to_r.R` after editing a root `.Rmd` — `run_pipeline.R` executes the converted copies, not the `.Rmd`s

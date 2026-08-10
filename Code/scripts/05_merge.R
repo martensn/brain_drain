@@ -337,7 +337,16 @@ microdata = microdata %>%
 #microdata <- merge(microdata, inst_zip, by.x = "col_unitid", by.y = "unitid", all.x = TRUE)
 
 # Obtain list of high school ZIP codes from NCES
+# [FIXED -- 2026-08-09, same bug class as 02_col_chars's county_fips fix
+# (commit f885f9a): all_hs is a data.table, table.express is attached
+# earlier in the continuous run_pipeline.R session, and a bare select()
+# here silently dispatches to table.express::select.data.table instead of
+# dplyr::select() -- this feeds `dist` (06_finalize_data's is.na(dist)==
+# FALSE filter), so a silent corruption here would be much higher-stakes
+# than the original county_fips instance. Convert at the data.table
+# handoff, before any dplyr verb runs, matching that fix's pattern.
 hs_zip <- all_hs %>%
+  as_tibble() %>%
   select(hs_unitid,ZIP) %>%
   rename(hs_zip = ZIP)
 

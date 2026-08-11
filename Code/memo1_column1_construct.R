@@ -31,9 +31,14 @@
 #     row counts (every input_col user still gets exactly one ba_* record,
 #     via the "default" fallback if nothing else applies).
 # Associate/master/mba/doctor "extra degree" enrichment and the transfer
-# dummy (01d L702-857, 03_li_ed.Rmd's `transfer` vector) are also skipped --
-# not part of the restriction map and not needed for any of Memo 1's planned
-# table rows (velvet-churning-galaxy.md Step 4).
+# dummy (01d L702-857, 03_li_ed.Rmd's `transfer` vector), initially skipped
+# as "not needed," were added back into Section 1 below on 2026-08-10 --
+# the memo's comparison table needs transfer status and graduate-degree
+# attainment for Column 1 too, not just Column 2. Output:
+# Data/intermediate/column1_degree_enrichment.rds, a standalone table
+# joined onto column1_population.rds downstream (not folded into
+# column1_col_match's own narrow schema, to avoid touching Sections 2-4's
+# already-built, expensive checkpoints).
 
 library(data.table)
 library(dplyr)
@@ -63,8 +68,9 @@ log_step <- function(msg) {
 # arrow-scan OOM fix below) would waste real time. Skip straight to loading
 # the checkpoint if it's already there.
 column1_col_match_path <- file.path(data_dir, "intermediate/column1_col_match.rds")
+column1_degree_enrichment_path <- file.path(data_dir, "intermediate/column1_degree_enrichment.rds")
 
-if (!file.exists(column1_col_match_path)) {
+if (!file.exists(column1_col_match_path) || !file.exists(column1_degree_enrichment_path)) {
 
 log_step("Section 1 starting")
 
@@ -346,6 +352,180 @@ log_step(paste("ba backfilled:", sum(is.na(ba$ba_school)), "still NA ba_school")
 saveRDS(ba, file.path(data_dir, "intermediate/column1_ba.rds"))
 log_step("saved column1_ba.rds")
 
+# ---- Degree enrichment (associate/master/mba/doctor) + transfer dummy: ----
+# adapts 01d_col_hs_construct.R L702-857, both_ -> input_col. Reuses
+# col_transfer_dedup/cc_transfer, already built above (both already
+# reanchored on input_col's population, same as the BA reconciliation
+# itself) -- 01d builds these once and uses them for both the BA
+# reconciliation AND this enrichment; this file previously only used them
+# for the former and discarded them afterward (see this section's header
+# note -- that's the gap being closed here).
+
+# New CC-based extra matches (01d L726-746, not previously built in this
+# file -- cc_transfer was computed above for the BA-reconciliation pass but
+# never deduped/used, since that pass only needs the college side).
+cc_transfer_dedup <- cc_transfer[
+  cc_rsid_crosswalk[, .(rsid, extra_opeid = opeid, extra_unitid = unitid)],
+  on = "rsid",
+  nomatch = 0
+][
+  , degree_clean := fifelse(is.na(degree), "", trimws(degree))
+][
+  , degree_rank := fcase(
+    degree_clean == "Associate", 1L,
+    degree_clean != "", 2L,
+    default = 3L
+  )
+]
+setorder(cc_transfer_dedup, user_id, enddate, extra_opeid, extra_unitid, degree_rank)
+cc_transfer_dedup <- unique(cc_transfer_dedup, by = c("user_id", "enddate", "extra_opeid", "extra_unitid"))
+cc_transfer_dedup[, c("degree_clean", "degree_rank") := NULL]
+cc_transfer_dedup[, source := "cc"]
+log_step(paste("cc_transfer_dedup deduped:", nrow(cc_transfer_dedup), "rows"))
+
+# col_transfer_dedup (built above for the BA reconciliation) never got a
+# `source` column, since that path doesn't need one -- 01d L720 tags it
+# "col" for exactly this section's use.
+col_transfer_dedup[, source := "col"]
+
+extra_ed_long <- rbindlist(
+  list(
+    col_transfer_dedup[, .(user_id, university_name, degree, enddate, extra_opeid, extra_unitid, source)],
+    cc_transfer_dedup[, .(user_id, university_name, degree, enddate, extra_opeid, extra_unitid, source)]
+  ),
+  use.names = TRUE,
+  fill = TRUE
+)
+log_step(paste("extra_ed_long:", nrow(extra_ed_long), "rows"))
+
+# [Column 1 adaptation] existence-filter only -- 01d's both_[,.(user_id,
+# hs_end)] join exists purely to restrict extra_ed_long to the population
+# (hs_end itself is never referenced downstream in this block); input_col
+# is Column 1's direct population analogue, so this is a like-for-like
+# substitution, not a redesign.
+extra_levels <- extra_ed_long[
+  input_col[, .(user_id)],
+  on = "user_id",
+  nomatch = 0
+][
+  ba[, .(user_id, ba_end, ba_opeid, ba_unitid, ba_school)],
+  on = "user_id",
+  nomatch = 0
+][
+  , ba_duplicate := fifelse(
+    extra_opeid == ba_opeid & extra_unitid == ba_unitid & degree == "Bachelor",
+    1L, 0L
+  )
+][
+  ba_duplicate == 0L
+][
+  ,
+  level := fcase(
+    degree == "Associate" & enddate <  ba_end, "associate",
+    degree == "Associate" & enddate >= ba_end, "post_ba_associate",
+    degree == "Bachelor"  & enddate <  ba_end, "ba_transfer",
+    degree == "Bachelor"  & enddate >= ba_end, "second_ba",
+    degree == "Doctor"    & enddate <  ba_end, "pre_ba_doctor",
+    degree == "Doctor"    & enddate >= ba_end, "doctor",
+    degree == "Master"    & enddate <  ba_end, "pre_ba_master",
+    degree == "Master"    & enddate >= ba_end, "master",
+    degree == "MBA"       & enddate <  ba_end, "pre_ba_mba",
+    degree == "MBA"       & enddate >= ba_end, "mba",
+    source == "col" & degree == "" & enddate <  ba_end, "ba_transfer_imp",
+    source == "col" & degree == "" & enddate >= ba_end, "master_imp",
+    source == "cc"  & degree == "", "associate_imp",
+    degree == "Associate" & is.na(enddate), "associate",
+    degree == "Bachelor"  & is.na(enddate), "ba_transfer",
+    degree == "Doctor"    & is.na(enddate), "doctor",
+    degree == "Master"    & is.na(enddate), "master",
+    degree == "MBA"       & is.na(enddate), "mba",
+    default = "ba_transfer_imp"
+  )
+]
+log_step(paste("extra_levels classified:", nrow(extra_levels), "rows"))
+
+# pick_earliest_level(): copied verbatim from 01d_col_hs_construct.R
+# L323-358 -- population-agnostic, operates only on columns extra_levels
+# already carries (already reanchored on input_col above).
+pick_earliest_level <- function(dt, levels, prefix) {
+  tmp <- copy(dt)[level %chin% levels & !is.na(enddate)]
+  if (nrow(tmp) == 0L) {
+    return(data.table(user_id = integer()))
+  }
+
+  setorder(tmp, user_id, enddate)
+
+  out <- tmp[
+    ,
+    .SD[1],
+    by = user_id
+  ][
+    ,
+    setNames(
+      .(
+        user_id,
+        university_name,
+        degree,
+        enddate,
+        extra_opeid,
+        extra_unitid
+      ),
+      c(
+        "user_id",
+        paste0(prefix, "_school"),
+        paste0(prefix, "_degree"),
+        paste0(prefix, "_end"),
+        paste0(prefix, "_opeid"),
+        paste0(prefix, "_unitid")
+      )
+    )
+  ]
+
+  out
+}
+
+ba_transfer_dt <- pick_earliest_level(extra_levels, levels = c("ba_transfer", "ba_transfer_imp"), prefix = "ba_transfer")
+associate_dt   <- pick_earliest_level(extra_levels, levels = c("associate", "associate_imp"), prefix = "associate")
+master_dt      <- pick_earliest_level(extra_levels, levels = c("master", "master_imp"), prefix = "master")
+mba_dt         <- pick_earliest_level(extra_levels, levels = c("mba"), prefix = "mba")
+doctor_dt      <- pick_earliest_level(extra_levels, levels = c("doctor"), prefix = "doctor")
+
+column1_degree_enrichment <- Reduce(
+  function(x, y) y[x, on = "user_id"],
+  list(
+    input_col[, .(user_id)],
+    ba_transfer_dt,
+    associate_dt,
+    master_dt,
+    mba_dt,
+    doctor_dt
+  )
+)
+
+column1_degree_enrichment[, `:=`(
+  has_transfer  = !is.na(ba_transfer_school),
+  has_associate = !is.na(associate_school),
+  has_master    = !is.na(master_school),
+  has_mba       = !is.na(mba_school),
+  has_doctor    = !is.na(doctor_school)
+)]
+# `transfer`/`any_grad` definitions reused verbatim from, respectively,
+# 03_li_ed.Rmd L140-142 and demographics.R L92, for cross-script
+# consistency with Column 2's own definitions of the same concepts.
+column1_degree_enrichment[, `:=`(
+  transfer = as.integer(has_transfer),
+  any_grad = fifelse(has_master | has_mba | has_doctor, 1L, 0L)
+)]
+
+log_step(paste(
+  "column1_degree_enrichment:", nrow(column1_degree_enrichment), "users.",
+  "has_transfer:", sum(column1_degree_enrichment$has_transfer),
+  " any_grad:", sum(column1_degree_enrichment$any_grad == 1)
+))
+
+saveRDS(column1_degree_enrichment, file.path(data_dir, "intermediate/column1_degree_enrichment.rds"))
+log_step("saved column1_degree_enrichment.rds")
+
 # ---- col_match-equivalent: mirrors 03_li_ed.Rmd L100-117 ----------------
 # (renames ba_* -> col_* the same way the real pipeline does for Column 2;
 # no hs_match/both/col_users distinction needed since there is no HS side)
@@ -401,12 +581,14 @@ cat("Section 1 done. input_col:", nrow(input_col), "users. column1_col_match:",
 # dataset an order of magnitude bigger than the real pipeline's equivalent
 # step, so headroom matters.
 rm(input_, input_col, keep_users, extra_ed, col_transfer, cc_transfer,
-   col_transfer_dedup, colts, ba_corrected, ba, col_rsid_crosswalk,
-   cc_rsid_crosswalk, colleges)
+   col_transfer_dedup, cc_transfer_dedup, colts, ba_corrected, ba,
+   col_rsid_crosswalk, cc_rsid_crosswalk, colleges, extra_ed_long,
+   extra_levels, ba_transfer_dt, associate_dt, master_dt, mba_dt, doctor_dt,
+   column1_degree_enrichment, pick_earliest_level)
 gc()
 
 } else {
-  log_step("Section 1 checkpoint (column1_col_match.rds) already exists -- skipping Section 1")
+  log_step("Section 1 checkpoints (column1_col_match.rds, column1_degree_enrichment.rds) already exist -- skipping Section 1")
   column1_col_match <- readRDS(column1_col_match_path)
   log_step(paste("loaded column1_col_match:", nrow(column1_col_match), "users"))
 }

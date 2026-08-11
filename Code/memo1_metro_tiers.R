@@ -1,15 +1,35 @@
 # memo1_metro_tiers.R
 #
-# Share living in the top-10/top-11-50/top-51-100/other-metro/non-metro
-# CBSAs, by years-since-graduation -- Revelio (real CBSA codes, from the
-# cbsa_code_0..50 position panel) vs. ACS (PUMA -> CBSA-tier, via the
-# population-weighted crosswalk built by Code/memo1_puma_cbsa_crosswalk.R).
-# Same "years since grad" framework as Code/memo1_migration_profile.R (ACS
-# side uses age-22 as a synthetic-cohort proxy -- see that script's header
-# for the caveat).
+# [REDESIGNED 2026-08-11 at Nicholas's request] x-axis changed from years-
+# since-graduation (lifecycle) to CALENDAR YEAR (secular trend) -- has the
+# population's spatial distribution shifted toward superstar metros over
+# the sample period, not how does an individual's own location evolve over
+# a career. Same four sources (Column 1, Column 2 unweighted, Column 2
+# reweighted, ACS benchmark), same tier scheme (Top 10/Top 11-50/
+# Top 51-100/Other metro/Non-metro CBSAs, ranked by a single fixed 2022
+# population snapshot -- unchanged, see Section 0).
 #
-# Run after: Code/acs_pull.R (must include PUMA in its variable list --
-# re-pulled 2026-08-10 specifically for this), Code/memo1_puma_cbsa_crosswalk.R,
+# Revelio: same calendar_year = col_end + t re-bucketing as
+# Code/memo1_migration_profile.R (see that script's header for the full
+# rationale and the col_end-type gotcha). Revelio's line is NOT bounded to
+# any particular window -- its CBSA assignment comes from this repo's own
+# unified_cbsa.csv, a single fixed scheme, not PUMA-vintage-dependent.
+#
+# ACS: previously a synthetic-cohort age proxy against the pooled 5-year
+# file's ~22%-valid PUMA20 subset. Now uses Code/acs_pull_1yr.R's ACS
+# 1-year PUMS, restricted to survey years 2012-2021 -- the window where
+# ACS 1-year files used 2010-vintage PUMA boundaries -- joined against
+# Code/memo1_puma_cbsa_crosswalk.R's PUMA_VINTAGE=2010 crosswalk
+# (puma_cbsa_tier_crosswalk_2010.rds). This is a REAL, CONFIRMED asymmetry,
+# not a bug: the ACS benchmark line in THIS chart only covers 2012-2021,
+# while Revelio's lines cover its full calendar range -- worth a sentence
+# in the memo. Every row within that 2012-2021 window carries one genuine
+# PUMA vintage (unlike the old pooled-5-year file's ~78% "-0009" placeholder
+# problem), so the match rate onto the crosswalk should be close to 100%,
+# not ~22% -- checked explicitly below.
+#
+# Run after: Code/acs_pull_1yr.R (pums_1yr_filt.rds, PUMA10 populated for
+# 2012-2021), Code/memo1_puma_cbsa_crosswalk.R (PUMA_VINTAGE=2010),
 # Code/memo1_covariates.R (column1/2), Code/reweight_column2.R
 # (column2_reweighted.rds).
 
@@ -28,14 +48,17 @@ log_step <- function(msg) {
 }
 
 T_MAX <- 20
+ACS_PUMA_WINDOW <- 2012:2021  # matches Code/memo1_puma_cbsa_crosswalk.R's PUMA_VINTAGE=2010 coverage
 
 ## -----------------------------------------------------------------------
-## SECTION 0: CBSA code -> tier (real codes only; rebuilt fresh here since
-## it's cheap and Code/memo1_puma_cbsa_crosswalk.R didn't persist it
-## standalone -- only the already-aggregated PUMA-level crosswalk)
+## SECTION 0: CBSA code -> tier (unchanged from the years-since-grad
+## version -- a single fixed 2022 population snapshot, independent of
+## PUMA_VINTAGE; see Code/memo1_puma_cbsa_crosswalk.R's header note on why
+## tier THRESHOLDS and PUMA geography-matching vary independently)
 ## -----------------------------------------------------------------------
 
-cbsa_pop <- get_estimates(geography = "cbsa", product = "population", year = 2022, vintage = 2022)
+CBSA_RANK_YEAR <- 2022
+cbsa_pop <- get_estimates(geography = "cbsa", product = "population", year = CBSA_RANK_YEAR, vintage = CBSA_RANK_YEAR)
 setDT(cbsa_pop)
 cbsa_pop <- cbsa_pop[variable == "POPESTIMATE", .(cbsa_code = as.character(GEOID), cbsa_pop = value)]
 setorder(cbsa_pop, -cbsa_pop)
@@ -48,9 +71,6 @@ cbsa_pop[, metro_tier := fcase(
 )]
 log_step(paste("CBSA tier lookup built:", nrow(cbsa_pop), "CBSAs"))
 
-# Revelio's own cbsa_code_N panel uses the same unified_cbsa.csv convention
-# as the PUMA crosswalk (Code/00_crosswalks.Rmd) -- non-metro positions get
-# a "state+999" pseudo-code, same detection logic.
 code_to_tier <- function(codes) {
   tier <- cbsa_pop$metro_tier[match(codes, cbsa_pop$cbsa_code)]
   tier[is.na(tier) & grepl("999$", codes)] <- "Non-metro"
@@ -58,31 +78,42 @@ code_to_tier <- function(codes) {
 }
 
 ## -----------------------------------------------------------------------
-## SECTION 1: Revelio -- share by tier, by years-since-grad
+## SECTION 1: Revelio -- share by tier, by calendar year
 ## -----------------------------------------------------------------------
+## Same t-slice-then-collapse-immediately pattern as
+## Code/memo1_migration_profile.R's revelio_rate_by_calendar_year() -- never
+## materializes a full person x t long table.
 
-revelio_tier_share_by_year <- function(dt, weight_col, t_max, source_label) {
-  out <- vector("list", t_max + 1)
+resolve_col_end <- function(dt, is_factor_like) {
+  raw <- if (is_factor_like) as.integer(as.character(dt$col_end)) else as.integer(dt$col_end)
+  rng <- range(raw, na.rm = TRUE)
+  if (rng[1] < 1900 || rng[2] > 2100) {
+    stop(sprintf("col_end resolved to an implausible range [%d, %d] -- likely a factor-level-code bug, not real years", rng[1], rng[2]))
+  }
+  cat(sprintf("  col_end range: %d-%d (sane)\n", rng[1], rng[2]))
+  raw
+}
+
+revelio_tier_share_by_calendar_year <- function(dt, weight_col, t_max, source_label, col_end_numeric) {
+  partials <- vector("list", t_max + 1)
   for (t in 0:t_max) {
     col <- paste0("cbsa_code_", t)
-    if (!col %in% names(dt)) { out[[t + 1]] <- NULL; next }
-    codes <- dt[[col]]
-    tier <- code_to_tier(codes)
-    # [FIXED 2026-08-10] same NA-weight gotcha as
-    # Code/memo1_migration_profile.R's revelio_rate_by_year() -- sum(w) for
-    # a group is NA if any contributing row has an NA weight (w_full_joint
-    # is NA for ~2.9% of users), so a valid tier row can still poison its
-    # group's total. Exclude NA weight explicitly, not just NA tier.
+    if (!col %in% names(dt)) next
+    tier <- code_to_tier(dt[[col]])
+    # [carried over unchanged, FIXED 2026-08-10] exclude NA weight
+    # explicitly, not just NA tier -- sum(w) for a group is NA if any
+    # contributing row has an NA weight.
     weight_valid <- if (is.null(weight_col)) TRUE else !is.na(dt[[weight_col]])
-    valid <- !is.na(tier) & weight_valid
-    n <- sum(valid)
-    if (n == 0) { out[[t + 1]] <- NULL; next }
-    w <- if (is.null(weight_col)) rep(1, n) else dt[[weight_col]][valid]
-    tab <- data.table(tier = tier[valid], w = w)[, .(w = sum(w)), by = tier]
-    tab[, share := w / sum(w)]
-    out[[t + 1]] <- data.table(source = source_label, years_since_grad = t, tier = tab$tier, share = tab$share, n = n)
+    valid <- !is.na(tier) & weight_valid & !is.na(col_end_numeric)
+    if (sum(valid) == 0) next
+    w  <- if (is.null(weight_col)) rep(1, sum(valid)) else dt[[weight_col]][valid]
+    cy <- col_end_numeric[valid] + t
+    partials[[t + 1]] <- data.table(calendar_year = cy, tier = tier[valid], w = w)[
+      , .(w = sum(w), n = .N), by = .(calendar_year, tier)]
   }
-  rbindlist(out)
+  agg <- rbindlist(partials)[, .(w = sum(w), n = sum(n)), by = .(calendar_year, tier)]
+  agg[, share := w / sum(w), by = calendar_year]
+  agg[, .(source = source_label, calendar_year, tier, share, n)]
 }
 
 log_step("Loading Column 1/2 covariate tables")
@@ -91,75 +122,80 @@ setDT(column1)
 li <- readRDS(file.path(data_dir, "intermediate/column2_reweighted.rds"))
 setDT(li)
 
-log_step("Computing Revelio metro-tier-share-by-year profiles")
-tier_col1      <- revelio_tier_share_by_year(column1, NULL, T_MAX, "Column 1 (college-only)")
-tier_col2_unwt <- revelio_tier_share_by_year(li, "w_unweighted", T_MAX, "Column 2 (HS+college, unweighted)")
-tier_col2_rewt <- revelio_tier_share_by_year(li, "w_full_joint", T_MAX, "Column 2 (reweighted to ACS)")
+log_step("Resolving col_end to real integer years (per-table, see memo1_migration_profile.R's header note)")
+cat("Column 1 col_end:\n")
+col_end_col1 <- resolve_col_end(column1, is_factor_like = FALSE)
+cat("Column 2 col_end:\n")
+col_end_col2 <- resolve_col_end(li, is_factor_like = is.factor(li$col_end) || is.character(li$col_end))
+
+log_step("Computing Revelio metro-tier-share-by-calendar-year profiles")
+tier_col1      <- revelio_tier_share_by_calendar_year(column1, NULL, T_MAX, "Column 1 (college-only)", col_end_col1)
+tier_col2_unwt <- revelio_tier_share_by_calendar_year(li, "w_unweighted", T_MAX, "Column 2 (HS+college, unweighted)", col_end_col2)
+tier_col2_rewt <- revelio_tier_share_by_calendar_year(li, "w_full_joint", T_MAX, "Column 2 (reweighted to ACS)", col_end_col2)
 
 rm(column1, li)
 gc()
 
 ## -----------------------------------------------------------------------
-## SECTION 2: ACS -- share by tier, by single-year age (-> years-since-grad)
+## SECTION 2: ACS -- share by tier, by calendar year (2012-2021 only)
 ## -----------------------------------------------------------------------
 
-log_step("Loading ACS PUMS pull + PUMA-CBSA-tier crosswalk")
-pums_filt <- readRDS(file.path(data_dir, "intermediate/pums_acs5_filt.rds"))
-setDT(pums_filt)
-stopifnot("PUMA20" %in% names(pums_filt))
-puma_xwalk <- readRDS(file.path(data_dir, "intermediate/puma_cbsa_tier_crosswalk.rds"))
+log_step("Loading ACS 1-year PUMS pull + 2010-vintage PUMA-CBSA-tier crosswalk")
+pums_1yr <- readRDS(file.path(data_dir, "intermediate/pums_1yr_filt.rds"))
+setDT(pums_1yr)
+stopifnot("PUMA10" %in% names(pums_1yr))
+puma_xwalk <- readRDS(file.path(data_dir, "intermediate/puma_cbsa_tier_crosswalk_2010.rds"))
 
-# [FOUND 2026-08-10] PUMA20 is only genuinely populated for the ~1-of-5
-# pooled 5-year survey years that actually used 2020-vintage PUMA
-# boundaries (2022 itself) -- the other ~4/5 (surveyed 2018-2021, still on
-# 2010-vintage boundaries) get a "-0009" placeholder (confirmed: 77.9% of
-# rows), which correctly fails to match any real PUMA in the crosswalk.
-# This is a real constraint of the pooled ACS 5-year file, not a bug --
-# restrict explicitly to the valid subset rather than let it silently
-# shrink the effective N. Extending to PUMA10 (a second crosswalk vintage)
-# would recover the other ~4/5 but isn't built here -- flagged as a future
-# option if this subset's sample size proves too thin.
-pums_filt[, state_puma := paste0(ST, PUMA20)]
-n_before_vintage_filt <- nrow(pums_filt)
-pums_filt <- pums_filt[PUMA20 != "-0009"]
-cat(sprintf("Restricting to rows with a genuine 2020-vintage PUMA20 (not the '-0009' placeholder): %d of %d (%.1f%%)\n",
-            nrow(pums_filt), n_before_vintage_filt, 100 * nrow(pums_filt) / n_before_vintage_filt))
-cat(sprintf("ACS state_puma format check (should look like '0100100' etc.): %s\n",
-            paste(head(unique(pums_filt$state_puma), 3), collapse = ", ")))
-cat(sprintf("state_puma match rate onto crosswalk (within the valid-vintage subset): %.1f%%\n",
-            100 * mean(pums_filt$state_puma %in% puma_xwalk$state_puma)))
+pums_window <- pums_1yr[survey_year %in% ACS_PUMA_WINDOW & !is.na(PUMA10)]
+pums_window[, state_puma := paste0(ST, PUMA10)]
+cat(sprintf("ACS rows in the %d-%d PUMA window: %d\n", min(ACS_PUMA_WINDOW), max(ACS_PUMA_WINDOW), nrow(pums_window)))
+cat(sprintf("ACS state_puma format check (should look like '1100100' etc.): %s\n",
+            paste(head(unique(pums_window$state_puma), 3), collapse = ", ")))
+# [First-class check] every row in this window carries ONE genuine PUMA
+# vintage (unlike the old pooled-5-year file's ~78% "-0009" placeholder
+# problem) -- match rate should be close to 100%. A low rate here means
+# something is still pointed at the wrong vintage.
+match_rate <- 100 * mean(pums_window$state_puma %in% puma_xwalk$state_puma)
+cat(sprintf("state_puma match rate onto the 2010-vintage crosswalk: %.1f%% (expect close to 100%%)\n", match_rate))
 
 # Fractional expansion: each respondent contributes PWGTP * tier_share to
-# every tier their PUMA overlaps (same "soft" pattern already used for
-# race probabilities elsewhere in this pipeline -- Code/reweight_column2.R).
-pums_long <- merge(pums_filt[, .(state_puma, age, PWGTP)], puma_xwalk, by = "state_puma", all.x = TRUE, allow.cartesian = TRUE)
+# every tier their PUMA overlaps (same "soft" pattern used elsewhere in
+# this pipeline).
+pums_long <- merge(pums_window[, .(state_puma, survey_year, PWGTP)], puma_xwalk,
+                    by = "state_puma", all.x = TRUE, allow.cartesian = TRUE)
 pums_long[, w := PWGTP * share]
 
-acs_tier_share_by_age <- function(dt, n_lookup, min_age, max_age) {
-  ages <- min_age:max_age
-  out <- vector("list", length(ages))
-  for (i in seq_along(ages)) {
-    a <- ages[i]
-    d <- dt[age == a & !is.na(metro_tier)]
-    if (nrow(d) == 0) { out[[i]] <- NULL; next }
+acs_tier_share_by_calendar_year <- function(dt, n_lookup, years) {
+  out <- vector("list", length(years))
+  for (i in seq_along(years)) {
+    y <- years[i]
+    d <- dt[survey_year == y & !is.na(metro_tier)]
+    if (nrow(d) == 0) next
     tab <- d[, .(w = sum(w, na.rm = TRUE)), by = metro_tier]
     tab[, share := w / sum(w)]
-    # n = actual respondent count at this age (from the un-expanded,
-    # one-row-per-person table), not nrow(d) -- d is the fractional
-    # tier-expansion, which double(+)-counts anyone whose PUMA splits
-    # across tiers.
-    out[[i]] <- data.table(source = "ACS PUMS benchmark", years_since_grad = a - 22, tier = tab$metro_tier,
-                            share = tab$share, n = sum(n_lookup$age == a))
+    # n = actual respondent count at this year (from the un-expanded table),
+    # not nrow(d) -- d fractionally expands split-PUMA respondents.
+    out[[i]] <- data.table(source = "ACS PUMS benchmark", calendar_year = y, tier = tab$metro_tier,
+                            share = tab$share, n = sum(n_lookup$survey_year == y))
   }
   rbindlist(out)
 }
-tier_acs <- acs_tier_share_by_age(pums_long, pums_filt, min_age = 23, max_age = 22 + T_MAX)
+tier_acs <- acs_tier_share_by_calendar_year(pums_long, pums_window, ACS_PUMA_WINDOW)
 
 metro_tier_profile <- rbindlist(list(tier_col1, tier_col2_unwt, tier_col2_rewt, tier_acs), fill = TRUE)
 
-log_step("Sample sizes by years_since_grad and source:")
-print(unique(metro_tier_profile[, .(source, years_since_grad, n)])[order(source, years_since_grad)])
+## -----------------------------------------------------------------------
+## SECTION 3: verification checks
+## -----------------------------------------------------------------------
 
-fwrite(metro_tier_profile, file.path(data_dir, "results/memo1_metro_tier_by_year.csv"))
-saveRDS(metro_tier_profile, file.path(data_dir, "results/memo1_metro_tier_by_year.rds"))
-log_step("saved memo1_metro_tier_by_year.csv/.rds")
+log_step("Sample sizes by calendar_year and source:")
+print(unique(metro_tier_profile[, .(source, calendar_year, n)])[order(source, calendar_year)])
+
+share_sums <- metro_tier_profile[, .(total_share = sum(share)), by = .(source, calendar_year)]
+n_bad <- nrow(share_sums[abs(total_share - 1) > 0.01])
+cat(sprintf("(source, calendar_year) groups where tier shares don't sum to ~1: %d of %d (expect 0)\n",
+            n_bad, nrow(share_sums)))
+
+fwrite(metro_tier_profile, file.path(data_dir, "results/memo1_metro_tier_by_calendar_year.csv"))
+saveRDS(metro_tier_profile, file.path(data_dir, "results/memo1_metro_tier_by_calendar_year.rds"))
+log_step("saved memo1_metro_tier_by_calendar_year.csv/.rds")

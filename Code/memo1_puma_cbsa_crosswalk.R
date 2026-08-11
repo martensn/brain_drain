@@ -5,18 +5,38 @@
 # (fractional) top-10/top-50/top-100/other-metro/non-metro tier for the
 # metro-tier-share-over-time chart, comparable to Revelio's real CBSA codes.
 #
-# Approach (at Nicholas's direction): 2020 PUMAs are built from whole 2020
-# Census tracts (no split tracts), so the Census Bureau's own "2020 Census
-# Tract to 2020 PUMA Relationship File" gives an EXACT tract<->PUMA mapping
-# -- no GIS/shapefile overlay needed for that step. Tract GEOIDs encode
-# county FIPS directly, and county->CBSA is already solved in this repo
-# (Data/raw/census_geo/unified_cbsa.csv). The only real approximation is
-# tract-level population weighting for PUMAs whose tracts span more than
-# one CBSA tier (or metro/non-metro) -- weighted by each tract's 2020
-# Census population, not by area, per Nicholas's instruction.
+# Approach (at Nicholas's direction): PUMAs of a given vintage are built
+# from whole Census tracts of that SAME vintage (no split tracts), so the
+# Census Bureau's own "Tract to PUMA Relationship File" for that vintage
+# gives an EXACT tract<->PUMA mapping -- no GIS/shapefile overlay needed for
+# that step. Tract GEOIDs encode county FIPS directly, and county->CBSA is
+# already solved in this repo (Data/raw/census_geo/unified_cbsa.csv). The
+# only real approximation is tract-level population weighting for PUMAs
+# whose tracts span more than one CBSA tier (or metro/non-metro) --
+# weighted by each tract's Census population (same vintage as the PUMA/
+# tract geography), not by area, per Nicholas's instruction.
 #
-# Source: https://www2.census.gov/geo/docs/maps-data/data/rel2020/2020_Census_Tract_to_2020_PUMA.txt
-# (downloaded to Data/raw/census_geo/2020_Census_Tract_to_2020_PUMA.txt)
+# [CHANGED 2026-08-11] Parameterized by PUMA_VINTAGE at Nicholas's request,
+# to support a calendar-year migration/metro-tier chart redesign that needs
+# ONE fixed PUMA vintage held constant across many ACS 1-year survey years
+# (PUMA boundaries get redrawn each decennial, so mixing vintages within one
+# chart would make "moved into a Top-10 metro" partly an artifact of
+# redistricting rather than a real geographic change). PUMA_VINTAGE=2010
+# covers ACS 1-year survey years 2012-2021 (the longest single-vintage
+# window available); PUMA_VINTAGE=2020 (the original, still supported) was
+# built first for the pooled 2018-2022 5-year file's 2022-only PUMA20 slice.
+# Only three things vary by vintage: the source relationship file, the
+# get_decennial() tract-population call, and the output path -- the CBSA
+# population ranking/tier-threshold block (Section 3) stays hard-coded to a
+# single fixed snapshot (CBSA_RANK_YEAR) regardless of PUMA_VINTAGE, so
+# "Top 10" means the same actual metro areas no matter which vintage's
+# geography-matching produced a given row.
+#
+# 2020 source: https://www2.census.gov/geo/docs/maps-data/data/rel2020/2020_Census_Tract_to_2020_PUMA.txt
+#   (downloaded to Data/raw/census_geo/2020_Census_Tract_to_2020_PUMA.txt)
+# 2010 source: https://www2.census.gov/geo/docs/maps-data/data/rel/2010_Census_Tract_to_2010_PUMA.txt
+#   (downloaded to Data/raw/census_geo/2010_Census_Tract_to_2010_PUMA.txt;
+#   same column schema as the 2020 file -- STATEFP,COUNTYFP,TRACTCE,PUMA5CE)
 
 library(data.table)
 library(tidycensus)
@@ -32,7 +52,32 @@ log_step <- function(msg) {
   flush(stdout())
 }
 
-crosswalk_path <- file.path(data_dir, "intermediate/puma_cbsa_tier_crosswalk.rds")
+# ---- Vintage switch -------------------------------------------------------
+PUMA_VINTAGE <- 2010  # 2010 or 2020; see header note above
+
+# CBSA population-ranking snapshot used for the Top-10/50/100 tier
+# thresholds -- deliberately NOT tied to PUMA_VINTAGE (see header note).
+CBSA_RANK_YEAR <- 2022
+
+vintage_cfg <- if (PUMA_VINTAGE == 2010) {
+  list(
+    rel_file    = "raw/census_geo/2010_Census_Tract_to_2010_PUMA.txt",
+    decennial_year = 2010,
+    decennial_var  = "P001001",
+    decennial_sumfile = "sf1"
+  )
+} else if (PUMA_VINTAGE == 2020) {
+  list(
+    rel_file    = "raw/census_geo/2020_Census_Tract_to_2020_PUMA.txt",
+    decennial_year = 2020,
+    decennial_var  = "P1_001N",
+    decennial_sumfile = "pl"
+  )
+} else {
+  stop("PUMA_VINTAGE must be 2010 or 2020")
+}
+
+crosswalk_path <- file.path(data_dir, sprintf("intermediate/puma_cbsa_tier_crosswalk_%d.rds", PUMA_VINTAGE))
 
 if (!file.exists(crosswalk_path)) {
 
@@ -40,13 +85,13 @@ if (!file.exists(crosswalk_path)) {
 ## SECTION 1: tract -> PUMA (exact, from the Census relationship file)
 ## -----------------------------------------------------------------------
 
-tract_puma <- fread(file.path(data_dir, "raw/census_geo/2020_Census_Tract_to_2020_PUMA.txt"), colClasses = "character")
+tract_puma <- fread(file.path(data_dir, vintage_cfg$rel_file), colClasses = "character")
 tract_puma[, `:=`(
   county_fips = paste0(STATEFP, COUNTYFP),
   tract_geoid = paste0(STATEFP, COUNTYFP, TRACTCE),
   state_puma  = paste0(STATEFP, PUMA5CE)  # PUMA5CE alone repeats across states; ACS PUMS's own PUMA is ST+PUMA
 )]
-log_step(paste("tract_puma loaded:", nrow(tract_puma), "tracts,", uniqueN(tract_puma$state_puma), "PUMAs"))
+log_step(paste("tract_puma loaded (vintage", PUMA_VINTAGE, "):", nrow(tract_puma), "tracts,", uniqueN(tract_puma$state_puma), "PUMAs"))
 
 ## -----------------------------------------------------------------------
 ## SECTION 2: county -> CBSA (already-solved crosswalk, this repo's own)
@@ -68,7 +113,7 @@ cat(sprintf("Tracts genuinely outside any real CBSA (non-metro pseudo-code): %.1
 ## SECTION 3: CBSA population ranking -> tier (top10/top50/top100/other)
 ## -----------------------------------------------------------------------
 
-cbsa_pop <- get_estimates(geography = "cbsa", product = "population", year = 2022, vintage = 2022)
+cbsa_pop <- get_estimates(geography = "cbsa", product = "population", year = CBSA_RANK_YEAR, vintage = CBSA_RANK_YEAR)
 setDT(cbsa_pop)
 cbsa_pop <- cbsa_pop[variable == "POPESTIMATE", .(cbsa_code = as.character(GEOID), cbsa_pop = value)]
 tract_puma[, cbsa_code := as.character(cbsa_code)]
@@ -97,14 +142,15 @@ if (n_unexplained > 0) {
 }
 
 ## -----------------------------------------------------------------------
-## SECTION 4: tract population (for weighting split PUMAs), 2020 Decennial
+## SECTION 4: tract population (for weighting split PUMAs), same-vintage
+## Decennial as PUMA_VINTAGE (2010 SF1 P001001 / 2020 PL P1_001N)
 ## -----------------------------------------------------------------------
 
 # Restrict to 50 states + DC, matching Code/acs_pull.R's own scope --
 # tract_puma's STATEFP also includes territories (PR, Guam, etc.), which
 # aren't part of get_pums()'s state list here and would 404 against
 # get_decennial() the same way (confirmed: FIPS 66 = Guam failed this way
-# on first run).
+# on the 2020-vintage run).
 data(fips_codes, package = "tidycensus")
 setDT(fips_codes)
 valid_state_fips <- unique(fips_codes[state %in% c(state.abb, "DC")]$state_code)
@@ -114,8 +160,10 @@ cat(sprintf("Restricting to %d of %d STATEFP values present in tract_puma (50 st
 tract_pop_parts <- vector("list", length(state_fips_list))
 for (i in seq_along(state_fips_list)) {
   st <- state_fips_list[i]
-  cat(sprintf("Pulling 2020 tract population for state FIPS %s (%d/%d)...\n", st, i, length(state_fips_list)))
-  d <- get_decennial(geography = "tract", variables = "P1_001N", year = 2020, state = st)
+  cat(sprintf("Pulling %d Decennial tract population for state FIPS %s (%d/%d)...\n",
+              vintage_cfg$decennial_year, st, i, length(state_fips_list)))
+  d <- get_decennial(geography = "tract", variables = vintage_cfg$decennial_var,
+                      year = vintage_cfg$decennial_year, sumfile = vintage_cfg$decennial_sumfile, state = st)
   setDT(d)
   tract_pop_parts[[i]] <- d[, .(tract_geoid = GEOID, tract_pop = value)]
 }
@@ -143,8 +191,8 @@ cat("Sample:\n")
 print(puma_cbsa_tier_crosswalk[state_puma %in% sample(unique(state_puma), 5)][order(state_puma)])
 
 saveRDS(puma_cbsa_tier_crosswalk, crosswalk_path)
-log_step(paste("saved puma_cbsa_tier_crosswalk.rds:", nrow(puma_cbsa_tier_crosswalk), "rows"))
+log_step(paste("saved", basename(crosswalk_path), ":", nrow(puma_cbsa_tier_crosswalk), "rows"))
 
 } else {
-  log_step("puma_cbsa_tier_crosswalk.rds already exists -- skipping")
+  log_step(paste(basename(crosswalk_path), "already exists -- skipping"))
 }

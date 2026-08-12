@@ -1,21 +1,60 @@
 # reweight_column2.R
 #
-# Builds the single full-joint-cell ACS raking weight for Column 2
-# (Data/intermediate/column2_covariates.rds), then assembles the memo's
-# four-column characteristics table: Column 1 (unweighted), Column 2
-# (unweighted), Column 2 (reweighted to ACS), and the raw ACS PUMS
-# benchmark -- race, sex, age, geography, transfer status, graduate-degree
-# attainment.
+# Builds the Column 2 reweight (Data/intermediate/column2_covariates.rds),
+# then assembles the memo's four-column characteristics table: Column 1
+# (unweighted), Column 2 (unweighted), Column 2 (reweighted to ACS), and
+# the raw ACS PUMS benchmark -- race, sex, age, geography, transfer status,
+# graduate-degree attainment, migration behavior.
 #
-# Scope, per velvet-churning-galaxy.md's Step 2: ONE reweighting scheme
-# (state x age-bucket x race/sex, full joint cell), not the 5-rung ladder
-# Code/acs_reweight.R built for an earlier, now-superseded purpose (a JOLE
-# referee response). This script reimplements that scheme's logic using
-# merge()-based joins throughout (not data.table bracket-chaining) --
-# Code/acs_reweight.R's own Sections 6-9 were written but, per HANDOFF.md,
-# never actually run; rather than blindly copy unverified bracket-join
-# chains, the same conceptual logic is rebuilt here with join semantics
-# that are unambiguous by construction.
+# [REDESIGNED 2026-08-11, at Nicholas's request] `w_full_joint` now comes
+# from real iterative proportional fitting against TWO SEPARATE marginal
+# targets, not one single ratio-adjusted joint cell as before. The
+# mechanism is a small manual IPF loop (see manual_ipf() below), not
+# survey::rake()/calibrate() -- both were tried first and both hit real,
+# verified problems specific to this file's fractional-race-melted design
+# at ~2.9M-row scale (rake()'s postStratify(partial=FALSE) hard-errors on
+# any population cell without sample coverage; a hand-rolled
+# partial=TRUE loop produced widespread Inf/NA weight even with perfectly
+# matched strata, confirmed via a direct diagnostic; calibrate()'s
+# multi-margin interface builds one combined model matrix across margins
+# rather than raking them separately). Full debugging trail is in the
+# comments around manual_ipf()'s definition, not repeated here -- the
+# short version is the per-cell ratio was genuinely unbounded in the
+# survey-package mechanisms, and clamping it every iteration (not just at
+# the end) is what actually fixes it, which a manual loop can do directly.
+# The two margins:
+#   1. origin_state x age_bucket x race x sex (unchanged from the original
+#      scheme, still from acs_pull.R's pums_cells.rds$state_age_racesex)
+#   2. origin_state x recent_mover (NEW -- see below)
+# Why a second SEPARATE margin, not a bigger 5-way joint cell: the
+# calendar-year charts built earlier the same day make it visually obvious
+# that reweighting on demographics alone can't fix Revelio's
+# over-representation of geographically mobile people, since mobility
+# isn't one of the things being matched. A naive
+# origin_state x age_bucket x race x sex x recent_mover cell would work
+# for THAT, but recent_mover=1 is only ~3% of any given cell, so it would
+# roughly double the cell count while making the already-documented
+# South-Dakota-style thin-cell instability worse, not better. Raking's
+# whole point is matching several marginal targets without needing them
+# jointly cross-tabulated -- full design rationale, alternatives assessed
+# (ACS county-to-county/state-to-county flows, IRS SOI migration data) and
+# why they were deferred: D:\Users\martensn\.claude\plans\nope-i-had-something-logical-aurora.md.
+# recent_mover uses acs_pull.R's/memo1_covariates.R's existing 1-year
+# mover flags (moved_out_of_state / moved_last_year_state) -- a real,
+# flagged conceptual mismatch with the paper's actual outcome (cumulative
+# post-grad mobility, not a 12-month snapshot), deliberately deferred to a
+# later pass rather than blocking this one.
+#
+# Scope of the ORIGINAL scheme, per velvet-churning-galaxy.md's Step 2:
+# ONE reweighting scheme (state x age-bucket x race/sex, full joint cell),
+# not the 5-rung ladder Code/acs_reweight.R built for an earlier,
+# now-superseded purpose (a JOLE referee response). This script
+# reimplements that scheme's logic using merge()-based joins throughout
+# (not data.table bracket-chaining) -- Code/acs_reweight.R's own Sections
+# 6-9 were written but, per HANDOFF.md, never actually run; rather than
+# blindly copy unverified bracket-join chains, the same conceptual logic
+# is rebuilt here with join semantics that are unambiguous by
+# construction. That design choice is unaffected by this rewrite.
 #
 # Run after Code/acs_pull.R (pums_cells.rds/pums_acs5_filt.rds) and
 # Code/memo1_covariates.R (column1_covariates.rds/column2_covariates.rds)
@@ -51,7 +90,20 @@ RACE_PROB_COLS <- c("white_prob", "black_prob", "api_prob",
 
 li <- readRDS(file.path(data_dir, "intermediate/column2_covariates.rds"))
 setDT(li)
-stopifnot(all(c("user_id", "hs_state", "age_bucket", RACE_PROB_COLS, "m_prob", "f_prob") %in% names(li)))
+stopifnot(all(c("user_id", "hs_state", "age_bucket", RACE_PROB_COLS, "m_prob", "f_prob",
+                "moved_last_year_state") %in% names(li)))
+
+# pums_filt loaded here (not in Part 2 as before) -- Part 1 now needs it
+# directly to build the new recent_mover margin, and Part 2/3 both already
+# expected it in scope by the time they run.
+pums_filt <- readRDS(file.path(data_dir, "intermediate/pums_acs5_filt.rds"))
+setDT(pums_filt)
+# [carried over, FIXED 2026-08-10] pums_acs5_filt.rds on disk predates
+# acs_pull.R's logical->integer grad_degree fix -- coerce here too (no-op
+# if already integer), same rationale as li's transfer/has_associate fix
+# below.
+pums_filt[, grad_degree := as.integer(grad_degree)]
+stopifnot(all(c("origin_state", "moved_out_of_state", "PWGTP") %in% names(pums_filt)))
 
 # [FIXED 2026-08-10] column2_covariates.rds on disk still predates
 # Code/memo1_covariates.R's transfer/has_associate coercion fix (that fix
@@ -111,24 +163,261 @@ li_long[, race := race_col_to_label[as.character(race_prob_col)]]
 li_long[, sex := fifelse(m_prob >= f_prob, "male", "female")]
 li_long[, w_base := w_unweighted * race_frac]
 
-li_long_n <- li_long[, .(n_li = sum(race_frac)), by = .(origin_state, age_bucket, race, sex)]
+# [NEW 2026-08-11] recent_mover -- moved_last_year_state is NA for ~5% of
+# Column 2 users (their last two observed panel years aren't adjacent, so
+# no 1-year-equivalent transition is observable -- see
+# Code/memo1_covariates.R's last_year_state_move()). rake()'s
+# sample.margins "must not contain missing values" (confirmed via the
+# package's own help page before writing this), and the missingness here
+# isn't obviously random with respect to mobility (a gap in someone's
+# observed position history could itself correlate with having moved) --
+# imputing a specific value in either direction risks a real, unjustified
+# bias. EXCLUDING these rows from the raked universe is the more
+# defensible default: it shrinks the reweighted sample by ~5% rather than
+# silently guessing, and matches this memo's established pattern of
+# stating asymmetries plainly rather than papering over them (e.g. the
+# metro-tier chart's 2012-2021-only ACS window). Revisit if Nicholas wants
+# a different call once real numbers are visible below.
+n_before_mover_na_drop <- nrow(li_long)
+li_long <- li_long[!is.na(moved_last_year_state)]
+cat(sprintf("Dropped for NA moved_last_year_state (excluded from raking, not imputed): %d of %d melted rows (%.1f%%)\n",
+            n_before_mover_na_drop - nrow(li_long), n_before_mover_na_drop,
+            100 * (n_before_mover_na_drop - nrow(li_long)) / n_before_mover_na_drop))
 
-joint_ratio <- merge(li_long_n, cell_state_age_race_sex,
-                      by = c("origin_state", "age_bucket", "race", "sex"), all.x = TRUE)
-joint_ratio[, ratio := pop / n_li]
-cat(sprintf("%d of %d LI cells have no matching PUMS cell (ratio will be NA there):\n",
-            sum(is.na(joint_ratio$ratio)), nrow(joint_ratio)))
+## ---- Population margins for rake() -----------------------------------
+# Margin A: unchanged from the original scheme -- origin_state x
+# age_bucket x race x sex population totals, from acs_pull.R's
+# pums_cells.rds. rake() wants a data.frame with a `Freq` column (per its
+# own help page / the api.example data.frame(stype=..., Freq=...)
+# pattern), not `pop` -- renamed via a copy, not in place, so
+# cell_state_age_race_sex stays available under its original name/column
+# in case anything downstream still expects it.
+margin_demo <- copy(cell_state_age_race_sex)
+setnames(margin_demo, "pop", "Freq")
 
-li_long <- merge(li_long, joint_ratio[, .(origin_state, age_bucket, race, sex, ratio)],
-                  by = c("origin_state", "age_bucket", "race", "sex"), all.x = TRUE)
-li_long[, w_full_joint := w_base * ratio]
+# [FIXED 2026-08-11] postStratify()'s own internal stratum-matching (via
+# model.frame()/cross-tabulation) disagreed with this file's data.table
+# join-based pre-filter (below) on which rows "match" -- confirmed by
+# verbose per-margin NA tracking: margin 1 alone produced NA weight for
+# ~13% of a subsample already pre-filtered to have a join-confirmed
+# match, which then cascaded (any stratum containing even one NA-weight
+# row sums to NA) to make margin 2 nearly 100% NA. The most likely cause
+# is a factor-level/representation mismatch between li_long's age_bucket
+# (built by Code/memo1_covariates.R's cut()) and margin_demo's (built by
+# Code/acs_pull.R's separate cut() call) -- same underlying bug CLASS
+# already hit repeatedly this session (RAC2P digit-width, MIGSP padding,
+# ST padding: two representations of "the same" value that don't compare
+# equal). Rather than chase the exact mechanism, force every margin key
+# column to plain character on BOTH sides -- character comparison is
+# unambiguous in a way factor-level comparison isn't, and this closes the
+# entire bug class regardless of its precise cause.
+for (col in c("origin_state", "age_bucket", "race", "sex")) margin_demo[[col]] <- as.character(margin_demo[[col]])
+li_long[, `:=`(origin_state = as.character(origin_state), age_bucket = as.character(age_bucket),
+                race = as.character(race), sex = as.character(sex),
+                moved_last_year_state = as.character(moved_last_year_state))]
 
-w_full_collapsed <- li_long[, .(w_full_joint = sum(w_full_joint, na.rm = TRUE)), by = user_id]
+# Margin B: NEW -- origin_state x recent_mover population totals, from
+# pums_acs5_filt.rds (already loaded above, no new pull). Cheap: one
+# groupby against a file already on disk.
+margin_mover <- pums_filt[, .(Freq = sum(PWGTP)), by = .(origin_state, moved_out_of_state)]
+setnames(margin_mover, "moved_out_of_state", "moved_last_year_state")
+margin_mover[, `:=`(origin_state = as.character(origin_state), moved_last_year_state = as.character(moved_last_year_state))]
+cat(sprintf("recent_mover ACS margin: %d origin_state x mover cells, mover=1 share overall %.1f%%\n",
+            nrow(margin_mover), 100 * margin_mover[moved_last_year_state == 1, sum(Freq)] / margin_mover[, sum(Freq)]))
+
+# [FOUND 2026-08-11] postStratify() (which rake() calls internally) hard-
+# errors -- "Strata in sample absent from population. This Can't Happen"
+# -- if ANY (origin_state, age_bucket, race, sex) combination appears in
+# the sample but has no matching row in margin_demo at all (a real ACS
+# cell with zero population, confirmed already-known: this repo's OLD
+# ratio-adjustment code separately printed "N of X LI cells have no
+# matching PUMS cell" and left those NA -- postStratify is stricter than
+# the old ratio approach and won't tolerate it silently). Filter these
+# out explicitly before raking, the same set the old code already
+# implicitly zeroed out via NA propagation, just made explicit now that
+# it has to be.
+demo_key_cols <- c("origin_state", "age_bucket", "race", "sex")
+n_before_cell_match <- nrow(li_long)
+li_long <- li_long[margin_demo[, ..demo_key_cols], on = demo_key_cols, nomatch = 0]
+cat(sprintf("Dropped for no matching ACS demo cell (state x age x race x sex): %d of %d melted rows (%.1f%%)\n",
+            n_before_cell_match - nrow(li_long), n_before_cell_match,
+            100 * (n_before_cell_match - nrow(li_long)) / n_before_cell_match))
+
+# [FOUND 2026-08-11, second problem in the same area] the above filter
+# guarantees every SAMPLE stratum has a matching POPULATION row -- but a
+# direct diagnostic (hand-checking specific NA-weighted rows against
+# margin_demo) proved postStratify(partial=TRUE) STILL produces NA weight
+# for rows in perfectly-matched strata, when OTHER population strata
+# elsewhere in the same margin table are absent from the sample (margin_demo
+# has thousands of cells; any sample -- subsample or the full ~2.9M-row
+# table alike -- realistically can't cover all of them). This looks like a
+# real limitation/edge case in how postStratify's partial=TRUE handles a
+# margin with many simultaneously-missing strata, not a data problem --
+# confirmed empirically (Freq values for the "bad" cells were sane,
+# 2,000-79,000) rather than assumed. Sidestepping it entirely: restrict
+# margin_demo to ONLY the cells that also appear in the (already-filtered)
+# sample, so every population row has sample coverage and vice versa --
+# partial=TRUE's problematic path never gets exercised because there's
+# nothing left for it to need to ignore. This slightly redefines the
+# target population (excludes ACS cells with zero LI representation,
+# whose aggregate population mass is negligible by construction) rather
+# than leaving it exactly as pums_cells.rds's original table -- a real,
+# small, worth-noting tradeoff for a mechanism that actually converges.
+li_long_keys <- unique(li_long[, ..demo_key_cols])
+n_before_margin_restrict <- nrow(margin_demo)
+margin_demo <- margin_demo[li_long_keys, on = demo_key_cols, nomatch = 0]
+cat(sprintf("Restricted margin_demo to cells with sample coverage: %d of %d ACS cells kept (%.1f%%), %.1f%% of ACS population mass retained\n",
+            nrow(margin_demo), n_before_margin_restrict, 100 * nrow(margin_demo) / n_before_margin_restrict,
+            100 * margin_demo[, sum(Freq)] / cell_state_age_race_sex[, sum(pop)]))
+
+# Same bidirectional restriction applied to margin_mover for consistency
+# and safety, even though its 102 cells (51 states x 2 mover values) are
+# far coarser and much less likely to have any state genuinely absent
+# from a multi-million-row sample -- cheap to apply, removes any residual
+# risk of the same partial=TRUE issue recurring here.
+mover_key_cols <- c("origin_state", "moved_last_year_state")
+li_long <- li_long[margin_mover[, ..mover_key_cols], on = mover_key_cols, nomatch = 0]
+n_before_mover_restrict <- nrow(margin_mover)
+margin_mover <- margin_mover[unique(li_long[, ..mover_key_cols]), on = mover_key_cols, nomatch = 0]
+cat(sprintf("Restricted margin_mover to cells with sample coverage: %d of %d cells kept\n", nrow(margin_mover), n_before_mover_restrict))
+
+# [ABANDONED 2026-08-11, after extensive testing] both survey::rake()
+# (calls postStratify(partial=FALSE) internally, hard-errors the moment
+# any population cell lacks sample coverage) and a hand-rolled
+# postStratify(partial=TRUE) loop (survives that specific error, but a
+# direct diagnostic proved it produces widespread NA/Inf weight even with
+# PERFECTLY bidirectionally-matched sample/population strata -- confirmed
+# via a self-consistent subsample test, ruling out every data-matching
+# hypothesis first) turned out not to be viable for this fractional-melt
+# design at this scale. survey::calibrate() was tried next specifically
+# for its documented bounded-weight support, but its multi-formula list
+# interface builds one COMBINED model matrix across all margins together
+# (confirmed by inspecting its printed coefficient names, which mix terms
+# from both margins) rather than genuinely separate per-margin raking,
+# and needs a population vector aligned to that combined design -- a
+# fundamentally different, more involved setup than rake()'s docs implied.
+#
+# Given all three survey-package mechanisms hit real, verified problems
+# specific to this design (not assumed away), the most robust path is a
+# small manual 2-margin IPF loop using the exact same merge()-based
+# philosophy this file already uses elsewhere (see the file header: "this
+# script reimplements that scheme's logic using merge()-based joins...
+# rather than blindly copy unverified... chains"). Each iteration computes
+# a per-cell ratio (population Freq / current sample weight sum) for one
+# margin at a time and multiplies it into the running weight -- exactly
+# what the ORIGINAL single-margin ratio-adjustment scheme did, generalized
+# to alternate between two margins until convergence. The ratio is
+# clamped every iteration (not just at the end) to the same 0.05x-20x
+# heuristic this file already used as an informal eyeball flag -- this is
+# what actually prevents the Inf/NA blowup (verified: postStratify's
+# failure mode produced literal Inf weights, meaning an UNBOUNDED
+# per-cell ratio was the real mechanism all along), and folds in the
+# South Dakota weight-stability fix directly into the iterative process
+# rather than as a final post-hoc clip. Verified correct first on a
+# standalone synthetic toy example (5 people, a population stratum absent
+# from the sample, hand-inspectable output) before touching real data.
+# [CAUGHT BEFORE RUNNING, not after -- verified directly] data.table's
+# merge() defaults to sort=TRUE, which reorders the result by the join
+# keys rather than preserving `x`'s original row order (confirmed with a
+# standalone 5-row test: `identical(dt$id, merge(dt, pop, by="k")$id)` is
+# FALSE). Without a row-order safeguard, the final `dt$w_iter` returned
+# here would silently misalign with li_long's original row order when
+# assigned back via `li_long[, w_raked := manual_ipf(li_long, ...)]` --
+# every weight would land on the wrong row, with no error to signal it.
+# An explicit row-id, carried through every merge and used to re-sort
+# immediately before returning, closes this off entirely.
+manual_ipf <- function(dt, w_col, margins, maxit = 10, epsilon = 1, cap_lo = 0.05, cap_hi = 20, verbose = FALSE) {
+  dt <- copy(dt)
+  dt[, .rowid := .I]
+  dt[, w_iter := get(w_col)]
+  old_w <- dt$w_iter
+  iter <- 0; converged <- FALSE
+  while (iter < maxit) {
+    for (m in margins) {
+      keys <- m$keys; pop <- m$pop
+      cell_sum <- dt[, .(sample_sum = sum(w_iter)), by = keys]
+      r <- merge(cell_sum, pop, by = keys, all.x = TRUE)
+      # NA Freq here means a population cell genuinely has no sample
+      # coverage (shouldn't happen given the bidirectional pre-filter
+      # above, but defensive regardless) -- ratio 1 (no adjustment)
+      # rather than propagating NA into the weight.
+      r[, ratio := fifelse(!is.na(Freq) & sample_sum > 0, Freq / sample_sum, 1)]
+      r[, ratio := pmin(pmax(ratio, cap_lo), cap_hi)]
+      dt <- merge(dt, r[, c(keys, "ratio"), with = FALSE], by = keys, all.x = TRUE)
+      dt[, ratio := fifelse(is.na(ratio), 1, ratio)]
+      dt[, w_iter := w_iter * ratio]
+      dt[, ratio := NULL]
+    }
+    # dt's row order drifts within the margin loop (each merge re-sorts
+    # by its own join keys) -- restore canonical .rowid order BEFORE
+    # comparing against old_w (itself always captured immediately after
+    # a setorder, so both are guaranteed aligned here, not just
+    # coincidentally the same length).
+    setorder(dt, .rowid)
+    delta <- max(abs(dt$w_iter - old_w))
+    if (verbose) cat(sprintf("  [manual_ipf] iter=%d delta=%.4f any_nonfinite=%s\n", iter, delta, any(!is.finite(dt$w_iter))))
+    if (is.finite(delta) && delta < epsilon) { converged <- TRUE; break }
+    old_w <- dt$w_iter
+    iter <- iter + 1
+  }
+  if (!converged) warning(sprintf("manual_ipf did not converge after %d iterations (delta=%.4f, epsilon=%d)", iter, delta, epsilon))
+  cat(sprintf("manual_ipf: %s after %d iteration(s) (delta=%.4f), any non-finite: %s\n",
+              if (converged) "converged" else "DID NOT CONVERGE", iter, delta, any(!is.finite(dt$w_iter))))
+  setorder(dt, .rowid)
+  dt$w_iter
+}
+
+margins_spec <- list(
+  list(keys = demo_key_cols, pop = margin_demo),
+  list(keys = mover_key_cols, pop = margin_mover)
+)
+
+## ---- Small-subsample validation, before trusting the full-scale run ---
+# Self-consistent margins (restricted to what the subsample itself
+# covers), same rationale as before this rewrite -- proves the MECHANISM
+# converges cleanly on real, fractionally-melted data before committing
+# to the full ~17M-row run.
+set.seed(20260811)
+li_long_test <- li_long[sample.int(.N, min(100000, .N))]
+margin_demo_test <- margin_demo[unique(li_long_test[, ..demo_key_cols]), on = demo_key_cols, nomatch = 0]
+margin_mover_test <- margin_mover[unique(li_long_test[, ..mover_key_cols]), on = mover_key_cols, nomatch = 0]
+li_long_test <- li_long_test[margin_demo_test[, ..demo_key_cols], on = demo_key_cols, nomatch = 0]
+li_long_test <- li_long_test[margin_mover_test[, ..mover_key_cols], on = mover_key_cols, nomatch = 0]
+cat(sprintf("Subsample self-consistent margins: %d demo cells (of %d in full margin_demo), %d mover cells; %d rows remain after bidirectional restriction\n",
+            nrow(margin_demo_test), nrow(margin_demo), nrow(margin_mover_test), nrow(li_long_test)))
+
+w_test <- manual_ipf(li_long_test, "w_base",
+                      list(list(keys = demo_key_cols, pop = margin_demo_test),
+                           list(keys = mover_key_cols, pop = margin_mover_test)),
+                      verbose = TRUE)
+cat(sprintf("Subsample IPF test (n=%d melted rows): weight range [%.3f, %.3f], any non-finite: %s\n",
+            length(w_test), min(w_test), max(w_test), any(!is.finite(w_test))))
+if (any(!is.finite(w_test))) stop("Subsample IPF test produced non-finite weights -- investigate before running at full scale.")
+
+## ---- Full-scale IPF -----------------------------------------------------
+log_step("Running full-scale manual_ipf() (both margins)")
+li_long[, w_raked := manual_ipf(li_long, "w_base", margins_spec, verbose = TRUE)]
+
+w_full_collapsed <- li_long[, .(w_full_joint_uncapped = sum(w_raked, na.rm = TRUE)), by = user_id]
 li <- merge(li, w_full_collapsed, by = "user_id", all.x = TRUE)
 
-for (wc in c("w_unweighted", "w_full_joint")) {
+# Final safety clip on the fully-collapsed per-person weight, on top of
+# the per-iteration ratio clamp already applied above -- belt-and-
+# suspenders (a person collapses several melted-row weights via sum(),
+# which could in principle still land outside the per-iteration bounds
+# even though no single ratio did), same 0.05x-20x heuristic throughout.
+med_w <- median(li$w_full_joint_uncapped, na.rm = TRUE)
+cap_hi <- med_w * 20
+cap_lo <- med_w * 0.05
+n_capped_hi <- sum(li$w_full_joint_uncapped > cap_hi, na.rm = TRUE)
+n_capped_lo <- sum(li$w_full_joint_uncapped < cap_lo, na.rm = TRUE)
+li[, w_full_joint := pmin(pmax(w_full_joint_uncapped, cap_lo), cap_hi)]
+cat(sprintf("Final weight cap [%.3f, %.3f] (0.05x-20x median %.3f): capped %d rows high, %d rows low, of %d\n",
+            cap_lo, cap_hi, med_w, n_capped_hi, n_capped_lo, nrow(li)))
+
+for (wc in c("w_unweighted", "w_full_joint_uncapped", "w_full_joint")) {
   rng <- range(li[[wc]], na.rm = TRUE)
-  cat(sprintf("%-15s range: [%.3f, %.3f]  (flag if outside ~0.05x-20x)\n", wc, rng[1], rng[2]))
+  cat(sprintf("%-22s range: [%.3f, %.3f]\n", wc, rng[1], rng[2]))
 }
 
 saveRDS(li, file.path(data_dir, "intermediate/column2_reweighted.rds"))
@@ -157,11 +446,8 @@ wmean_safe <- function(x, w) {
   weighted.mean(x[keep], w[keep])
 }
 
-pums_filt <- readRDS(file.path(data_dir, "intermediate/pums_acs5_filt.rds"))
-# [FIXED 2026-08-10] pums_acs5_filt.rds on disk predates acs_pull.R's
-# logical->integer grad_degree fix -- coerce here too (no-op if already
-# integer), same rationale as li's transfer/has_associate fix above.
-pums_filt[, grad_degree := as.integer(grad_degree)]
+# pums_filt already loaded in Part 1 (needed there for the new recent_mover
+# margin) -- reused here, not re-read.
 
 # moved_proxy: reuse Column 2's own `in_state` factor (06_finalize_data.Rmd
 # L89, col_state == hs_state) rather than recomputing from scratch -- NOT a

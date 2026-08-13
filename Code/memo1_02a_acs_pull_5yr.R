@@ -1,5 +1,5 @@
 ## =============================================================================
-## acs_pull.R
+## memo1_02a_acs_pull_5yr.R
 ##
 ## ACS 5-year PUMS pull + population-cell totals for Memo 1's reweighting of
 ## Column 2 and its ACS-benchmark comparison column. Extracted from
@@ -8,14 +8,14 @@
 ## original, JOLE-referee-response context it was written for) into a
 ## standalone script that has zero dependency on Column 1/2 or demographics,
 ## so it's cached once rather than re-hit on every iteration of
-## Code/reweight_column2.R's merge/raking logic.
+## Code/memo1_04_reweight_column2.R's merge/raking logic.
 ##
 ## This is a REAL, first-time execution as of 2026-08-10 -- no
 ## pums_cells.rds/pums_acs5_filt.rds exist on disk yet, so running this
 ## script means genuine live Census API calls (51 states x 80 replicate
 ## weights each via get_pums()), not a cache hit. Expect real runtime.
 ##
-## Run this before Code/reweight_column2.R. No source() between files, per
+## Run this before Code/memo1_04_reweight_column2.R. No source() between files, per
 ## this repo's convention -- re-run this script only if PUMS_YEAR changes.
 ## =============================================================================
 
@@ -38,7 +38,7 @@ data_dir  <- file.path(directory, "Data")
 tidycensus::census_api_key(Sys.getenv("CENSUS_KEY"))
 
 # ACS 5-year vintage (end year of the 5-year window) -- keep in sync with
-# Code/memo1_covariates.R's pums_year (used there for the LI-side age
+# Code/memo1_01c_covariates.R's pums_year (used there for the LI-side age
 # bucket, since both sides need the same "as-of" year to be comparable).
 # 2022 (2018-2022) is a placeholder; confirm with
 # tidycensus::load_variables(2022, "acs5", cache = TRUE) or by letting
@@ -51,7 +51,7 @@ PUMS_YEAR <- 2022
 # ratio weights (LI/Revelio's professional-network sample has very few
 # near-retirement-age users, so that cell was blowing up to match ACS's
 # much larger real population there). MAX_AGE/AGE_BREAKS matches
-# Code/memo1_covariates.R's exactly (both sides must use identical breaks
+# Code/memo1_01c_covariates.R's exactly (both sides must use identical breaks
 # for the age-bucket raking margin to mean anything) -- the actual under-65
 # filter is applied to pums_filt right after it's loaded, below.
 MAX_AGE <- 65
@@ -68,7 +68,7 @@ RACE_PROB_COLS <- c("white_prob", "black_prob", "api_prob",
                      "native_prob", "multiple_prob", "hispanic_prob")
 
 # Census-Bureau-consistent region labels, copied verbatim from
-# Code/demographics.R L23-40 / Code/memo1_covariates.R -- keeps the ACS
+# Code/demographics.R L23-40 / Code/memo1_01c_covariates.R -- keeps the ACS
 # side's census_region directly comparable to the LI side's hs_region/
 # col_region (both built from the same crosswalk).
 state_region_crosswalk <- data.table(
@@ -132,7 +132,7 @@ for (i in seq_along(state_list)) {
     # 2018-2022 5-year file: "PUMAs are not available ... due to
     # inconsistent PUMA boundary definitions" across the 2020 redistricting
     # -- PUMA20 is the 2020-vintage-consistent variable, matching
-    # Code/memo1_puma_cbsa_crosswalk.R's 2020-vintage tract/PUMA crosswalk)
+    # Code/memo1_03a_puma_cbsa_crosswalk.R's 2020-vintage tract/PUMA crosswalk)
     # is needed to assign each respondent a metro-tier via
     # Data/intermediate/puma_cbsa_tier_crosswalk.rds for the metro-tier-
     # share-over-time chart. MIGPUMA20 (PUMA of residence 1 year ago) and
@@ -252,12 +252,12 @@ cat(sprintf("census_region match rate: %.1f%%\n", 100 * mean(!is.na(pums_filt$ce
 # SCHL: 21 = Bachelor's, 22 = Master's, 23 = Professional degree,
 # 24 = Doctorate (all rows already SCHL > 20 per the BA+ filter above).
 # [FIXED 2026-08-10] integer 0/1, not logical -- matches the 0/1 convention
-# every Revelio-side binary covariate uses (Code/memo1_covariates.R).
+# every Revelio-side binary covariate uses (Code/memo1_01c_covariates.R).
 pums_filt[, grad_degree := as.integer(as.integer(SCHL) >= 22)]
 
 # No ACS PUMS analog exists for transfer status (no question asks whether a
 # respondent transferred between undergraduate institutions) -- deliberately
-# not derived here. Code/reweight_column2.R's final characteristics table
+# not derived here. Code/memo1_04_reweight_column2.R's final characteristics table
 # should leave that cell blank for the ACS column and say so, consistent
 # with this memo's established pattern of documenting asymmetries (e.g.
 # Column 1's missing HS-side geography) rather than papering over them.
@@ -288,7 +288,7 @@ print(head(flag_thin[order(pop)], 10))
 
 ## -----------------------------------------------------------------------
 ## SECTION 5: benchmark covariate summary (new -- for a quick standalone
-## look; Code/reweight_column2.R's final characteristics table recomputes
+## look; Code/memo1_04_reweight_column2.R's final characteristics table recomputes
 ## these shares directly from pums_acs5_filt.rds rather than depending on
 ## this file, so this is a convenience artifact, not a load-bearing one)
 ## -----------------------------------------------------------------------

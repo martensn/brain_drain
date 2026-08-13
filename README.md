@@ -67,3 +67,9 @@ classification, path rewrite log, verification reports) is in `migration/`.
 
 Legacy scripts, not touched by the 2026 reorg -- paths in there are stale.
 Retained for reference only, not guaranteed to run.
+
+## Memo 1 (Revelio-vs-ACS reweighting)
+
+A self-contained sub-pipeline, `memo1_00_`-`memo1_07d_`, documented
+separately in `Code/README_memo1.md`. The methodology write-up is
+`MEMO1_WEIGHTING.md` at repo root.

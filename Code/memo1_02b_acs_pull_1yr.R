@@ -1,19 +1,19 @@
-## =============================================================================
+# memo1_02b_acs_pull_1yr.R
 ## acs_pull_1yr.R
 ##
 ## ACS 1-year PUMS pull across many calendar years, for the redesigned
-## calendar-year migration-rate chart (Code/memo1_migration_profile.R) and
-## metro-tier-share chart (Code/memo1_metro_tiers.R). A sibling to
-## Code/acs_pull.R, NOT a parameterization of it -- acs_pull.R's whole
+## calendar-year migration-rate chart (Code/memo1_05a_migration_profile.R) and
+## metro-tier-share chart (Code/memo1_05b_metro_tiers.R). A sibling to
+## Code/memo1_02a_acs_pull_5yr.R, NOT a parameterization of it -- acs_pull.R's whole
 ## design (one static 5-year vintage, one checkpoint, feeds
-## Code/reweight_column2.R's raking cells) stays untouched. This script
+## Code/memo1_04_reweight_column2.R's raking cells) stays untouched. This script
 ## duplicates (does not source()) acs_pull.R's MIGSP-vs-ST mover-flag logic;
 ## same codebook concept, but 1-year files need real per-year handling (see
 ## below), so it isn't a literal copy-paste.
 ##
 ## Only pulls what these two charts actually consume: MIGSP/ST/SCHL/AGEP/
 ## ESR/PWGTP every year, plus PUMA for 2012-2021 (the metro-tier chart's
-## 2010-PUMA-vintage window -- see Code/memo1_puma_cbsa_crosswalk.R). Race/
+## 2010-PUMA-vintage window -- see Code/memo1_03a_puma_cbsa_crosswalk.R). Race/
 ## sex/region are deliberately NOT pulled here -- neither chart uses them,
 ## and a 2026-08-11 live-data check (not assumed) found RAC2P's own coding
 ## scheme drifts across vintages even within 2019-2023 (68/67/65/64
@@ -71,15 +71,31 @@
 ##      excluded) -- confirmed directly against the raw pull, not assumed.
 ##      Fixed below by requiring migsp_int >= 1, which is harmless for
 ##      vintages where 0 never appears.
+##   7. [ADDED 2026-08-12, Phase B -- migration-behavior plan] MIGPUMA now
+##      pulled alongside PUMA for the same PUMA_YEARS window (Phase B of
+##      D:\Users\martensn\.claude\plans\nope-i-had-something-logical-aurora.md
+##      needs each ACS respondent's migration-PUMA of residence one year
+##      ago, matched via Code/memo1_03b_migpuma_cbsa_crosswalk.R). Smoke-tested
+##      first (RI, 2012/2019/2021), not assumed clean: (a) same padding
+##      drift as every other geography variable here -- unpadded
+##      variable-width in 2012 ("100","3200"), 5-digit zero-padded from
+##      ~2019 on -- fixed with the same sprintf("%05d", as.integer(...))
+##      round-trip already used for PUMA10; (b) a NEW wrinkle not seen on
+##      MIGSP/PUMA/ST/SCHL: some rows carry non-numeric sentinel strings
+##      ("bbbbb", "0000N" observed directly in a live pull) that
+##      as.integer() silently NAs out -- counted and reported explicitly
+##      below, not silently absorbed; (c) non-movers get a real MIGPUMA
+##      value (their own current-area code), not NA -- same convention as
+##      MIGSP, no special-casing needed.
 ##
 ## Checkpointing: one raw file per YEAR (not one monolithic checkpoint) --
 ## this is a ~16x-cost pull relative to acs_pull.R's single vintage (16
 ## years x 51 states), so an interrupted run or a later range extension
 ## must never re-touch already-pulled years. Same per-unit-checkpoint
-## philosophy as Code/memo1_column1_construct.R's per-chunk checkpoints
+## philosophy as Code/memo1_01a_column1_construct.R's per-chunk checkpoints
 ## (which survived a mid-run reboot).
 ##
-## Run before Code/memo1_migration_profile.R and Code/memo1_metro_tiers.R.
+## Run before Code/memo1_05a_migration_profile.R and Code/memo1_05b_metro_tiers.R.
 ## Standalone script, no source() between files.
 ## =============================================================================
 
@@ -117,11 +133,21 @@ log_step <- function(msg) {
 # the same trial-pull verification repeated for those years first.
 YEARS <- c(2008:2019, 2021:2023)
 
-# PUMA requested only for the metro-tier chart's fixed-vintage window (see
-# Code/memo1_puma_cbsa_crosswalk.R's PUMA_VINTAGE=2010 -- ACS 1-year survey
-# years 2012-2021 used 2010-vintage PUMA boundaries). Requesting it outside
-# this window is pointless (no crosswalk vintage covers it).
-PUMA_YEARS <- 2012:2021
+# PUMA requested only for windows where this repo has a matching crosswalk
+# vintage (see Code/memo1_03a_puma_cbsa_crosswalk.R). 2010-vintage PUMA
+# boundaries covered ACS 1-year survey years 2012-2021; 2020-vintage took
+# over starting with the 2022 file. [EXTENDED 2026-08-13, per Nicholas's
+# request to widen the flow-calibration window] PUMA_YEARS_2020 added --
+# confirmed live that the 1-year file's raw PUMA/MIGPUMA variable names
+# don't change with vintage (still plain "PUMA"/"MIGPUMA", not "PUMA20"),
+# only their MEANING does -- so the two windows are derived into
+# separately-named columns below (PUMA10/MIGPUMA10 vs PUMA20/MIGPUMA20)
+# rather than one column silently holding two different vintages of code.
+# Pre-2012 (2000-vintage) deliberately excluded -- see memo1_puma_cbsa_
+# crosswalk.R's header for why.
+PUMA_YEARS_2010 <- 2012:2021
+PUMA_YEARS_2020 <- 2022:2023
+PUMA_YEARS <- c(PUMA_YEARS_2010, PUMA_YEARS_2020)
 
 MAX_AGE <- 65  # matches acs_pull.R's under-65 trim, for a comparable population
 
@@ -168,9 +194,9 @@ for (y in YEARS) {
   # 2023 metadata, not assumed).
   state_var <- if (y >= 2023) "STATE" else "ST"
   include_puma <- y %in% PUMA_YEARS
-  variables <- c(state_var, "MIGSP", "SCHL", "AGEP", "ESR", if (include_puma) "PUMA")
+  variables <- c(state_var, "MIGSP", "SCHL", "AGEP", "ESR", if (include_puma) c("PUMA", "MIGPUMA"))
 
-  log_step(sprintf("Pulling ACS 1-year PUMS for %d (%d states, PUMA %s)",
+  log_step(sprintf("Pulling ACS 1-year PUMS for %d (%d states, PUMA/MIGPUMA %s)",
                     y, length(state_list), if (include_puma) "included" else "not requested"))
 
   year_parts <- vector("list", length(state_list))
@@ -221,7 +247,7 @@ pums_1yr <- rbindlist(lapply(raw_files, readRDS), use.names = TRUE, fill = TRUE)
 # zero-padded across vintages (2012-2016 return single-digit FIPS states
 # as "1" not "01") -- pad to 2 digits via the same integer-round-trip
 # pattern used for PUMA10, so downstream string joins (state_puma in
-# Code/memo1_metro_tiers.R) are safe regardless of which year's raw
+# Code/memo1_05b_metro_tiers.R) are safe regardless of which year's raw
 # formatting produced a given row. Harmless for already-padded years.
 pums_1yr[, ST := sprintf("%02d", as.integer(ST))]
 
@@ -243,18 +269,80 @@ pums_1yr[, migsp_int := as.integer(MIGSP)]
 pums_1yr[, st_int := as.integer(ST)]
 pums_1yr[, moved_out_of_state := fifelse(!is.na(migsp_int) & migsp_int >= 1L & migsp_int <= 56L & migsp_int != st_int, 1L, 0L)]
 
-# PUMA -> zero-padded 5-digit state_puma join key (2012-2021 rows only;
-# other years have PUMA == NA by construction, since it was never
-# requested for them). [FIXED 2026-08-11] explicit integer round-trip
+# PUMA/MIGPUMA -> zero-padded 5-digit join keys, split into vintage-scoped
+# columns (PUMA10/MIGPUMA10 for the 2010-vintage window, PUMA20/MIGPUMA20
+# for the 2020-vintage window) rather than one column silently holding two
+# different vintages of code under the same name -- the raw API variable
+# name doesn't change with vintage (confirmed live: 2022/2023 still return
+# plain "PUMA"/"MIGPUMA", not "PUMA20"), only its meaning does, so this
+# split has to happen here, not upstream. [EXTENDED 2026-08-13] Same
+# derivation logic runs twice (once per vintage window) via a small
+# closure, rather than duplicating the block -- lower risk of the two
+# copies drifting apart. [FIXED 2026-08-11] explicit integer round-trip
 # handles the padding inconsistency documented above (header note #2)
 # regardless of which raw format a given year's API response used.
-if ("PUMA" %in% names(pums_1yr)) {
-  pums_1yr[!is.na(PUMA), PUMA10 := sprintf("%05d", as.integer(PUMA))]
+derive_puma_migpuma <- function(dt, years, puma_col, migpuma_col) {
+  rows <- dt$survey_year %in% years
+  if (!any(rows)) return(invisible(NULL))
+  if ("PUMA" %in% names(dt)) {
+    idx <- rows & !is.na(dt$PUMA)
+    dt[idx, (puma_col) := sprintf("%05d", as.integer(PUMA))]
+  }
+  # [ADDED 2026-08-12, Phase B, see header note #7] MIGPUMA also carries
+  # non-numeric sentinel strings ("bbbbb", "0000N", confirmed via live
+  # smoke test across multiple vintages) that as.integer() silently turns
+  # into NA -- counted and reported explicitly rather than letting them
+  # vanish into an unexplained match-rate gap downstream.
+  if ("MIGPUMA" %in% names(dt)) {
+    idx_present <- rows & !is.na(dt$MIGPUMA)
+    n_migpuma_present <- sum(idx_present)
+    if (n_migpuma_present > 0) {
+      migpuma_int <- suppressWarnings(as.integer(dt$MIGPUMA[idx_present]))
+      n_migpuma_nonnumeric <- sum(is.na(migpuma_int))
+      cat(sprintf("MIGPUMA (%d-%d window): %d rows had a value; %d of those (%.2f%%) were non-numeric sentinels, dropped to NA\n",
+                  min(years), max(years), n_migpuma_present, n_migpuma_nonnumeric,
+                  100 * n_migpuma_nonnumeric / n_migpuma_present))
+      # sprintf("%05d", NA_integer_) returns the literal string "NA" (not
+      # an error) for the non-numeric-sentinel rows already counted above
+      # -- explicitly null those back out to a real NA rather than leaving
+      # "NA" as a silently-wrong string value.
+      dt[idx_present, (migpuma_col) := suppressWarnings(sprintf("%05d", as.integer(MIGPUMA)))]
+      dt[rows & get(migpuma_col) == "NA", (migpuma_col) := NA_character_]
+      dt[rows & grepl("[^0-9]", get(migpuma_col)), (migpuma_col) := NA_character_]
+      # [FOUND 2026-08-12, same bug class as header note #5's MIGSP=0 fix]
+      # Pre-blank-convention vintages (confirmed: 2012, presumably
+      # 2008-2016) encode "did not move" as MIGPUMA=0 ("00000" once
+      # zero-padded), NOT a real MIGPUMA area code -- confirmed directly:
+      # every 2012 row with MIGPUMA10=="00000" is ALSO a non-mover by the
+      # existing MIGSP-based test (0 of 447,616 rows disagree), and
+      # "00000" isn't a real code in the PUMA->MIGPUMA composition file.
+      # Left un-zeroed, this silently inflated the apparent "moved to a
+      # different MIGPUMA" rate to ~93% of ALL respondents in a Phase B
+      # flow-margin test -- caught by a sanity check on the resulting
+      # migration rate (12-13% vs. an expected ~4%), not assumed clean.
+      n_migpuma_zero <- sum(rows & dt[[migpuma_col]] == "00000", na.rm = TRUE)
+      cat(sprintf("  '%s' '00000' non-mover sentinel: %d rows reset to NA (same fix class as MIGSP==0)\n", migpuma_col, n_migpuma_zero))
+      dt[rows & get(migpuma_col) == "00000", (migpuma_col) := NA_character_]
+    }
+  }
+  invisible(NULL)
 }
+derive_puma_migpuma(pums_1yr, PUMA_YEARS_2010, "PUMA10", "MIGPUMA10")
+derive_puma_migpuma(pums_1yr, PUMA_YEARS_2020, "PUMA20", "MIGPUMA20")
 
 cat("Per-year sanity check (mover %, n) -- a codebook drift in one specific\n")
 cat("year should show up as a visible anomaly here, not be averaged away:\n")
 print(pums_1yr[, .(n = .N, mover_pct = round(100 * mean(moved_out_of_state), 2)), by = survey_year][order(survey_year)])
+
+if ("MIGPUMA10" %in% names(pums_1yr)) {
+  cat("\nPer-year MIGPUMA10 coverage (2010-vintage window only) -- a vintage-specific\n")
+  cat("sentinel-value spike would show up as a visible dip here, not be averaged away:\n")
+  print(pums_1yr[survey_year %in% PUMA_YEARS_2010, .(n = .N, migpuma10_pct = round(100 * mean(!is.na(MIGPUMA10)), 2)), by = survey_year][order(survey_year)])
+}
+if ("MIGPUMA20" %in% names(pums_1yr)) {
+  cat("\nPer-year MIGPUMA20 coverage (2020-vintage window only):\n")
+  print(pums_1yr[survey_year %in% PUMA_YEARS_2020, .(n = .N, migpuma20_pct = round(100 * mean(!is.na(MIGPUMA20)), 2)), by = survey_year][order(survey_year)])
+}
 
 stopifnot(!2020 %in% unique(pums_1yr$survey_year))
 

@@ -1,4 +1,4 @@
-# reweight_column2.R
+# memo1_04_reweight_column2.R
 #
 # Builds the Column 2 reweight (Data/intermediate/column2_covariates.rds),
 # then assembles the memo's four-column characteristics table: Column 1
@@ -56,8 +56,8 @@
 # is rebuilt here with join semantics that are unambiguous by
 # construction. That design choice is unaffected by this rewrite.
 #
-# Run after Code/acs_pull.R (pums_cells.rds/pums_acs5_filt.rds) and
-# Code/memo1_covariates.R (column1_covariates.rds/column2_covariates.rds)
+# Run after Code/memo1_02a_acs_pull_5yr.R (pums_cells.rds/pums_acs5_filt.rds) and
+# Code/memo1_01c_covariates.R (column1_covariates.rds/column2_covariates.rds)
 # have both completed. Standalone script, no source() between files.
 
 library(data.table)
@@ -106,7 +106,7 @@ pums_filt[, grad_degree := as.integer(grad_degree)]
 stopifnot(all(c("origin_state", "moved_out_of_state", "PWGTP") %in% names(pums_filt)))
 
 # [FIXED 2026-08-10] column2_covariates.rds on disk still predates
-# Code/memo1_covariates.R's transfer/has_associate coercion fix (that fix
+# Code/memo1_01c_covariates.R's transfer/has_associate coercion fix (that fix
 # only takes effect on a future full rebuild, since this checkpoint already
 # exists) -- coerce here too so THIS run's table is consistent without
 # forcing an ~hour-long memo1_covariates.R rerun. Safe to leave in even
@@ -166,7 +166,7 @@ li_long[, w_base := w_unweighted * race_frac]
 # [NEW 2026-08-11] recent_mover -- moved_last_year_state is NA for ~5% of
 # Column 2 users (their last two observed panel years aren't adjacent, so
 # no 1-year-equivalent transition is observable -- see
-# Code/memo1_covariates.R's last_year_state_move()). rake()'s
+# Code/memo1_01c_covariates.R's last_year_state_move()). rake()'s
 # sample.margins "must not contain missing values" (confirmed via the
 # package's own help page before writing this), and the missingness here
 # isn't obviously random with respect to mobility (a gap in someone's
@@ -203,8 +203,8 @@ setnames(margin_demo, "pop", "Freq")
 # match, which then cascaded (any stratum containing even one NA-weight
 # row sums to NA) to make margin 2 nearly 100% NA. The most likely cause
 # is a factor-level/representation mismatch between li_long's age_bucket
-# (built by Code/memo1_covariates.R's cut()) and margin_demo's (built by
-# Code/acs_pull.R's separate cut() call) -- same underlying bug CLASS
+# (built by Code/memo1_01c_covariates.R's cut()) and margin_demo's (built by
+# Code/memo1_02a_acs_pull_5yr.R's separate cut() call) -- same underlying bug CLASS
 # already hit repeatedly this session (RAC2P digit-width, MIGSP padding,
 # ST padding: two representations of "the same" value that don't compare
 # equal). Rather than chase the exact mechanism, force every margin key
@@ -665,7 +665,7 @@ cat("  - `migrated_past_year`: ACS's version is a literal fixed 1-year retrospec
 cat("    Revelio's is each person's own most-recent-observed-year-pair change, which could span more\n")
 cat("    or less than a year depending on gaps in their position history -- structurally comparable,\n")
 cat("    not the identical measure. Check moved_last_year_state's coverage rate (printed above by\n")
-cat("    Code/memo1_covariates.R) before leaning on this row -- non-adjacent last-observed pairs are NA.\n")
+cat("    Code/memo1_01c_covariates.R) before leaning on this row -- non-adjacent last-observed pairs are NA.\n")
 cat("  - `yrs_away_col_mean_if_left` is a headcount of mismatch-years within the first 10 years\n")
 cat("    post-grad (deliberately NOT this repo's existing yr_return_col_cbsa, which finds the\n")
 cat("    first-ever match year and conflates day-one non-movers with genuine returners -- see\n")

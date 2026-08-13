@@ -1,4 +1,4 @@
-# memo1_covariates.R
+# memo1_01c_covariates.R
 #
 # Assembles the covariate-complete versions of Column 1 and Column 2 for
 # Memo 1's comparison table: race/sex (fractional probabilities), age
@@ -48,7 +48,7 @@ log_step <- function(msg) {
 # Code/demographics.R L23-52 -- NOT base R's state.region, which uses
 # different category labels (e.g. "North Central" instead of "Midwest") and
 # would silently fail to line up with the census_region derived from ACS's
-# own state codes in Code/acs_pull.R.
+# own state codes in Code/memo1_02a_acs_pull_5yr.R.
 state_region_crosswalk <- data.table(
   state_abbr = c(
     "CT", "ME", "MA", "NH", "RI", "VT",
@@ -241,16 +241,16 @@ setnames(column1_covariates, "census_region", "col_region")
 cat(sprintf("col_region match rate on Column 1: %.1f%%\n",
             100 * mean(!is.na(column1_covariates$col_region))))
 
-# Age bucket, matching Code/acs_pull.R's PUMS_YEAR-as-observation-year
+# Age bucket, matching Code/memo1_02a_acs_pull_5yr.R's PUMS_YEAR-as-observation-year
 # convention (see that script's Section 0 for the same caveat: this is an
 # approximation, not a verified snapshot date). [CHANGED 2026-08-10]
-# max_age=65 matches Code/acs_pull.R's MAX_AGE trim exactly (per-column
+# max_age=65 matches Code/memo1_02a_acs_pull_5yr.R's MAX_AGE trim exactly (per-column
 # note there for the rationale) -- under-65 rows are dropped entirely, not
 # just left with an NA age_bucket, so every row of this table reflects the
 # trimmed population, not just the raking margin.
 age_breaks <- seq(20, 65, by = 5)
 max_age <- 65
-pums_year <- 2022  # keep in sync with Code/acs_pull.R's PUMS_YEAR
+pums_year <- 2022  # keep in sync with Code/memo1_02a_acs_pull_5yr.R's PUMS_YEAR
 column1_covariates[, age_approx := pums_year - as.integer(birth)]
 n_before_age_trim <- nrow(column1_covariates)
 column1_covariates <- column1_covariates[age_approx >= 20 & age_approx < max_age]
@@ -390,11 +390,11 @@ cat(sprintf("hs_region / col_region match rate on Column 2: %.1f%% / %.1f%%\n",
             100 * mean(!is.na(column2_covariates$col_region))))
 
 # [CHANGED 2026-08-10] see Column 1's identical note above -- max_age=65
-# matches Code/acs_pull.R's MAX_AGE trim; rows dropped entirely, not just
+# matches Code/memo1_02a_acs_pull_5yr.R's MAX_AGE trim; rows dropped entirely, not just
 # NA-bucketed.
 age_breaks <- seq(20, 65, by = 5)
 max_age <- 65
-pums_year <- 2022  # keep in sync with Code/acs_pull.R's PUMS_YEAR
+pums_year <- 2022  # keep in sync with Code/memo1_02a_acs_pull_5yr.R's PUMS_YEAR
 column2_covariates[, age_approx := pums_year - as.integer(birth)]
 n_before_age_trim <- nrow(column2_covariates)
 column2_covariates <- column2_covariates[age_approx >= 20 & age_approx < max_age]

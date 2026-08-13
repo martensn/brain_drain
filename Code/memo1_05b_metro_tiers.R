@@ -1,4 +1,4 @@
-# memo1_metro_tiers.R
+# memo1_05b_metro_tiers.R
 #
 # [REDESIGNED 2026-08-11 at Nicholas's request] x-axis changed from years-
 # since-graduation (lifecycle) to CALENDAR YEAR (secular trend) -- has the
@@ -10,16 +10,16 @@
 # population snapshot -- unchanged, see Section 0).
 #
 # Revelio: same calendar_year = col_end + t re-bucketing as
-# Code/memo1_migration_profile.R (see that script's header for the full
+# Code/memo1_05a_migration_profile.R (see that script's header for the full
 # rationale and the col_end-type gotcha). Revelio's line is NOT bounded to
 # any particular window -- its CBSA assignment comes from this repo's own
 # unified_cbsa.csv, a single fixed scheme, not PUMA-vintage-dependent.
 #
 # ACS: previously a synthetic-cohort age proxy against the pooled 5-year
-# file's ~22%-valid PUMA20 subset. Now uses Code/acs_pull_1yr.R's ACS
+# file's ~22%-valid PUMA20 subset. Now uses Code/memo1_02b_acs_pull_1yr.R's ACS
 # 1-year PUMS, restricted to survey years 2012-2021 -- the window where
 # ACS 1-year files used 2010-vintage PUMA boundaries -- joined against
-# Code/memo1_puma_cbsa_crosswalk.R's PUMA_VINTAGE=2010 crosswalk
+# Code/memo1_03a_puma_cbsa_crosswalk.R's PUMA_VINTAGE=2010 crosswalk
 # (puma_cbsa_tier_crosswalk_2010.rds). This is a REAL, CONFIRMED asymmetry,
 # not a bug: the ACS benchmark line in THIS chart only covers 2012-2021,
 # while Revelio's lines cover its full calendar range -- worth a sentence
@@ -28,9 +28,9 @@
 # problem), so the match rate onto the crosswalk should be close to 100%,
 # not ~22% -- checked explicitly below.
 #
-# Run after: Code/acs_pull_1yr.R (pums_1yr_filt.rds, PUMA10 populated for
-# 2012-2021), Code/memo1_puma_cbsa_crosswalk.R (PUMA_VINTAGE=2010),
-# Code/memo1_covariates.R (column1/2), Code/reweight_column2.R
+# Run after: Code/memo1_02b_acs_pull_1yr.R (pums_1yr_filt.rds, PUMA10 populated for
+# 2012-2021), Code/memo1_03a_puma_cbsa_crosswalk.R (PUMA_VINTAGE=2010),
+# Code/memo1_01c_covariates.R (column1/2), Code/memo1_04_reweight_column2.R
 # (column2_reweighted.rds).
 
 library(data.table)
@@ -48,12 +48,12 @@ log_step <- function(msg) {
 }
 
 T_MAX <- 20
-ACS_PUMA_WINDOW <- 2012:2021  # matches Code/memo1_puma_cbsa_crosswalk.R's PUMA_VINTAGE=2010 coverage
+ACS_PUMA_WINDOW <- 2012:2021  # matches Code/memo1_03a_puma_cbsa_crosswalk.R's PUMA_VINTAGE=2010 coverage
 
 ## -----------------------------------------------------------------------
 ## SECTION 0: CBSA code -> tier (unchanged from the years-since-grad
 ## version -- a single fixed 2022 population snapshot, independent of
-## PUMA_VINTAGE; see Code/memo1_puma_cbsa_crosswalk.R's header note on why
+## PUMA_VINTAGE; see Code/memo1_03a_puma_cbsa_crosswalk.R's header note on why
 ## tier THRESHOLDS and PUMA geography-matching vary independently)
 ## -----------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ code_to_tier <- function(codes) {
 ## SECTION 1: Revelio -- share by tier, by calendar year
 ## -----------------------------------------------------------------------
 ## Same t-slice-then-collapse-immediately pattern as
-## Code/memo1_migration_profile.R's revelio_rate_by_calendar_year() -- never
+## Code/memo1_05a_migration_profile.R's revelio_rate_by_calendar_year() -- never
 ## materializes a full person x t long table.
 
 resolve_col_end <- function(dt, is_factor_like) {

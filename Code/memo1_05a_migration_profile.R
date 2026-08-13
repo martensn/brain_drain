@@ -1,4 +1,4 @@
-# memo1_migration_profile.R
+# memo1_05a_migration_profile.R
 #
 # [REDESIGNED 2026-08-11 at Nicholas's request] x-axis changed from years-
 # since-graduation (lifecycle) to CALENDAR YEAR (secular trend) -- the
@@ -6,7 +6,7 @@
 # graduate's career" but "has migration probability itself changed over
 # calendar time." Two comparisons, same as before: (1) this script's
 # year-over-year interstate migration rate, now by calendar year, and
-# (2) metro-tier share by calendar year (Code/memo1_metro_tiers.R).
+# (2) metro-tier share by calendar year (Code/memo1_05b_metro_tiers.R).
 #
 # Revelio: cbsa_state_0..50 is indexed by years-since-grad (t); a given t
 # slice's observations occurred in calendar_year = col_end + t (confirmed
@@ -18,7 +18,7 @@
 #
 # ACS: the old age-22 synthetic-cohort proxy against the pooled 5-year file
 # is replaced entirely by a direct per-calendar-year measurement from
-# Code/acs_pull_1yr.R's ACS 1-year PUMS pull (one point per year, no age
+# Code/memo1_02b_acs_pull_1yr.R's ACS 1-year PUMS pull (one point per year, no age
 # profile needed -- MIGSP-vs-ST already IS a 1-year mover flag). No age
 # filtering on the ACS side: this line is now "annual interstate-mover rate
 # among employed BA+ under-65 adults," matching Revelio's side pooling
@@ -26,8 +26,8 @@
 # trend measures of the same underlying population concept, not a lifecycle
 # profile matched to a synthetic cohort.
 #
-# Run after Code/reweight_column2.R (column2_reweighted.rds, w_full_joint),
-# Code/memo1_covariates.R (column1_covariates.rds), and Code/acs_pull_1yr.R
+# Run after Code/memo1_04_reweight_column2.R (column2_reweighted.rds, w_full_joint),
+# Code/memo1_01c_covariates.R (column1_covariates.rds), and Code/memo1_02b_acs_pull_1yr.R
 # (pums_1yr_filt.rds). Standalone script, no source() between files.
 
 library(data.table)

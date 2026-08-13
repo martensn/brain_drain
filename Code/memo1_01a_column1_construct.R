@@ -1,4 +1,4 @@
-# memo1_column1_construct.R
+# memo1_01a_column1_construct.R
 #
 # Builds "Column 1" for Memo 1 (see D:\Users\martensn\.claude\plans\
 # velvet-churning-galaxy.md, Step 1, and the execution plan at

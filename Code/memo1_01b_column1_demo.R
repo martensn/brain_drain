@@ -1,4 +1,4 @@
-# memo1_column1_demo.R
+# memo1_01b_column1_demo.R
 #
 # Column 1 analogue of Code/demographics.R's `both_demo.rds` build (L66-87):
 # demographic (race/sex) probabilities for Column 1's population

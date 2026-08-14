@@ -357,20 +357,20 @@ to average away.
 ## 8. Alternative specifications
 
 *(Nicholas: your section — a catalog of what else was tried and why it
-was set aside, backed by runnable code in `Code/memo1_alternative_specs/`.
-Rough inventory, for reference while writing:)*
+was set aside. The data below is everything that's retrievable without
+re-running anything; two rows genuinely only exist as console output from
+a one-off test script, noted explicitly. Full detail behind every number
+is in `HANDOFF.md`'s 2026-08-11/12 dated entries.)*
 
-- Demographic reweighting alone, no mobility margin at all
-- A recent-mover margin (state &times; 1-year-mover) with no metro-tier
-  calibration
-- An IRS SOI-based destination-tier margin, in place of ACS
-  (`irs_soi_desttier_margin.R`)
-- Unconditional (non-origin-crossed) tier-share calibration by year
-  (`phase_a_year_calibration_test.R`) — matches ACS's tier distribution
-  by construction, not a real test, but a useful diagnostic step
-- The flow calibration under a 5-tier (size-only) and 3-tier
-  (consolidated size-only) classification, without region
-- Extending flow calibration pre-2012 (investigated, not built — §5.3)
+![Alternative specifications summary](Data/results/memo1_alt_specs_summary.png)
+
+| # | Alternative | Result | Where the number lives |
+|---|---|---|---|
+| 1 | IRS SOI destination-tier margin, in place of ACS (`memo1_alternative_specs/irs_soi_desttier_margin.R` + `reweight_column2_desttier_test.R`) | Worse than the kept demographics+mover margin: metro-tier gap (2021 only) 0.0234 &rarr; 0.0263. Likely cause: IRS SOI's flow file covers all tax filers, not just college graduates, so its destination-tier distribution is more dispersed than ACS's college-grad-specific one. | **Console output only** — transcribed from `HANDOFF.md`; not saved to disk (the script writes the constructed margin, `Data/intermediate/irs_soi_desttier_margin_2021.rds`, but not the comparison stat). |
+| 2 | Demographic-only Stage 1 (no recent-mover margin) vs. demographics+mover | Land within noise of each other on both migration-rate and metro-tier checks — the mover margin's marginal contribution before Stage 2 existed was never large. | Qualitative finding only, `HANDOFF.md` 2026-08-11. No saved comparison table — Stage 1's mover margin was folded into production before this was checked precisely. |
+| 3 | Unconditional (non-origin-crossed) tier-share calibration by year, i.e. Phase A alone (`phase_a_year_calibration_test.R`) | Matches ACS's tier distribution by construction (~0 gap) — not a real test of anything except that the mechanism works. Its migration-rate side effect is what's actually informative: see row 4. | Superseded by the production `memo1_06b_scheme_comparison.R` run — use that table, not this script's own printed numbers (an early, since-fixed version of the pipeline). |
+| 4 | Metro-tier classification granularity: 5-tier vs. 3-tier (both size-only) vs. 3-tier&times;region (kept) | Full-sample migration-rate gap: only the region-crossed scheme's Phase B beats its own static baseline (1.21% &rarr; 0.83%, ~31% reduction); 5-tier is null (1.21% &rarr; 1.21%) and 3-tier is a smaller improvement (1.21% &rarr; 1.09%). Tier-share gap improves monotonically with granularity regardless (5-tier 2.21%&rarr;0.57% &middot; 3-tier 3.68%&rarr;0.12% &middot; region 0.99%&rarr;0.04%). This is the result that decided the kept scheme. | **Saved**: `Data/results/memo1_scheme_gap_summary.csv` (full sample) and the `_born_1980s`/`_born_1990s` suffixed versions (§6.2), all written by `memo1_06b_cohort_scheme_comparison.R`'s equivalents. Genuinely easy to reload — no rerun needed. |
+| 5 | Extending flow calibration to pre-2012 (2000-vintage PUMA boundaries) | Investigated, not built: no public 2000-vintage tract-to-PUMA relationship file exists; the closest substitute uses an incompatible hierarchical format. | §5.3 above and `HANDOFF.md`'s 2026-08-13 entry. Feasibility finding only, no numeric result to retrieve. |
 
 ## Appendix: data provenance
 

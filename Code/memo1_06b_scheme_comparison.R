@@ -9,11 +9,26 @@
 # memo1_migration_profile.R output (which stay on the "rank5" scheme, the
 # one the published chart/memo currently use).
 #
-# Requires the scheme's crosswalks already built:
-#   Data/intermediate/puma_cbsa_tier_crosswalk_2010_<scheme>.rds
-#   Data/intermediate/migpuma_cbsa_tier_crosswalk_2010_<scheme>.rds
+# Requires the scheme's crosswalks already built, BOTH PUMA vintages:
+#   Data/intermediate/puma_cbsa_tier_crosswalk_2010_<scheme>.rds / _2020_<scheme>.rds
+#   Data/intermediate/migpuma_cbsa_tier_crosswalk_2010_<scheme>.rds / _2020_<scheme>.rds
 # (Code/memo1_03a_puma_cbsa_crosswalk.R / memo1_migpuma_cbsa_crosswalk.R,
-# both scheme-parameterized as of 2026-08-12.)
+# both scheme- and vintage-parameterized.)
+#
+# [EXTENDED 2026-08-21, per Nicholas's request] Window widened from
+# 2012-2021 to 2012-2023 (2020 excluded), matching the extension already
+# applied to the two birth-cohort cuts on 2026-08-13
+# (memo1_07c_cohort_scheme_comparison.R) -- this script was the one place
+# that extension never reached, flagged explicitly in MEMO1_WEIGHTING.md
+# SS6.4 until now. Same vintage-aware approach as memo1_07c: 2012-2021 uses
+# 2010-vintage PUMA/MIGPUMA (PUMA10/MIGPUMA10), 2022-2023 uses 2020-vintage
+# (PUMA20/MIGPUMA20) -- these can't be mixed within one vintage, see
+# memo1_02b_acs_pull_1yr.R / memo1_03a/03b's headers. The REVELIO side
+# needs no vintage handling at all (fixed-2022 CBSA ranking, no PUMA
+# dependency) -- confirmed by inspection, not changed here.
+# build_acs_flow_data() is copied near-verbatim from memo1_07c (same
+# already-verified logic, not re-derived) so it can run once per vintage
+# window and get combined, rather than duplicating the block.
 
 library(data.table)
 library(dotenv)
@@ -28,37 +43,78 @@ log_step <- function(msg) {
   flush(stdout())
 }
 
-CALIB_YEARS <- setdiff(2012:2021, 2020)  # 2020 excluded everywhere in this project (COVID-experimental)
+VINTAGE_WINDOWS <- list(`2010` = setdiff(2012:2021, 2020), `2020` = 2022:2023)  # 2020 excluded everywhere in this project (COVID-experimental)
+CALIB_YEARS <- unlist(VINTAGE_WINDOWS, use.names = FALSE)
 T_MAX <- 20
 RATIO_CAP_LO <- 0.05
 RATIO_CAP_HI <- 20
+
+# ---- ACS-side flow data for ONE PUMA vintage window -- copied from
+# memo1_07c_cohort_scheme_comparison.R (see that file for the original
+# header note on why this needs to be vintage-parameterized). Returns
+# list(dest_long, flow) ready to rbind across vintage windows.
+build_acs_flow_data <- function(pums_1yr, years, puma_col, migpuma_col, puma_tier, migpuma_tier) {
+  acs_window <- pums_1yr[survey_year %in% years & !is.na(get(puma_col))]
+  acs_window[, state_puma := paste0(ST, get(puma_col))]
+  dest_long <- merge(
+    acs_window[, .(row_id, survey_year, state_puma, PWGTP)],
+    puma_tier[, .(state_puma, dest_tier = metro_tier, dest_share = share)],
+    by = "state_puma", all.x = TRUE, allow.cartesian = TRUE
+  )
+
+  acs_window[, migsp_int := suppressWarnings(as.integer(MIGSP))]
+  acs_window[, state_migpuma := fifelse(
+    !is.na(get(migpuma_col)) & !is.na(migsp_int) & migsp_int >= 1L & migsp_int <= 56L,
+    paste0(sprintf("%02d", migsp_int), get(migpuma_col)), NA_character_
+  )]
+  dest_long_mig <- merge(dest_long[!is.na(dest_tier)], acs_window[, .(row_id, survey_year, state_migpuma)],
+                          by = c("row_id", "survey_year"))
+  movers_full <- dest_long_mig[!is.na(state_migpuma)]
+  origin_movers <- merge(
+    movers_full[, .(row_id, calendar_year = survey_year, state_migpuma, dest_tier, dest_share, PWGTP)],
+    migpuma_tier[, .(state_migpuma, origin_tier = metro_tier, origin_share = share)],
+    by = "state_migpuma", all.x = TRUE, allow.cartesian = TRUE
+  )
+  origin_movers <- origin_movers[!is.na(origin_tier)]
+  nm <- dest_long_mig[is.na(state_migpuma)]
+  nm[, `:=`(origin_tier = dest_tier, origin_share = dest_share, calendar_year = survey_year)]
+  flow <- rbindlist(list(
+    origin_movers[, .(calendar_year, origin_tier, dest_tier, w = PWGTP * dest_share * origin_share)],
+    nm[, .(calendar_year, origin_tier, dest_tier, w = PWGTP * dest_share * origin_share)]
+  ))
+  list(dest_long = dest_long[, .(calendar_year = survey_year, tier = dest_tier, w = PWGTP * dest_share)], flow = flow)
+}
 
 run_scheme <- function(scheme_name) {
   cat(sprintf("\n\n========== SCHEME: %s ==========\n", scheme_name))
   cat(sprintf("%s\n", METRO_TIER_SCHEMES[[scheme_name]]$label))
 
-  puma_tier_path <- file.path(data_dir, sprintf("intermediate/puma_cbsa_tier_crosswalk_2010_%s.rds", scheme_name))
-  migpuma_tier_path <- file.path(data_dir, sprintf("intermediate/migpuma_cbsa_tier_crosswalk_2010_%s.rds", scheme_name))
-  stopifnot(file.exists(puma_tier_path), file.exists(migpuma_tier_path))
-  puma_tier <- readRDS(puma_tier_path); setDT(puma_tier)
-  migpuma_tier <- readRDS(migpuma_tier_path); setDT(migpuma_tier)
+  puma_tier_2010 <- readRDS(file.path(data_dir, sprintf("intermediate/puma_cbsa_tier_crosswalk_2010_%s.rds", scheme_name))); setDT(puma_tier_2010)
+  migpuma_tier_2010 <- readRDS(file.path(data_dir, sprintf("intermediate/migpuma_cbsa_tier_crosswalk_2010_%s.rds", scheme_name))); setDT(migpuma_tier_2010)
+  puma_tier_2020 <- readRDS(file.path(data_dir, sprintf("intermediate/puma_cbsa_tier_crosswalk_2020_%s.rds", scheme_name))); setDT(puma_tier_2020)
+  migpuma_tier_2020 <- readRDS(file.path(data_dir, sprintf("intermediate/migpuma_cbsa_tier_crosswalk_2020_%s.rds", scheme_name))); setDT(migpuma_tier_2020)
 
   lookup <- build_cbsa_tier_lookup(scheme_name)
   code_to_tier_cbsa <- code_to_tier_for_scheme(lookup)  # for Revelio's real CBSA codes
   region_lookup <- if (lookup$scheme$uses_region) state_fips_to_region() else NULL
 
-  ## ---- ACS-side: tier share by calendar year, from PUMA (destination) ----
+  ## ---- ACS-side: tier share + origin-destination flow, by calendar year,
+  ## combined across both PUMA vintage windows (see build_acs_flow_data()
+  ## and this file's header for why the Revelio side needs no equivalent
+  ## split) ----
   pums_1yr <- readRDS(file.path(data_dir, "intermediate/pums_1yr_filt.rds"))
   setDT(pums_1yr)
-  acs_window <- pums_1yr[survey_year %in% CALIB_YEARS & !is.na(PUMA10)]
-  acs_window[, state_puma := paste0(ST, PUMA10)]
-  dest_long <- merge(
-    acs_window[, .(row_id = .I, survey_year, state_puma, PWGTP)],
-    puma_tier[, .(state_puma, dest_tier = metro_tier, dest_share = share)],
-    by = "state_puma", all.x = TRUE, allow.cartesian = TRUE
-  )
-  acs_tier <- dest_long[!is.na(dest_tier), .(w = sum(PWGTP * dest_share)), by = .(calendar_year = survey_year, tier = dest_tier)]
+  pums_1yr[, row_id := .I]  # global, stable across both vintage-window subsets below
+  acs_2010 <- build_acs_flow_data(pums_1yr, VINTAGE_WINDOWS[["2010"]], "PUMA10", "MIGPUMA10", puma_tier_2010, migpuma_tier_2010)
+  acs_2020 <- build_acs_flow_data(pums_1yr, VINTAGE_WINDOWS[["2020"]], "PUMA20", "MIGPUMA20", puma_tier_2020, migpuma_tier_2020)
+  cat(sprintf("  ACS 2010-vintage window: %d flow rows; 2020-vintage window: %d flow rows\n",
+              nrow(acs_2010$flow), nrow(acs_2020$flow)))
+
+  acs_tier <- rbindlist(list(acs_2010$dest_long, acs_2020$dest_long))[, .(w = sum(w)), by = .(calendar_year, tier)]
   acs_tier[, acs_share := w / sum(w), by = calendar_year]
+
+  acs_margin_b <- rbindlist(list(acs_2010$flow, acs_2020$flow))[, .(w = sum(w)), by = .(calendar_year, origin_tier, dest_tier)]
+  acs_margin_b[, acs_share := w / sum(w), by = calendar_year]
 
   ## ---- Revelio-side: load li, resolve col_end ----
   li <- readRDS(file.path(data_dir, "intermediate/column2_reweighted.rds"))
@@ -177,39 +233,14 @@ run_scheme <- function(scheme_name) {
   cat(sprintf("Static-reweighted migration rate, mean abs gap vs ACS: %.5f\n", mean(abs(gap_mig_static$static_rate - gap_mig_static$acs_rate))))
   cat(sprintf("Phase A migration rate, mean abs gap vs ACS: %.5f\n", mean(abs(gap_mig_a$rate - gap_mig_a$acs_rate))))
 
-  ## ---- Phase B: origin-destination flow calibration. For region-crossed
+  ## ---- Phase B: origin-destination flow calibration. ACS side
+  ## (acs_margin_b) already built above, combined across both vintage
+  ## windows -- only the Revelio side is computed here. For region-crossed
   ## schemes this is a real sparsity test, not just a mechanical extension --
   ## 12x12=144 cells vs. a mover subsample that's already only ~15% of any
   ## year's ACS sample. Run it anyway (Nicholas's explicit call: a sparse
   ## result here is itself informative -- evidence the simpler univariate
   ## region signal is the more reliable one to build on).
-  acs_window[, migsp_int := suppressWarnings(as.integer(MIGSP))]
-  acs_window[, state_migpuma := fifelse(
-    !is.na(MIGPUMA10) & !is.na(migsp_int) & migsp_int >= 1L & migsp_int <= 56L,
-    paste0(sprintf("%02d", migsp_int), MIGPUMA10), NA_character_
-  )]
-  # [FIXED before running -- dest_long was built without state_migpuma at
-  # all (it's added to acs_window only just above), so filtering dest_long
-  # by state_migpuma directly would error with "object not found." Merge
-  # acs_window's state_migpuma onto dest_long first, then split.]
-  dest_long_mig <- merge(dest_long[!is.na(dest_tier)], acs_window[, .(row_id = .I, survey_year, state_migpuma)],
-                          by = c("row_id", "survey_year"))
-  movers_full <- dest_long_mig[!is.na(state_migpuma)]
-  origin_movers <- merge(
-    movers_full[, .(row_id, calendar_year = survey_year, state_migpuma, dest_tier, dest_share, PWGTP)],
-    migpuma_tier[, .(state_migpuma, origin_tier = metro_tier, origin_share = share)],
-    by = "state_migpuma", all.x = TRUE, allow.cartesian = TRUE
-  )
-  origin_movers <- origin_movers[!is.na(origin_tier)]
-  nm <- dest_long_mig[is.na(state_migpuma)]
-  nm[, `:=`(origin_tier = dest_tier, origin_share = dest_share, calendar_year = survey_year)]
-  acs_flows <- rbindlist(list(
-    origin_movers[, .(calendar_year, origin_tier, dest_tier, w = PWGTP * dest_share * origin_share)],
-    nm[, .(calendar_year, origin_tier, dest_tier, w = PWGTP * dest_share * origin_share)]
-  ))
-  acs_margin_b <- acs_flows[, .(w = sum(w)), by = .(calendar_year, origin_tier, dest_tier)]
-  acs_margin_b[, acs_share := w / sum(w), by = calendar_year]
-
   rev_partials <- vector("list", T_MAX)
   for (t in 1:T_MAX) {
     cur_col <- paste0("cbsa_code_", t); prev_col <- paste0("cbsa_code_", t - 1)

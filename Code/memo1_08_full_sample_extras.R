@@ -28,18 +28,21 @@
 # stripping the " (Region)" suffix and re-summing, purely for display; the
 # underlying weight is untouched.
 #
-# [KNOWN, FLAGGED SCOPE LIMIT] The full-sample scheme comparison
-# (memo1_scheme_gap_summary.csv, memo1_migration_rate_by_calendar_year_
-# calibrated.csv) was never extended to 2022-2023 the way the two
-# birth-cohort cuts were on 2026-08-13 -- that extension was scoped to
-# memo1_07c_cohort_scheme_comparison.R only. This script therefore covers
-# 2012-2021 (2020 excluded) for the full sample, matching the CURRENT
-# full-sample production window, not the cohort cuts' longer window. Noted
-# explicitly in the memo text rather than silently extending scope here.
+# [EXTENDED 2026-08-21, per Nicholas's request] The scope limit noted here
+# originally ("full-sample scheme comparison never extended to 2022-2023")
+# is now resolved -- Code/memo1_06b_scheme_comparison.R was made
+# vintage-aware the same day, matching memo1_07c_cohort_scheme_comparison.R's
+# approach exactly (2012-2021 on 2010-vintage PUMA/MIGPUMA, 2022-2023 on
+# 2020-vintage). This script's own Part A (the only part with any ACS-side
+# PUMA dependency -- Part B's FIXED_YEAR=2015 sits entirely inside the
+# 2010-vintage window either way, so its numbers are unaffected by this
+# extension) is updated to match, via the same build_acs_flow_data() helper
+# copied from memo1_06b/07c.
 #
 # Requires: column2_reweighted.rds, column1_covariates.rds,
 # pums_acs5_filt.rds, pums_1yr_filt.rds, pums_1yr_race2015.rds, and the
-# rank3 / rank3_region crosswalks already built (memo1_03a/03b).
+# rank3 / rank3_region crosswalks already built (memo1_03a/03b), BOTH
+# PUMA vintages (2010 and 2020).
 
 library(data.table)
 library(dotenv)
@@ -54,8 +57,42 @@ log_step <- function(msg) {
   flush(stdout())
 }
 
-CALIB_YEARS <- setdiff(2012:2021, 2020)  # matches current full-sample production window (see header note)
+VINTAGE_WINDOWS <- list(`2010` = setdiff(2012:2021, 2020), `2020` = 2022:2023)
+CALIB_YEARS <- unlist(VINTAGE_WINDOWS, use.names = FALSE)
 T_MAX <- 20
+
+# ---- ACS-side flow data for ONE PUMA vintage window -- copied from
+# memo1_06b_scheme_comparison.R / memo1_07c (same already-verified logic).
+build_acs_flow_data <- function(pums_1yr, years, puma_col, migpuma_col, puma_tier, migpuma_tier) {
+  acs_window <- pums_1yr[survey_year %in% years & !is.na(get(puma_col))]
+  acs_window[, state_puma := paste0(ST, get(puma_col))]
+  dest_long <- merge(
+    acs_window[, .(row_id, survey_year, state_puma, PWGTP)],
+    puma_tier[, .(state_puma, dest_tier = metro_tier, dest_share = share)],
+    by = "state_puma", all.x = TRUE, allow.cartesian = TRUE
+  )
+  acs_window[, migsp_int := suppressWarnings(as.integer(MIGSP))]
+  acs_window[, state_migpuma := fifelse(
+    !is.na(get(migpuma_col)) & !is.na(migsp_int) & migsp_int >= 1L & migsp_int <= 56L,
+    paste0(sprintf("%02d", migsp_int), get(migpuma_col)), NA_character_
+  )]
+  dest_long_mig <- merge(dest_long[!is.na(dest_tier)], acs_window[, .(row_id, survey_year, state_migpuma)],
+                          by = c("row_id", "survey_year"))
+  movers_full <- dest_long_mig[!is.na(state_migpuma)]
+  origin_movers <- merge(
+    movers_full[, .(row_id, calendar_year = survey_year, state_migpuma, dest_tier, dest_share, PWGTP)],
+    migpuma_tier[, .(state_migpuma, origin_tier = metro_tier, origin_share = share)],
+    by = "state_migpuma", all.x = TRUE, allow.cartesian = TRUE
+  )
+  origin_movers <- origin_movers[!is.na(origin_tier)]
+  nm <- dest_long_mig[is.na(state_migpuma)]
+  nm[, `:=`(origin_tier = dest_tier, origin_share = dest_share, calendar_year = survey_year)]
+  flow <- rbindlist(list(
+    origin_movers[, .(calendar_year, origin_tier, dest_tier, w = PWGTP * dest_share * origin_share)],
+    nm[, .(calendar_year, origin_tier, dest_tier, w = PWGTP * dest_share * origin_share)]
+  ))
+  list(dest_long = dest_long[, .(calendar_year = survey_year, tier = dest_tier, w = PWGTP * dest_share)], flow = flow)
+}
 FIXED_YEAR <- 2015
 RATIO_CAP_LO <- 0.05
 RATIO_CAP_HI <- 20
@@ -163,48 +200,27 @@ revelio_tier_share <- function(dt, weight_col, col_end_numeric, source_label) {
 tier_col1  <- revelio_tier_share(col1, NULL, col_end_col1, LBL_COL1)
 tier_col2u <- revelio_tier_share(li, "w_unweighted", col_end_col2, LBL_COL2U)
 
-## ---- ACS, under rank3 (size-only), CALIB_YEARS window ----
-puma_tier_rank3 <- readRDS(file.path(data_dir, "intermediate/puma_cbsa_tier_crosswalk_2010_rank3.rds")); setDT(puma_tier_rank3)
-acs_window <- pums_1yr[survey_year %in% CALIB_YEARS & !is.na(PUMA10)]
-acs_window[, state_puma := paste0(ST, PUMA10)]
-acs_long <- merge(acs_window[, .(row_id = .I, survey_year, state_puma, PWGTP)],
-                   puma_tier_rank3[, .(state_puma, tier = metro_tier, share_frac = share)],
-                   by = "state_puma", all.x = TRUE, allow.cartesian = TRUE)
-acs_tier <- acs_long[!is.na(tier), .(w = sum(PWGTP * share_frac)), by = .(calendar_year = survey_year, tier)]
+## ---- ACS, under rank3 (size-only), both PUMA vintage windows ----
+pums_1yr[, row_id := .I]  # global, stable across both vintage-window subsets below
+puma_tier_rank3_2010 <- readRDS(file.path(data_dir, "intermediate/puma_cbsa_tier_crosswalk_2010_rank3.rds")); setDT(puma_tier_rank3_2010)
+puma_tier_rank3_2020 <- readRDS(file.path(data_dir, "intermediate/puma_cbsa_tier_crosswalk_2020_rank3.rds")); setDT(puma_tier_rank3_2020)
+migpuma_tier_rank3_2010 <- readRDS(file.path(data_dir, "intermediate/migpuma_cbsa_tier_crosswalk_2010_rank3.rds")); setDT(migpuma_tier_rank3_2010)
+migpuma_tier_rank3_2020 <- readRDS(file.path(data_dir, "intermediate/migpuma_cbsa_tier_crosswalk_2020_rank3.rds")); setDT(migpuma_tier_rank3_2020)
+rank3_2010 <- build_acs_flow_data(pums_1yr, VINTAGE_WINDOWS[["2010"]], "PUMA10", "MIGPUMA10", puma_tier_rank3_2010, migpuma_tier_rank3_2010)
+rank3_2020 <- build_acs_flow_data(pums_1yr, VINTAGE_WINDOWS[["2020"]], "PUMA20", "MIGPUMA20", puma_tier_rank3_2020, migpuma_tier_rank3_2020)
+acs_tier <- rbindlist(list(rank3_2010$dest_long, rank3_2020$dest_long))[, .(w = sum(w)), by = .(calendar_year, tier)]
 acs_tier[, share := w / sum(w), by = calendar_year]
 tier_acs <- acs_tier[, .(source = LBL_ACS, calendar_year, tier, share)]
 
 ## ---- "Reweighted" line: rank3_region Phase B, collapsed to size-only ----
 log_step("PART A: rank3_region Phase B flow calibration (production scheme)")
-puma_tier_region <- readRDS(file.path(data_dir, "intermediate/puma_cbsa_tier_crosswalk_2010_rank3_region.rds")); setDT(puma_tier_region)
-migpuma_tier_region <- readRDS(file.path(data_dir, "intermediate/migpuma_cbsa_tier_crosswalk_2010_rank3_region.rds")); setDT(migpuma_tier_region)
-
-dest_long_region <- merge(
-  acs_window[, .(row_id = .I, survey_year, state_puma, PWGTP)],
-  puma_tier_region[, .(state_puma, dest_tier = metro_tier, dest_share = share)],
-  by = "state_puma", all.x = TRUE, allow.cartesian = TRUE
-)
-acs_window[, migsp_int := suppressWarnings(as.integer(MIGSP))]
-acs_window[, state_migpuma := fifelse(
-  !is.na(MIGPUMA10) & !is.na(migsp_int) & migsp_int >= 1L & migsp_int <= 56L,
-  paste0(sprintf("%02d", migsp_int), MIGPUMA10), NA_character_
-)]
-dest_long_mig <- merge(dest_long_region[!is.na(dest_tier)], acs_window[, .(row_id = .I, survey_year, state_migpuma)],
-                        by = c("row_id", "survey_year"))
-movers_full <- dest_long_mig[!is.na(state_migpuma)]
-origin_movers <- merge(
-  movers_full[, .(row_id, calendar_year = survey_year, state_migpuma, dest_tier, dest_share, PWGTP)],
-  migpuma_tier_region[, .(state_migpuma, origin_tier = metro_tier, origin_share = share)],
-  by = "state_migpuma", all.x = TRUE, allow.cartesian = TRUE
-)
-origin_movers <- origin_movers[!is.na(origin_tier)]
-nm <- dest_long_mig[is.na(state_migpuma)]
-nm[, `:=`(origin_tier = dest_tier, origin_share = dest_share, calendar_year = survey_year)]
-acs_flows <- rbindlist(list(
-  origin_movers[, .(calendar_year, origin_tier, dest_tier, w = PWGTP * dest_share * origin_share)],
-  nm[, .(calendar_year, origin_tier, dest_tier, w = PWGTP * dest_share * origin_share)]
-))
-acs_margin_b <- acs_flows[, .(w = sum(w)), by = .(calendar_year, origin_tier, dest_tier)]
+puma_tier_region_2010 <- readRDS(file.path(data_dir, "intermediate/puma_cbsa_tier_crosswalk_2010_rank3_region.rds")); setDT(puma_tier_region_2010)
+puma_tier_region_2020 <- readRDS(file.path(data_dir, "intermediate/puma_cbsa_tier_crosswalk_2020_rank3_region.rds")); setDT(puma_tier_region_2020)
+migpuma_tier_region_2010 <- readRDS(file.path(data_dir, "intermediate/migpuma_cbsa_tier_crosswalk_2010_rank3_region.rds")); setDT(migpuma_tier_region_2010)
+migpuma_tier_region_2020 <- readRDS(file.path(data_dir, "intermediate/migpuma_cbsa_tier_crosswalk_2020_rank3_region.rds")); setDT(migpuma_tier_region_2020)
+region_2010 <- build_acs_flow_data(pums_1yr, VINTAGE_WINDOWS[["2010"]], "PUMA10", "MIGPUMA10", puma_tier_region_2010, migpuma_tier_region_2010)
+region_2020 <- build_acs_flow_data(pums_1yr, VINTAGE_WINDOWS[["2020"]], "PUMA20", "MIGPUMA20", puma_tier_region_2020, migpuma_tier_region_2020)
+acs_margin_b <- rbindlist(list(region_2010$flow, region_2020$flow))[, .(w = sum(w)), by = .(calendar_year, origin_tier, dest_tier)]
 acs_margin_b[, acs_share := w / sum(w), by = calendar_year]
 
 rev_partials <- vector("list", T_MAX)

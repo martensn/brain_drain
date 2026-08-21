@@ -272,11 +272,11 @@ calibration that matches ACS by construction and isn't a real test). This
 section keeps only the four that answer the actual question — does the
 final, production weight track ACS:
 
-1. **Column 1, unweighted** — the least restrictive sample, no correction
-2. **Column 2, unweighted** — the analysis sample, no correction
-3. **Column 2, flow-calibrated** — $w_{i,y}^{(2)}$ from §5, the weight
+1. **BA Only** — the least restrictive sample (Column 1), no correction
+2. **BA + HS on LI** — the analysis sample (Column 2), no correction
+3. **BA + HS on LI (reweighted)** — $w_{i,y}^{(2)}$ from §5, the weight
    this memo argues for
-4. **ACS PUMS benchmark** — the target
+4. **ACS PUMS** — the target
 
 ![Chance of moving across a state line, born 1980&ndash;1989 vs. born 1990&ndash;1999](Data/results/memo1_simplified_migration_rate_by_cohort.png)
 
@@ -284,14 +284,14 @@ final, production weight track ACS:
 
 *Migration rate*
 
-| Cohort | Column 1, unweighted | Column 2, unweighted | Column 2, flow-calibrated |
+| Cohort | BA Only | BA + HS on LI | BA + HS on LI (reweighted) |
 |---|---|---|---|
 | Born 1980&ndash;1989 | 0.78 | 0.09 | 0.51 |
 | Born 1990&ndash;1999 | 2.30 | 1.02 | 0.74 |
 
 *Metro-tier share*
 
-| Cohort | Column 1, unweighted | Column 2, unweighted | Column 2, flow-calibrated |
+| Cohort | BA Only | BA + HS on LI | BA + HS on LI (reweighted) |
 |---|---|---|---|
 | Born 1980&ndash;1989 | 1.95 | 1.84 | 0.03 |
 | Born 1990&ndash;1999 | 1.75 | 2.90 | 0.03 |
@@ -333,6 +333,70 @@ move only when there was a real gap to close in the first place. Both
 cohorts' results are reported here as found, including the case where
 calibration doesn't help — the asymmetry is the finding, not something
 to average away.
+
+### 6.4 Full-sample check
+
+The birth-cohort restriction in §6.1 is a deliberate choice about which
+population this project cares about, not evidence that the method only
+works on a restricted sample. This section runs the same four-line
+comparison — BA Only, BA + HS on LI, BA + HS on LI (reweighted), ACS PUMS
+— on the **full Column 2 sample**, all ages, as a check that the
+calibration itself isn't somehow an artifact of the cohort restriction.
+
+*(Scope note: the full-sample flow calibration below covers 2012&ndash;2021
+[2020 excluded] — it was never extended to 2022&ndash;2023 the way the two
+birth-cohort cuts were on 2026-08-13; that extension was scoped to the
+cohort pipeline only. A quick follow-up if the full-sample window is worth
+matching to the cohorts.)*
+
+![Metro-tier share by calendar year, full sample](Data/results/memo1_full_sample_metro_tier_share.png)
+
+**Mean absolute gap vs. ACS, 2012&ndash;2021 (2020 excluded), percentage points:**
+
+| BA Only | BA + HS on LI | BA + HS on LI (reweighted) |
+|---|---|---|
+| 3.79 | 3.84 | 0.12 |
+
+Same story as both birth cohorts: the unweighted lines sit several points
+off ACS with no consistent direction, and flow calibration closes nearly
+all of it — a ~97% reduction in the full sample, in the same range as the
+90%+ reductions seen in both cohorts (§6.3). The full sample's unweighted
+gap (3.8 points) is larger than either cohort's, consistent with §6.1's
+premise that the older ages folded into the full sample are less
+representative to begin with.
+
+**Demographic composition, calendar year 2015** (race and sex are outside
+the calibration target — see §7's note on this being the genuinely
+out-of-sample check; region is partly in-sample under the kept scheme):
+
+| Category | BA Only | BA + HS on LI | BA + HS on LI (reweighted) | ACS PUMS |
+|---|---|---|---|---|
+| White | 72.4% | 73.1% | 67.3% | 71.2% |
+| Black | 11.5% | 9.4% | 8.7% | 8.3% |
+| Hispanic | 7.8% | 7.6% | 9.5% | 8.2% |
+| Asian | 5.7% | 6.1% | 10.7% | 9.9% |
+| Multiple | 2.2% | 3.6% | 3.5% | 2.0% |
+| Native | 0.5% | 0.2% | 0.2% | 0.3% |
+| Male | 50.1% | 51.6% | 48.3% | 48.7% |
+| Female | 49.9% | 48.4% | 51.7% | 51.3% |
+| Northeast | 20.9% | 24.0% | 21.5% | 21.5% |
+| Midwest | 21.6% | 21.8% | 20.8% | 20.9% |
+| South | 34.2% | 31.9% | 34.0% | 34.2% |
+| West | 23.4% | 22.2% | 23.6% | 23.4% |
+
+Same pattern as both cohorts' cross-tabs (published artifacts, §6.2): the
+reweighted line doesn't uniformly track ACS on race — it overshoots on
+Asian (10.7% vs. ACS's 9.9%, itself already an overshoot from the
+unweighted 6.1%) and undershoots White (67.3% vs. 71.2%). Region tells a
+cleaner story: unweighted BA + HS on LI is off by up to 2.6 points
+(Northeast, 24.0% vs. ACS's 21.5%), and reweighting brings every region
+within 0.2 points of ACS — expected, since region is partly baked into
+the kept scheme's own tier definition, so this is closer to an
+internal-consistency check than a fully independent one (§7 makes the
+same point for the cohort cross-tabs). Race and sex are the honest
+out-of-sample check here, and they show the same "real but imperfect"
+pattern as §6.3 already describes for migration rate: the mechanism does
+something, not everything.
 
 ## 7. Interpretation and limitations
 

@@ -365,9 +365,10 @@ closing that gap. The qualitative story is unchanged by the extension —
 the kept scheme still wins on both metrics — see §8 row 4 for the updated
 full-sample numbers.)*
 
-**Demographic composition, calendar year 2015** (race and sex are outside
-the calibration target — see §7's note on this being the genuinely
-out-of-sample check; region is partly in-sample under the kept scheme):
+**Demographic and occupational composition, calendar year 2015** (race,
+sex, and occupation are all outside the calibration target — see §7's
+note on this being the genuinely out-of-sample check; region is partly
+in-sample under the kept scheme):
 
 | Category | BA Only | BA + HS on LI | BA + HS on LI (reweighted) | ACS PUMS |
 |---|---|---|---|---|
@@ -383,6 +384,29 @@ out-of-sample check; region is partly in-sample under the kept scheme):
 | Midwest | 21.6% | 21.8% | 20.8% | 20.9% |
 | South | 34.2% | 31.9% | 34.0% | 34.2% |
 | West | 23.4% | 22.2% | 23.6% | 23.4% |
+| Management | 20.6% | 19.5% | 22.1% | 17.0% |
+| Educational Instruction and Library | 6.9% | 5.5% | 5.6% | 13.5% |
+| Healthcare Practitioners and Technical | 5.7% | 3.6% | 4.2% | 10.0% |
+| Business and Financial Operations | 10.2% | 10.5% | 10.4% | 9.6% |
+| Sales and Related | 9.0% | 11.3% | 11.4% | 8.6% |
+| Office and Administrative Support | 6.3% | 7.9% | 7.8% | 8.4% |
+| Computer and Mathematical | 8.9% | 7.1% | 7.3% | 6.0% |
+| Arts, Design, Entertainment, Sports, and Media | 8.3% | 10.6% | 9.4% | 3.6% |
+| Community and Social Service | 3.6% | 3.0% | 3.1% | 3.6% |
+| Architecture and Engineering | 4.7% | 3.5% | 3.2% | 3.6% |
+| Legal | 2.7% | 2.8% | 3.4% | 2.6% |
+| Life, Physical, and Social Science | 4.1% | 3.2% | 2.6% | 2.1% |
+| Personal Care and Service | 2.2% | 2.8% | 2.3% | 1.7% |
+| Protective Service | 1.0% | 1.2% | 1.1% | 1.6% |
+| Food Preparation and Serving | 1.3% | 2.1% | 1.3% | 1.6% |
+| Production | 0.7% | 0.9% | 0.7% | 1.5% |
+| Transportation and Material Moving | 0.9% | 1.1% | 1.0% | 1.5% |
+| Healthcare Support | 0.8% | 0.9% | 0.8% | 0.9% |
+| Construction and Extraction | 0.4% | 0.5% | 0.5% | 0.9% |
+| Installation, Maintenance, and Repair | 0.7% | 0.8% | 0.8% | 0.7% |
+| Building and Grounds Cleaning and Maintenance | 0.1% | 0.2% | 0.1% | 0.7% |
+| Farming, Fishing, and Forestry | 0.1% | 0.1% | 0.1% | 0.1% |
+| Military Specific | 0.9% | 0.8% | 0.8% | ~0.0% |
 
 Same pattern as both cohorts' cross-tabs (published artifacts, §6.2): the
 reweighted line doesn't uniformly track ACS on race — it overshoots on
@@ -397,6 +421,33 @@ same point for the cohort cross-tabs). Race and sex are the honest
 out-of-sample check here, and they show the same "real but imperfect"
 pattern as §6.3 already describes for migration rate: the mechanism does
 something, not everything.
+
+**Occupation is the sharpest selection story in this table.** Education
+and healthcare are the two largest gaps by far — ACS shows Educational
+Instruction and Library and Healthcare Practitioners as the 2nd- and
+3rd-largest occupation groups (13.5%, 10.0%), while Revelio shows both at
+roughly a third of that, unweighted or reweighted alike. Arts, Design,
+Entertainment, Sports, and Media runs the other direction, about 3x
+over-represented (3.6% ACS vs. 9-11% across every Revelio series).
+Reweighting doesn't correct this — occupation was never a calibration
+target — and in at least one case moves the wrong way: Management goes
+from 19.5% (unweighted) to 22.1% (reweighted), *more* over-represented,
+not less. One entry is likely a data artifact rather than a real finding:
+Military Specific is ~0% of the ACS benchmark (as expected for a BA+/
+employed/civilian-heavy population) but ~0.8-0.9% across all three
+Revelio series — a 100x+ gap on a category this small more plausibly
+reflects an occupation-classification quirk (a job-title match landing in
+the SOC "55-" range in error) than tens of thousands of genuine
+military-employed LinkedIn users, and shouldn't be read as a substantive
+result. *(Occupation crosswalk: Revelio's own SOC code, collapsed to its
+2018 SOC major group; ACS's OCCP resolved via the Census Bureau's
+official 2010-vintage Census-occupation-to-SOC crosswalk, since ACS 2015
+predates the 2018 occupation-code revision — confirmed live rather than
+assumed, after an initial ~72% match rate against the 2018-only code list
+flagged the vintage mismatch. Resolution rates: 99.6% on the ACS side,
+88-92% on Revelio's, since a person's job title occasionally fails to
+resolve to any SOC code even when their location that year is known —
+unresolved rows are excluded from the shares above, not imputed.)*
 
 ## 7. Interpretation and limitations
 

@@ -278,7 +278,7 @@ final, production weight track ACS:
    this memo argues for
 4. **ACS PUMS** — the target
 
-![Chance of moving across a state line, born 1980&ndash;1989 vs. born 1990&ndash;1999](Data/results/memo1_simplified_migration_rate_by_cohort.png)
+![Chance of moving across a state line, born 1980&ndash;1989 vs. born 1990&ndash;1999](Data/results/memo1_simplified_migration_rate_by_cohort_4line.png)
 
 **Mean absolute gap vs. ACS, 2012&ndash;2023 (2020 excluded), percentage points:**
 
@@ -343,7 +343,7 @@ comparison — BA Only, BA + HS on LI, BA + HS on LI (reweighted), ACS PUMS
 — on the **full Column 2 sample**, all ages, as a check that the
 calibration itself isn't somehow an artifact of the cohort restriction.
 
-![Metro-tier share by calendar year, full sample](Data/results/memo1_full_sample_metro_tier_share.png)
+![Metro-tier share by calendar year, full sample](Data/results/memo1_full_sample_metro_tier_share_4line.png)
 
 **Mean absolute gap vs. ACS, 2012&ndash;2023 (2020 excluded), percentage points:**
 
@@ -448,6 +448,117 @@ flagged the vintage mismatch. Resolution rates: 99.6% on the ACS side,
 88-92% on Revelio's, since a person's job title occasionally fails to
 resolve to any SOC code even when their location that year is known —
 unresolved rows are excluded from the shares above, not imputed.)*
+
+### 6.5 Final specification
+
+Table results only, rebuilt 2026-08-23. The final specification's "reweighted" line is `w2_occ`
+(Code/memo1_09_reweight_column2_occupation.R: geography and destination occupation raked jointly per
+calendar year via a 2-margin IPF). The intermediate geography-only weighting scheme used earlier in this
+project is dropped from this table entirely -- see SS6.6 for the full stage-by-stage comparison including it.
+
+**Mean absolute gap vs. ACS, metro-tier share, 2012-2023 (2020 excluded), percentage points:**
+
+| BA Only | BA + HS on LI | BA + HS on LI (reweighted) |
+|---|---|---|
+| 3.80 | 4.04 | 0.11 |
+
+**Demographic and occupational composition, calendar year 2015:**
+
+| Category | BA Only | BA + HS on LI | BA + HS on LI (reweighted) | ACS PUMS |
+|---|---|---|---|---|
+| White | 72.4% | 73.1% | 66.8% | 71.2% |
+| Black | 11.5% | 9.4% | 8.8% | 8.3% |
+| Hispanic | 7.8% | 7.6% | 9.6% | 8.2% |
+| Asian | 5.7% | 6.1% | 11.0% | 9.9% |
+| Multiple | 2.2% | 3.6% | 3.4% | 2.0% |
+| Native | 0.5% | 0.2% | 0.2% | 0.3% |
+| Male | 50.1% | 51.6% | 45.8% | 48.7% |
+| Female | 49.9% | 48.4% | 54.2% | 51.3% |
+| Northeast | 20.9% | 24.0% | 21.5% | 21.5% |
+| Midwest | 21.6% | 21.8% | 20.9% | 20.9% |
+| South | 34.2% | 31.9% | 34.1% | 34.2% |
+| West | 23.4% | 22.2% | 23.5% | 23.4% |
+| Management | 20.6% | 19.5% | 17.0% | 17.0% |
+| Educational Instruction and Library | 6.9% | 5.5% | 13.5% | 13.5% |
+| Healthcare Practitioners and Technical | 5.7% | 3.6% | 10.0% | 10.0% |
+| Business and Financial Operations | 10.2% | 10.5% | 9.6% | 9.6% |
+| Sales and Related | 9.0% | 11.3% | 8.6% | 8.6% |
+| Office and Administrative Support | 6.3% | 7.9% | 8.4% | 8.4% |
+| Computer and Mathematical | 8.9% | 7.1% | 6.0% | 6.0% |
+| Arts, Design, Entertainment, Sports, and Media | 8.3% | 10.6% | 3.6% | 3.6% |
+| Community and Social Service | 3.6% | 3.0% | 3.6% | 3.6% |
+| Architecture and Engineering | 4.7% | 3.5% | 3.6% | 3.6% |
+| Legal | 2.7% | 2.8% | 2.6% | 2.6% |
+| Life, Physical, and Social Science | 4.1% | 3.2% | 2.1% | 2.1% |
+| Personal Care and Service | 2.2% | 2.8% | 1.7% | 1.7% |
+| Protective Service | 1.0% | 1.2% | 1.6% | 1.6% |
+| Food Preparation and Serving | 1.3% | 2.1% | 1.6% | 1.6% |
+| Production | 0.7% | 0.9% | 1.5% | 1.5% |
+| Transportation and Material Moving | 0.9% | 1.1% | 1.5% | 1.5% |
+| Healthcare Support | 0.8% | 0.9% | 0.9% | 0.9% |
+| Construction and Extraction | 0.4% | 0.5% | 0.9% | 0.9% |
+| Installation, Maintenance, and Repair | 0.7% | 0.8% | 0.7% | 0.7% |
+| Building and Grounds Cleaning and Maintenance | 0.1% | 0.2% | 0.7% | 0.7% |
+| Farming, Fishing, and Forestry | 0.1% | 0.1% | 0.1% | 0.1% |
+| Military Specific | 0.9% | 0.8% | ~0.0% | ~0.0% |
+
+### 6.6 Full weighting-stage comparison
+
+Table results only, added 2026-08-23. All three weighting stages side by side: Stage 1 alone
+(`w_full_joint`, time-invariant demographic+mobility raking, no calendar-year information at all --
+identical value in every year by construction, since nothing here varies by calendar year), Stage 2
+migration-only (the geography-flow single-shot ratio this project used before today), and Stage 2
+migration+occupation (`w2_occ`, today's final specification, also shown alone in SS6.5).
+
+![Metro-tier share by calendar year, full sample, all weighting stages](Data/results/memo1_full_sample_metro_tier_share_6line.png)
+
+![Chance of moving across a state line, all weighting stages](Data/results/memo1_simplified_migration_rate_by_cohort_6line.png)
+
+**Mean absolute gap vs. ACS, metro-tier share, 2012-2023 (2020 excluded), percentage points:**
+
+| BA Only | BA + HS on LI | BA + HS on LI (Stage 1: demographic) | BA + HS on LI (Stage 2: migration) | BA + HS on LI (Stage 2: migration+occupation) |
+|---|---|---|---|---|
+| 3.80 | 4.04 | 3.71 | 0.12 | 0.11 |
+
+**Demographic and occupational composition, calendar year 2015:**
+
+| Category | BA Only | BA + HS on LI | BA + HS on LI (Stage 1: demographic) | BA + HS on LI (Stage 2: migration) | BA + HS on LI (Stage 2: migration+occupation) | ACS PUMS |
+|---|---|---|---|---|---|---|
+| White | 72.4% | 73.1% | 65.4% | 67.3% | 66.8% | 71.2% |
+| Black | 11.5% | 9.4% | 9.0% | 8.7% | 8.8% | 8.3% |
+| Hispanic | 7.8% | 7.6% | 10.1% | 9.5% | 9.6% | 8.2% |
+| Asian | 5.7% | 6.1% | 11.6% | 10.7% | 11.0% | 9.9% |
+| Multiple | 2.2% | 3.6% | 3.6% | 3.5% | 3.4% | 2.0% |
+| Native | 0.5% | 0.2% | 0.2% | 0.2% | 0.2% | 0.3% |
+| Male | 50.1% | 51.6% | 47.9% | 48.3% | 45.8% | 48.7% |
+| Female | 49.9% | 48.4% | 52.1% | 51.7% | 54.2% | 51.3% |
+| Northeast | 20.9% | 24.0% | 19.6% | 21.5% | 21.5% | 21.5% |
+| Midwest | 21.6% | 21.8% | 18.6% | 20.8% | 20.9% | 20.9% |
+| South | 34.2% | 31.9% | 35.5% | 34.0% | 34.1% | 34.2% |
+| West | 23.4% | 22.2% | 26.3% | 23.6% | 23.5% | 23.4% |
+| Management | 20.6% | 19.5% | 21.5% | 22.1% | 17.0% | 17.0% |
+| Educational Instruction and Library | 6.9% | 5.5% | 5.7% | 5.6% | 13.5% | 13.5% |
+| Healthcare Practitioners and Technical | 5.7% | 3.6% | 4.2% | 4.2% | 10.0% | 10.0% |
+| Business and Financial Operations | 10.2% | 10.5% | 10.4% | 10.4% | 9.6% | 9.6% |
+| Sales and Related | 9.0% | 11.3% | 11.3% | 11.4% | 8.6% | 8.6% |
+| Office and Administrative Support | 6.3% | 7.9% | 7.9% | 7.8% | 8.4% | 8.4% |
+| Computer and Mathematical | 8.9% | 7.1% | 7.3% | 7.3% | 6.0% | 6.0% |
+| Arts, Design, Entertainment, Sports, and Media | 8.3% | 10.6% | 9.4% | 9.4% | 3.6% | 3.6% |
+| Community and Social Service | 3.6% | 3.0% | 3.1% | 3.1% | 3.6% | 3.6% |
+| Architecture and Engineering | 4.7% | 3.5% | 3.3% | 3.2% | 3.6% | 3.6% |
+| Legal | 2.7% | 2.8% | 3.3% | 3.4% | 2.6% | 2.6% |
+| Life, Physical, and Social Science | 4.1% | 3.2% | 2.8% | 2.6% | 2.1% | 2.1% |
+| Personal Care and Service | 2.2% | 2.8% | 2.4% | 2.3% | 1.7% | 1.7% |
+| Protective Service | 1.0% | 1.2% | 1.2% | 1.1% | 1.6% | 1.6% |
+| Food Preparation and Serving | 1.3% | 2.1% | 1.5% | 1.3% | 1.6% | 1.6% |
+| Production | 0.7% | 0.9% | 0.8% | 0.7% | 1.5% | 1.5% |
+| Transportation and Material Moving | 0.9% | 1.1% | 1.0% | 1.0% | 1.5% | 1.5% |
+| Healthcare Support | 0.8% | 0.9% | 0.8% | 0.8% | 0.9% | 0.9% |
+| Construction and Extraction | 0.4% | 0.5% | 0.5% | 0.5% | 0.9% | 0.9% |
+| Installation, Maintenance, and Repair | 0.7% | 0.8% | 0.8% | 0.8% | 0.7% | 0.7% |
+| Building and Grounds Cleaning and Maintenance | 0.1% | 0.2% | 0.2% | 0.1% | 0.7% | 0.7% |
+| Farming, Fishing, and Forestry | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% |
+| Military Specific | 0.9% | 0.8% | 0.9% | 0.8% | ~0.0% | ~0.0% |
 
 ## 7. Interpretation and limitations
 

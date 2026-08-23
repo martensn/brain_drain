@@ -14,6 +14,17 @@
 # display (see memo1_08_full_sample_extras.R Part A for the calibration
 # itself -- this script only plots its output,
 # memo1_metro_tier_by_calendar_year_full_simplified.csv).
+#
+# [EXTENDED 2026-08-23] 5th line added: "BA + HS on LI (reweighted,
+# geo+occupation)" -- the w2_occ weight from
+# Code/memo1_09_reweight_column2_occupation.R (geography AND destination
+# occupation raked jointly per calendar year, vs. the existing
+# "reweighted" line's geography-only single-shot ratio). Its rows were
+# APPENDED to the same CSV by
+# Code/memo1_10_metro_tier_plot_add_occ_line.R -- run that first. A 5th
+# color is added to the existing 4-color qualitative palette rather than
+# reassigning any of the first four, so the existing four lines' colors
+# are unchanged from every previously-published version of this figure.
 
 library(data.table)
 library(ggplot2)
@@ -28,9 +39,13 @@ inst_group_colors <- c("#F8766D", "#7CAE00", "#00BFC4", "#C77CFF")
 LBL_COL1  <- "BA Only"
 LBL_COL2U <- "BA + HS on LI"
 LBL_COL2R <- "BA + HS on LI (reweighted)"
+LBL_COL2R_OCC <- "BA + HS on LI (reweighted, geo+occupation)"
 LBL_ACS   <- "ACS PUMS"
-series_order  <- c(LBL_COL1, LBL_COL2U, LBL_COL2R, LBL_ACS)
-series_colors <- setNames(inst_group_colors, series_order)
+# 5th color added (not a re-generated 5-color hue_pal(), which would shift
+# all four existing colors) -- the existing four stay pixel-identical to
+# every previously-published version of this figure.
+series_order  <- c(LBL_COL1, LBL_COL2U, LBL_COL2R, LBL_COL2R_OCC, LBL_ACS)
+series_colors <- setNames(c(inst_group_colors[1:3], "#4C72B0", inst_group_colors[4]), series_order)
 tier_order <- c("Top 10", "Top 11-50", "Everything else")
 
 d <- fread(file.path(data_dir, "results/memo1_metro_tier_by_calendar_year_full_simplified.csv"))
@@ -46,6 +61,11 @@ p <- ggplot(d, aes(x = calendar_year, y = share, color = source)) +
   geom_point(size = 1.1) +
   facet_wrap(~tier, nrow = 1) +
   scale_color_manual(values = series_colors, name = NULL) +
+  # [ADDED 2026-08-23] 5 legend entries no longer fit on one row at the
+  # figure's existing 6.5in width (confirmed by inspecting the rendered
+  # PNG -- "ACS PUMS" ran off the right edge) -- wrapped to 2 rows rather
+  # than widening the figure, so it still fits the memo's page width.
+  guides(color = guide_legend(nrow = 2, byrow = TRUE)) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   labs(x = NULL, y = "Share of population", title = NULL) +
   theme(panel.background = element_rect(fill = "transparent", color = NA),

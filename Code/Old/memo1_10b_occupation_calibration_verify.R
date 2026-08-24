@@ -1,11 +1,11 @@
-# memo1_09_occupation_calibration_verify.R
+# memo1_10b_occupation_calibration_verify.R (was memo1_09_occupation_calibration_verify.R)
 #
-# [NEW 2026-08-23] Verification pass for Code/memo1_09_reweight_column2_occupation.R's
+# [NEW 2026-08-23] Verification pass for Code/memo1_07_reweight_column2_occupation.R's
 # new w2_occ weight (2-margin geography x occupation IPF, per calendar
 # year). Two checks, per the plan's verification section:
 #   1. Does the occupation gap against ACS actually shrink under w2_occ,
 #      across ALL calibration years -- not just the single 2015 snapshot
-#      occupation_crosstab.R checks -- relative to w_full_joint (Stage 1
+#      memo1_04b_occupation_crosstab.R checks -- relative to w_full_joint (Stage 1
 #      only, no occupation or geography adjustment) and to the existing
 #      geography-only w2 (single-shot ratio, no occupation input at all)?
 #   2. Does adding the occupation margin measurably degrade the existing
@@ -15,7 +15,7 @@
 # acs_occ_margin_by_year.rds, revelio_geo_occ_person_year_panel.rds,
 # memo1_w2_occupation_calibrated_by_year.rds) rather than rebuilding them.
 # The existing geography-only w2 is recomputed here with the SAME
-# single-shot ratio formula memo1_08/occupation_crosstab.R already use
+# single-shot ratio formula memo1_08/memo1_04b_occupation_crosstab.R already use
 # (not sourced from those scripts, to avoid re-running their full output --
 # same "copy the small piece verbatim" convention used throughout this
 # project), applied to the SAME row set as w2_occ (rev_panel) so the two

@@ -1,4 +1,4 @@
-# memo1_11_stage1_only_lines.R
+# memo1_11c_stage1_only_lines.R
 #
 # [NEW 2026-08-23] Computes the one weighting-scheme line that's never
 # existed as an output anywhere: Stage 1 alone (w_full_joint, the
@@ -24,7 +24,7 @@
 #   2. Full-sample demographic/occupation composition, calendar year 2015
 #      -> new memo1_demo_crosstab_stage1_only_2015.csv (race share
 #      reconstruction -- the same melt+manual_ipf() re-derivation
-#      memo1_08/memo1_09_occupation_memo_table.R already needed, SAVED
+#      memo1_08/memo1_10c_occupation_memo_table_draft.R already needed, SAVED
 #      here to intermediate/race_share_wide_full_sample.rds so it isn't
 #      recomputed a third time by the final table-assembly script).
 #   3. Cohort-restricted (born_1980s/1990s) state-crossing migration rate
@@ -71,35 +71,8 @@ resolve_col_end <- function(dt) {
   if (is.factor(dt$col_end) || is.character(dt$col_end)) as.integer(as.character(dt$col_end)) else as.integer(dt$col_end)
 }
 
-manual_ipf <- function(dt, w_col, margins, maxit = 10, epsilon = 1, cap_lo = 0.05, cap_hi = 20, verbose = FALSE) {
-  dt <- copy(dt)
-  dt[, .rowid := .I]
-  dt[, w_iter := get(w_col)]
-  old_w <- dt$w_iter
-  iter <- 0; converged <- FALSE
-  while (iter < maxit) {
-    for (m in margins) {
-      keys <- m$keys; pop <- m$pop
-      cell_sum <- dt[, .(sample_sum = sum(w_iter)), by = keys]
-      r <- merge(cell_sum, pop, by = keys, all.x = TRUE)
-      r[, ratio := fifelse(!is.na(Freq) & sample_sum > 0, Freq / sample_sum, 1)]
-      r[, ratio := pmin(pmax(ratio, cap_lo), cap_hi)]
-      dt <- merge(dt, r[, c(keys, "ratio"), with = FALSE], by = keys, all.x = TRUE)
-      dt[, ratio := fifelse(is.na(ratio), 1, ratio)]
-      dt[, w_iter := w_iter * ratio]
-      dt[, ratio := NULL]
-    }
-    setorder(dt, .rowid)
-    delta <- max(abs(dt$w_iter - old_w))
-    if (verbose) cat(sprintf("  [manual_ipf] iter=%d delta=%.4f\n", iter, delta))
-    if (is.finite(delta) && delta < epsilon) { converged <- TRUE; break }
-    old_w <- dt$w_iter
-    iter <- iter + 1
-  }
-  cat(sprintf("manual_ipf: %s after %d iteration(s)\n", if (converged) "converged" else "DID NOT CONVERGE", iter))
-  setorder(dt, .rowid)
-  dt$w_iter
-}
+# manual_ipf(): [2026-08-23] centralized to Code/memo1_ipf.R.
+source(here::here("Code/memo1_ipf.R"))
 
 ## =========================================================================
 ## PART 1 + 2 (full sample): load once, reused for both
@@ -262,4 +235,4 @@ run_cohort_migration <- function(cohort_name) {
 run_cohort_migration("born_1980s")
 run_cohort_migration("born_1990s")
 
-log_step("memo1_11_stage1_only_lines.R done.")
+log_step("memo1_11c_stage1_only_lines.R done.")

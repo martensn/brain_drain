@@ -1,9 +1,9 @@
-# memo1_09_reweight_column2_occupation_cohort.R
+# memo1_09e_reweight_column2_occupation_cohort.R (was memo1_09_reweight_column2_occupation_cohort.R)
 #
 # [NEW 2026-08-23] Cohort-restricted version of
-# Code/memo1_09_reweight_column2_occupation.R -- the full-sample w2_occ
+# Code/memo1_07_reweight_column2_occupation.R -- the full-sample w2_occ
 # weight can't be used for the born_1980s/born_1990s migration-rate charts
-# (Code/memo1_09_memo_plots.R) since it was calibrated against the FULL
+# (Code/memo1_10e_memo_plots.R) since it was calibrated against the FULL
 # ACS population, not either birth cohort's. Reuses the already-built
 # cohort inputs (column2_reweighted_born_{cohort}.rds,
 # pums_1yr_filt_born_{cohort}.rds -- both already birth-restricted and,
@@ -14,7 +14,7 @@
 # and merging it onto the cohort-filtered ACS rows automatically
 # cohort-restricts it too).
 #
-# Migration rate here is the SAME metric memo1_05a_migration_profile.R
+# Migration rate here is the SAME metric memo1_08a_migration_profile.R
 # uses -- share with cbsa_state_t != cbsa_state_(t-1), i.e. crossed a
 # STATE line -- not the metro-TIER-crossing concept memo1_09's own panel
 # otherwise tracks. So this script's Revelio panel carries raw
@@ -30,9 +30,9 @@
 #
 # Output: appends a NEW, separate CSV per cohort
 # (memo1_migration_rate_by_calendar_year_geo_occ_born_{cohort}.csv) --
-# does NOT touch the two existing CSVs memo1_09_memo_plots.R already
+# does NOT touch the two existing CSVs memo1_10e_memo_plots.R already
 # reads, so nothing already published can be corrupted by this script.
-# memo1_09_memo_plots.R is separately extended to also read this third file.
+# memo1_10e_memo_plots.R is separately extended to also read this third file.
 
 library(data.table)
 library(dotenv)
@@ -64,36 +64,8 @@ SOC_MAJOR_GROUPS <- c(
 soc_prefix_to_major <- function(soc_short) unname(SOC_MAJOR_GROUPS[substr(soc_short, 1, 2)])
 occ_vintage_for_year <- function(y) fifelse(y <= 2017, "2010", "2018")
 
-## manual_ipf() / build_acs_flow_data() -- copied verbatim, same as memo1_09.
-manual_ipf <- function(dt, w_col, margins, maxit = 10, epsilon = 1, cap_lo = 0.05, cap_hi = 20, verbose = FALSE) {
-  dt <- copy(dt)
-  dt[, .rowid := .I]
-  dt[, w_iter := get(w_col)]
-  old_w <- dt$w_iter
-  iter <- 0; converged <- FALSE
-  while (iter < maxit) {
-    for (m in margins) {
-      keys <- m$keys; pop <- m$pop
-      cell_sum <- dt[, .(sample_sum = sum(w_iter)), by = keys]
-      r <- merge(cell_sum, pop, by = keys, all.x = TRUE)
-      r[, ratio := fifelse(!is.na(Freq) & sample_sum > 0, Freq / sample_sum, 1)]
-      r[, ratio := pmin(pmax(ratio, cap_lo), cap_hi)]
-      dt <- merge(dt, r[, c(keys, "ratio"), with = FALSE], by = keys, all.x = TRUE)
-      dt[, ratio := fifelse(is.na(ratio), 1, ratio)]
-      dt[, w_iter := w_iter * ratio]
-      dt[, ratio := NULL]
-    }
-    setorder(dt, .rowid)
-    delta <- max(abs(dt$w_iter - old_w))
-    if (verbose) cat(sprintf("  [manual_ipf] iter=%d delta=%.4f\n", iter, delta))
-    if (is.finite(delta) && delta < epsilon) { converged <- TRUE; break }
-    old_w <- dt$w_iter
-    iter <- iter + 1
-  }
-  cat(sprintf("manual_ipf: %s after %d iteration(s)\n", if (converged) "converged" else "DID NOT CONVERGE", iter))
-  setorder(dt, .rowid)
-  dt$w_iter
-}
+## manual_ipf() -- [2026-08-23] centralized to Code/memo1_ipf.R.
+source(here::here("Code/memo1_ipf.R"))
 
 build_acs_flow_data <- function(pums_1yr, years, puma_col, migpuma_col, puma_tier, migpuma_tier) {
   acs_window <- pums_1yr[survey_year %in% years & !is.na(get(puma_col))]

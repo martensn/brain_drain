@@ -1,4 +1,4 @@
-# memo1_09_memo_plots.R
+# memo1_10e_memo_plots.R (was memo1_09_memo_plots.R)
 #
 # [NEW 2026-08-21] Rebuilds MEMO1_WEIGHTING.md's SS6.2 four-line migration-rate
 # figure (memo1_simplified_migration_rate_by_cohort.png) using Code/scripts/
@@ -31,7 +31,7 @@
 #
 # [EXTENDED 2026-08-23] 5th line added: "BA + HS on LI (reweighted,
 # geo+occupation)" -- w2_occ, from
-# Code/memo1_09_reweight_column2_occupation_cohort.R's cohort-restricted
+# Code/memo1_09e_reweight_column2_occupation_cohort.R's cohort-restricted
 # 2-margin (geography + destination occupation) IPF, read from a THIRD,
 # separate CSV (memo1_migration_rate_by_calendar_year_geo_occ_born_
 # {cohort}.csv) rather than merged into either existing file -- keeps the

@@ -1,4 +1,4 @@
-# memo1_08_full_sample_extras.R
+# memo1_10a_full_sample_extras.R (was memo1_08_full_sample_extras.R)
 #
 # [NEW 2026-08-21] Per Nicholas's request: two full-sample additions to
 # MEMO1_WEIGHTING.md, mirroring what the born-cohort artifacts already show
@@ -15,7 +15,7 @@
 #      the 12-cell size x region scheme, which has no shared axis to plot
 #      shares on).
 #   2. A demographic (race/sex/region) cross-tab at calendar year 2015,
-#      mirroring memo1_07d_cohort_demo_table.R but for the FULL sample and
+#      mirroring memo1_09d_cohort_demo_table.R but for the FULL sample and
 #      only the four kept lines.
 #
 # Both use exactly ONE "reweighted" series: w_full_joint (Stage 1) x the
@@ -30,8 +30,8 @@
 #
 # [EXTENDED 2026-08-21, per Nicholas's request] The scope limit noted here
 # originally ("full-sample scheme comparison never extended to 2022-2023")
-# is now resolved -- Code/memo1_06b_scheme_comparison.R was made
-# vintage-aware the same day, matching memo1_07c_cohort_scheme_comparison.R's
+# is now resolved -- Code/memo1_08d_scheme_comparison.R was made
+# vintage-aware the same day, matching memo1_09c_cohort_scheme_comparison.R's
 # approach exactly (2012-2021 on 2010-vintage PUMA/MIGPUMA, 2022-2023 on
 # 2020-vintage). This script's own Part A (the only part with any ACS-side
 # PUMA dependency -- Part B's FIXED_YEAR=2015 sits entirely inside the
@@ -62,7 +62,7 @@ CALIB_YEARS <- unlist(VINTAGE_WINDOWS, use.names = FALSE)
 T_MAX <- 20
 
 # ---- ACS-side flow data for ONE PUMA vintage window -- copied from
-# memo1_06b_scheme_comparison.R / memo1_07c (same already-verified logic).
+# memo1_08d_scheme_comparison.R / memo1_07c (same already-verified logic).
 build_acs_flow_data <- function(pums_1yr, years, puma_col, migpuma_col, puma_tier, migpuma_tier) {
   acs_window <- pums_1yr[survey_year %in% years & !is.na(get(puma_col))]
   acs_window[, state_puma := paste0(ST, get(puma_col))]
@@ -127,38 +127,10 @@ resolve_col_end <- function(dt, is_factor_like) {
 }
 
 ## =========================================================================
-## manual_ipf() -- copied verbatim from Code/memo1_04_reweight_column2.R /
-## Code/memo1_07d_cohort_demo_table.R, same reason as those files.
+## manual_ipf() -- [2026-08-23] centralized to Code/memo1_ipf.R, was an
+## independent copy here (and in 5+ other memo1_* scripts).
 ## =========================================================================
-manual_ipf <- function(dt, w_col, margins, maxit = 10, epsilon = 1, cap_lo = 0.05, cap_hi = 20, verbose = FALSE) {
-  dt <- copy(dt)
-  dt[, .rowid := .I]
-  dt[, w_iter := get(w_col)]
-  old_w <- dt$w_iter
-  iter <- 0; converged <- FALSE
-  while (iter < maxit) {
-    for (m in margins) {
-      keys <- m$keys; pop <- m$pop
-      cell_sum <- dt[, .(sample_sum = sum(w_iter)), by = keys]
-      r <- merge(cell_sum, pop, by = keys, all.x = TRUE)
-      r[, ratio := fifelse(!is.na(Freq) & sample_sum > 0, Freq / sample_sum, 1)]
-      r[, ratio := pmin(pmax(ratio, cap_lo), cap_hi)]
-      dt <- merge(dt, r[, c(keys, "ratio"), with = FALSE], by = keys, all.x = TRUE)
-      dt[, ratio := fifelse(is.na(ratio), 1, ratio)]
-      dt[, w_iter := w_iter * ratio]
-      dt[, ratio := NULL]
-    }
-    setorder(dt, .rowid)
-    delta <- max(abs(dt$w_iter - old_w))
-    if (verbose) cat(sprintf("  [manual_ipf] iter=%d delta=%.4f\n", iter, delta))
-    if (is.finite(delta) && delta < epsilon) { converged <- TRUE; break }
-    old_w <- dt$w_iter
-    iter <- iter + 1
-  }
-  cat(sprintf("manual_ipf: %s after %d iteration(s)\n", if (converged) "converged" else "DID NOT CONVERGE", iter))
-  setorder(dt, .rowid)
-  dt$w_iter
-}
+source(here::here("Code/memo1_ipf.R"))
 
 ## =========================================================================
 ## LOAD
@@ -444,4 +416,4 @@ log_step("Wrote memo1_demo_crosstab_full_simplified.csv")
 cat(sprintf("\n=== Full-sample demographic cross-tab, %d (wide) ===\n", FIXED_YEAR))
 print(dcast(out, category_type + category ~ source, value.var = "share"))
 
-log_step("memo1_08_full_sample_extras.R done.")
+log_step("memo1_10a_full_sample_extras.R done.")

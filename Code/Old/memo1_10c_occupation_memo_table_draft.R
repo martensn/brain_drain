@@ -1,8 +1,10 @@
-# memo1_09_occupation_memo_table.R
+# memo1_10c_occupation_memo_table_draft.R (was memo1_09_occupation_memo_table.R -- kept, not
+# archived, because memo1_10d_occupation_memo_table.R reads this script's own
+# output CSV, memo1_demo_crosstab_geo_occ_2015.csv)
 #
 # [NEW 2026-08-23] Produces ONE new column -- "BA + HS on LI (reweighted,
 # geo+occupation)", the w2_occ weight from
-# Code/memo1_09_reweight_column2_occupation.R -- for the SAME two tables
+# Code/memo1_07_reweight_column2_occupation.R -- for the SAME two tables
 # already published in MEMO1_WEIGHTING.md SS6.4 (metro-tier gap summary,
 # and the race/sex/region/occupation composition cross-tab at calendar
 # year 2015), then appends both as a new SS6.5 with only the table
@@ -10,7 +12,7 @@
 # The existing SS6.4 numbers are NOT touched or recomputed.
 #
 # Race needs the SAME "true post-Stage1 share" reconstruction
-# memo1_08_full_sample_extras.R Part B already does (copied verbatim,
+# memo1_10a_full_sample_extras.R Part B already does (copied verbatim,
 # same reason as every other file that needs it) -- Stage 1's IPF used
 # race as an actual raking KEY on a melted (person x race) table, so only
 # a melt+manual_ipf() re-run recovers each person's TRUE post-raking race
@@ -91,7 +93,7 @@ rev_panel <- readRDS(file.path(data_dir, "intermediate/revelio_geo_occ_person_ye
 
 ## =========================================================================
 ## PART 1: re-derive TRUE post-Stage1 race shares -- copied verbatim from
-## memo1_08_full_sample_extras.R Part B.
+## memo1_10a_full_sample_extras.R Part B.
 ## =========================================================================
 log_step("PART 1: re-deriving true post-Stage1 race shares (melt + manual_ipf, the slow step)")
 li_complete <- li[!is.na(origin_state) & !is.na(age_bucket) & !is.na(white_prob)]
@@ -225,7 +227,7 @@ lines <- c(
   "",
   "### 6.5 Full-sample check, with occupation added as a Stage 2 margin",
   "",
-  sprintf("Table results only, appended %s -- adds `%s` (Code/memo1_09_reweight_column2_occupation.R's",
+  sprintf("Table results only, appended %s -- adds `%s` (Code/memo1_07_reweight_column2_occupation.R's",
           format(Sys.Date(), "%Y-%m-%d"), LBL_NEW),
   "w2_occ: geography and destination-occupation raked jointly per calendar year via a 2-margin IPF) as a fifth",
   "series alongside SS6.4's existing four. SS6.4's own numbers are unchanged.",

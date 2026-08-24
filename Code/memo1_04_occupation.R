@@ -1,8 +1,51 @@
-# occupation_crosstab.R
+# memo1_04_occupation.R
 #
-# [NEW 2026-08-21] Adds an occupation row-group to the existing full-sample
-# demographic cross-tab (Code/memo1_08_full_sample_extras.R Part B /
-# MEMO1_WEIGHTING.md SS6.4), per Nicholas's request. Occupation, like
+# [CONSOLIDATED 2026-08-24, per Nicholas's request to reduce script count]
+# Merges what were two files (memo1_04a_occupation_crosswalk.R,
+# memo1_04b_occupation_crosstab.R) into one -- Section 2 directly depends
+# on Section 1's output file (census_occp_2010_to_soc_major_group.rds) and
+# always runs after it, so merging changes nothing about execution order,
+# only file count. Both defined an identical SOC_MAJOR_GROUPS lookup and
+# `log_step()` helper -- kept as one shared copy at the top. No logic
+# changed from either original script.
+#
+# SECTION 1 (was memo1_04a_occupation_crosswalk.R, itself was
+# build_occupation_crosswalk.R): builds both vintages of the ACS OCCP ->
+# SOC major-group crosswalk from the already-downloaded Census workbook
+# (Data/raw/bls/2018-occupation-code-list-and-crosswalk.xlsx), as a real,
+# committed, reproducible script -- the existing
+# census_occp_2010_to_soc_major_group.rds (used by Section 2) was
+# originally built ad hoc in a prior interactive session with no script
+# behind it. This section regenerates that file identically (verified
+# byte-for-byte against the existing 538-row RDS before this script
+# existed) and adds a NEW census_occp_2018_to_soc_major_group.rds for the
+# post-2017 OCCP vintage, needed because
+# Code/memo1_07_reweight_column2_occupation.R calibrates on multiple
+# calendar years, not just 2015.
+#
+# Vintage cutover: VERIFIED LIVE (not assumed) via tidycensus's bundled
+# pums_variables -- ACS 1yr OCCP carries 480 distinct values in 2017 and
+# 531 in 2018, a clean break exactly at 2018. So calendar years <=2017 use
+# the 2010-vintage crosswalk, years >=2018 use the 2018-vintage one.
+#
+# Both crosswalk sheets ("2010 to 2018 Crosswalk " and "2018 Census Occ
+# Code List") only need the SOC major-group PREFIX (first 2 digits), not
+# the full detailed SOC code, so residual/"Other ..." aggregate rows whose
+# SOC code carries a placeholder suffix (e.g. "13-20XX", "15-124X") are
+# kept -- they're real, valid OCCP codes that appear in survey responses,
+# and their major-group prefix is exactly as informative as a fully
+# resolved leaf code's. The extraction rule is therefore: keep rows with a
+# single (non-range) 4-digit Census code AND a SOC field starting with two
+# digits + a dash, which cleanly excludes category-header rows (whose
+# Census code is itself a range like "0010-3550") without excluding
+# legitimate aggregate codes. Verified this produces exactly the 538-row,
+# 2-special-code-excluded (9830/9920 -> "none") result the ad hoc 2010
+# build already had, before trusting the same logic on the 2018 sheet.
+#
+# SECTION 2 (was memo1_04b_occupation_crosstab.R, itself was
+# occupation_crosstab.R): adds an occupation row-group to the existing
+# full-sample demographic cross-tab (memo1_10_full_sample_extras.R Section 1 Part B
+# / MEMO1_WEIGHTING.md SS6.4), per Nicholas's request. Occupation, like
 # race/sex, is outside Phase A/B's calibration target (that's metro tier
 # and origin-destination flow, not occupation), so this is a genuine
 # additional out-of-sample check, at the SAME calendar year (2015) and
@@ -23,8 +66,8 @@
 # are 2018-vintage codes only -- codes like "0430"/"5700"/"3600" that are
 # real, common 2010-vintage occupations simply don't appear there because
 # Census merged/renamed them for 2018). Fixed by using the SAME downloaded
-# workbook's "2010 to 2018 Crosswalk" sheet instead, which carries BOTH
-# vintages side by side -- built into
+# workbook's "2010 to 2018 Crosswalk" sheet instead (Section 1 above),
+# which carries BOTH vintages side by side -- built into
 # Data/raw/bls/census_occp_2010_to_soc_major_group.rds (540 distinct 2010
 # Census codes, each resolving to exactly one SOC major-group prefix,
 # verified no cross-row disagreement before trusting it).
@@ -33,17 +76,15 @@
 # own first 2 digits) for a presentable table -- the raw code lists have
 # 500+ detailed categories, too granular to show alongside race/sex/region.
 #
-# ACS-side OCCP comes from a new single-year supplement
-# (Code/memo1_02d_acs_pull_1yr_occp2015.R), mirroring
-# Code/memo1_02c_acs_pull_1yr_race2015.R's pattern exactly (the main 1yr
-# pull never carried occupation, same reasoning as that script's own
-# header: not needed until now).
+# ACS-side OCCP comes from a 2015-only supplement, part of Section 3 of
+# Code/memo1_02_acs_pulls.R.
 #
 # The reweighted line's Phase B ratio table only needs calendar_year=2015,
 # which sits entirely inside the 2010-vintage PUMA window (2012-2021) --
-# no need for memo1_06b's dual-vintage complexity here, single-vintage
-# crosswalks suffice.
+# no need for memo1_06_column1_reweight.R's dual-vintage complexity here,
+# single-vintage crosswalks suffice.
 
+library(readxl)
 library(data.table)
 library(dotenv)
 library(here)
@@ -53,25 +94,6 @@ data_dir  <- file.path(directory, "Data")
 source(here::here("Code/memo1_00_metro_tier_definitions.R"))
 
 log_step <- function(msg) { cat(format(Sys.time(), "%H:%M:%S"), "-", msg, "\n"); flush(stdout()) }
-
-FIXED_YEAR <- 2015
-T_MAX <- 20
-RATIO_CAP_LO <- 0.05
-RATIO_CAP_HI <- 20
-
-LBL_COL1  <- "BA Only"
-LBL_COL2U <- "BA + HS on LI"
-LBL_COL2R <- "BA + HS on LI (reweighted)"
-LBL_ACS   <- "ACS PUMS"
-
-## =========================================================================
-## PART 0: occupation crosswalk -- ACS OCCP (2010-vintage, see header) ->
-## SOC major-group prefix. Revelio's own soc_code_t needs no crosswalk at
-## all -- it's already a real SOC code, first-2-digits taken directly.
-## =========================================================================
-log_step("Building Census OCCP (2010-vintage) -> SOC major-group crosswalk")
-occ_xwalk_2010 <- readRDS(file.path(data_dir, "raw/bls/census_occp_2010_to_soc_major_group.rds"))
-setDT(occ_xwalk_2010)
 
 SOC_MAJOR_GROUPS <- c(
   "11" = "Management", "13" = "Business and Financial Operations", "15" = "Computer and Mathematical",
@@ -85,15 +107,96 @@ SOC_MAJOR_GROUPS <- c(
   "49" = "Installation, Maintenance, and Repair", "51" = "Production",
   "53" = "Transportation and Material Moving", "55" = "Military Specific"
 )
+
+## ===========================================================================
+## SECTION 1: OCCP -> SOC major-group crosswalk (both vintages)
+## ===========================================================================
+log_step("SECTION 1: OCCP -> SOC major-group crosswalk")
+
+xlsx_path <- file.path(data_dir, "raw/bls/2018-occupation-code-list-and-crosswalk.xlsx")
+
+extract_leaf_rows <- function(dt, code_col, soc_col) {
+  rows <- dt[grepl("^[0-9]{4}$", get(code_col)) & grepl("^[0-9]{2}-", get(soc_col))]
+  rows[, major_prefix := substr(get(soc_col), 1, 2)]
+  dup <- rows[, .N, by = code_col][N > 1]
+  if (nrow(dup) > 0) stop(sprintf("%d duplicated %s values -- extraction rule is not unique, investigate before trusting", nrow(dup), code_col))
+  rows
+}
+
+## ---- 2010-vintage: "2010 to 2018 Crosswalk " sheet, its own 2010 SOC/
+## Census columns (header rows found at skip=3 by inspection). ----
+log_step("Building 2010-vintage OCCP -> SOC major-group crosswalk")
+raw_2010 <- read_excel(xlsx_path, sheet = "2010 to 2018 Crosswalk ", col_names = FALSE, skip = 3)
+setDT(raw_2010)
+setnames(raw_2010, c("soc2010", "census2010", "title2010", "soc2018", "census2018", "title2018"))
+
+xwalk_2010 <- extract_leaf_rows(raw_2010, "census2010", "soc2010")
+n_special_2010 <- raw_2010[grepl("^[0-9]{4}$", census2010) & !grepl("^[0-9]{2}-", soc2010), .N]
+cat(sprintf("2010-vintage: %d codes resolved to a SOC major-group prefix, %d special non-occupation code(s) excluded (soc2010=\"none\")\n",
+            nrow(xwalk_2010), n_special_2010))
+
+out_2010 <- xwalk_2010[, .(census_2010 = census2010, major_prefix)]
+setorder(out_2010, census_2010)
+saveRDS(out_2010, file.path(data_dir, "raw/bls/census_occp_2010_to_soc_major_group.rds"))
+log_step(sprintf("Wrote census_occp_2010_to_soc_major_group.rds (%d rows)", nrow(out_2010)))
+
+## ---- 2018-vintage: "2018 Census Occ Code List" sheet -- a nested outline
+## (category header rows, then leaf/aggregate rows), 4 raw columns. ----
+log_step("Building 2018-vintage OCCP -> SOC major-group crosswalk")
+raw_2018 <- read_excel(xlsx_path, sheet = "2018 Census Occ Code List", col_names = FALSE)
+setDT(raw_2018)
+setnames(raw_2018, c("cat1", "title2018", "census2018", "soc2018"))
+
+xwalk_2018 <- extract_leaf_rows(raw_2018, "census2018", "soc2018")
+n_special_2018 <- raw_2018[grepl("^[0-9]{4}$", census2018) & !grepl("^[0-9]{2}-", soc2018), .N]
+cat(sprintf("2018-vintage: %d codes resolved to a SOC major-group prefix, %d special non-occupation code(s) excluded (soc2018=\"none\")\n",
+            nrow(xwalk_2018), n_special_2018))
+
+out_2018 <- xwalk_2018[, .(census_2018 = census2018, major_prefix)]
+setorder(out_2018, census_2018)
+saveRDS(out_2018, file.path(data_dir, "raw/bls/census_occp_2018_to_soc_major_group.rds"))
+log_step(sprintf("Wrote census_occp_2018_to_soc_major_group.rds (%d rows)", nrow(out_2018)))
+
+## ---- sanity: both vintages resolve to exactly the 23 known SOC major
+## groups, no orphan prefixes ----
+stopifnot(all(out_2010$major_prefix %in% names(SOC_MAJOR_GROUPS)))
+stopifnot(all(out_2018$major_prefix %in% names(SOC_MAJOR_GROUPS)))
+cat("Both crosswalks resolve entirely within the 23 known SOC major groups -- OK\n")
+
+rm(raw_2010, xwalk_2010, out_2010, raw_2018, xwalk_2018, out_2018)
+gc()
+
+log_step("SECTION 1 done.")
+
+## ===========================================================================
+## SECTION 2: occupation cross-tab (2015 cross-section, 4 kept lines)
+## ===========================================================================
+log_step("SECTION 2: occupation cross-tab")
+
+FIXED_YEAR <- 2015
+T_MAX <- 20
+RATIO_CAP_LO <- 0.05
+RATIO_CAP_HI <- 20
+
+LBL_COL1  <- "BA Only"
+LBL_COL2U <- "BA + HS on LI"
+LBL_COL2R <- "BA + HS on LI (reweighted)"
+LBL_ACS   <- "ACS PUMS"
+
+## ---- PART 0: occupation crosswalk -- ACS OCCP (2010-vintage, see header)
+## -> SOC major-group prefix. Revelio's own soc_code_t needs no crosswalk
+## at all -- it's already a real SOC code, first-2-digits taken directly. ----
+log_step("Loading Census OCCP (2010-vintage) -> SOC major-group crosswalk")
+occ_xwalk_2010 <- readRDS(file.path(data_dir, "raw/bls/census_occp_2010_to_soc_major_group.rds"))
+setDT(occ_xwalk_2010)
+
 occ_xwalk_2010[, major_group := unname(SOC_MAJOR_GROUPS[major_prefix])]
 stopifnot(all(!is.na(occ_xwalk_2010$major_group)))  # every 2-digit prefix in the real crosswalk should resolve to a known major group
 
 occp_to_major <- setNames(occ_xwalk_2010$major_group, occ_xwalk_2010$census_2010)
 soc_prefix_to_major <- function(soc_short) unname(SOC_MAJOR_GROUPS[substr(soc_short, 1, 2)])
 
-## =========================================================================
-## PART 1: ACS side -- 2015 OCCP supplement joined to pums_1yr_filt.rds
-## =========================================================================
+## ---- PART 1: ACS side -- 2015 OCCP supplement joined to pums_1yr_filt.rds ----
 log_step("Loading ACS 1yr PUMS + OCCP 2015 supplement")
 pums_1yr <- readRDS(file.path(data_dir, "intermediate/pums_1yr_filt.rds")); setDT(pums_1yr)
 occp2015 <- readRDS(file.path(data_dir, "intermediate/pums_1yr_occp2015.rds")); setDT(occp2015)
@@ -108,9 +211,7 @@ cat(sprintf("ACS %d OCCP match rate onto the supplementary pull: %.1f%%\n", FIXE
 cat(sprintf("ACS %d OCCP -> major-group resolve rate (of matched): %.1f%%\n", FIXED_YEAR,
             100 * mean(!is.na(acs_year$major_group[!is.na(acs_year$occp_padded)]))))
 
-## =========================================================================
-## PART 2: Revelio side -- Column 1/2 at the FIXED_YEAR cross-section
-## =========================================================================
+## ---- PART 2: Revelio side -- Column 1/2 at the FIXED_YEAR cross-section ----
 log_step("Loading Column 1/2")
 col1 <- readRDS(file.path(data_dir, "intermediate/column1_covariates.rds")); setDT(col1)
 li   <- readRDS(file.path(data_dir, "intermediate/column2_reweighted.rds")); setDT(li)
@@ -153,11 +254,10 @@ cat(sprintf("Column 1 %d cross-section n=%d, SOC->major-group resolve rate: %.1f
 cat(sprintf("Column 2 %d cross-section n=%d, SOC->major-group resolve rate: %.1f%%\n",
             FIXED_YEAR, nrow(slice2), 100 * mean(!is.na(slice2$major_group))))
 
-## =========================================================================
-## PART 3: rank3_region Phase B ratio table, calendar_year=2015 only --
-## single-vintage (2010) suffices, same construction as memo1_06b/07d but
-## without the dual-vintage machinery this year doesn't need.
-## =========================================================================
+## ---- PART 3: rank3_region Phase B ratio table, calendar_year=2015 only
+## -- single-vintage (2010) suffices, same construction as
+## memo1_06_column1_reweight.R/memo1_09d but without the dual-vintage
+## machinery this year doesn't need. ----
 log_step("Building rank3_region Phase B ratio table (2010-vintage, covers 2015)")
 CALIB_YEARS_2010 <- setdiff(2012:2021, 2020)
 lookup_region <- build_cbsa_tier_lookup("rank3_region")
@@ -219,9 +319,7 @@ m_b <- merge(data.table(origin_tier = slice2$origin_tier_region, dest_tier = sli
 ratio_b_vec <- fifelse(is.na(m_b$ratio), 1, m_b$ratio)
 slice2[, w_phaseb := fifelse(is.na(origin_tier_region), NA_real_, w_full_joint * ratio_b_vec)]
 
-## =========================================================================
-## PART 4: weighted occupation shares, all four series
-## =========================================================================
+## ---- PART 4: weighted occupation shares, all four series ----
 weighted_share <- function(weight, category) {
   d <- data.table(weight = weight, category = category)
   d <- d[!is.na(category) & !is.na(weight) & weight > 0]
@@ -244,3 +342,5 @@ log_step("Wrote memo1_occupation_crosstab_full_simplified.csv")
 
 cat(sprintf("\n=== Occupation cross-tab, %d (wide) ===\n", FIXED_YEAR))
 print(dcast(out, major_group ~ source, value.var = "share"))
+
+log_step("SECTION 2 done. memo1_04_occupation.R done.")

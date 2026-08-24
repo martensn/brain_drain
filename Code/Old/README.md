@@ -71,3 +71,32 @@ replicated anywhere else in the active pipeline.
 `09b_plots_old.Rmd` (2026-07-29): superseded by its own `_old` suffix and
 naming (`13_9b_plots_old.Rmd` in some older notes -- `09b_plots_old.Rmd` is
 the actual current filename). No live consumer.
+
+## Memo 1-era archive (merged in from a separate `Archive/` folder, 2026-08-24)
+
+The Memo 1 cleanup pass (see `../README_memo1.md`) produced its own batch of
+superseded/dead files, briefly kept in a second `Code/Archive/` folder before
+being merged here, since one archive location is clearer than two. Verified
+via output-file grep (not just `source()`) before archiving any of these --
+see `README_memo1.md`'s own "`Archive/`" section for the full per-file
+rationale, not repeated here. Summary:
+- `memo1_10_metro_tier_plot.R` / `_add_occ_line.R` -- superseded by
+  `memo1_11a_final_plots.R`.
+- `memo1_02c_acs_pull_1yr_race2015.R` / `_occp2015.R` / `_occp_allyears.R` --
+  superseded by the consolidated `memo1_02c_acs_pull_1yr_supplements.R`.
+- `metro_tier_map.R`, `acs_cbsa_population_benchmark.R`,
+  `nativity_profile_creation.R` + `_plots.R`, `omission_missingness_analysis.R`
+  + `_plot.R`, `phase_b_flow_loss_analysis.R`, `puma_boundary_crossing_analysis.R` --
+  standalone diagnostics, never part of Memo 1's own write-up, no downstream
+  consumer.
+- `cohort.R`, `kappa.R`, `measure_return.R`, `e_detect_mismatches.R`,
+  `yagan.R` -- pre-Memo-1 (JOLE-era) analysis scripts, no saved output at all.
+- `acs_reweight.R` + `regression_data.csv` -- the JOLE-referee-response-era
+  5-rung reweighting ladder; its `pums_cells.rds`/`pums_acs5_filt.rds` writes
+  are shadowed by `memo1_02a_acs_pull_5yr.R`'s fresher build of the same
+  filenames.
+
+Unlike the rest of this folder, these files are current-vintage (2026-08,
+not 2023-2025) and their paths are NOT stale -- they were archived for being
+superseded or dead-ended, not for being outdated in the "old `Data/`
+layout" sense that applies to everything above this section.

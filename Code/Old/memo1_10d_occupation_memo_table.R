@@ -1,4 +1,5 @@
-# memo1_09_occupation_memo_table_v2.R
+# memo1_10d_occupation_memo_table.R (was memo1_09_occupation_memo_table_v2.R;
+# needs memo1_10c_occupation_memo_table_draft.R's output to have run first)
 #
 # [NEW 2026-08-23, REPLACES the first SS6.5 draft] Nicholas's correction:
 # the first version of this table only had the new weight's column, with
@@ -14,7 +15,7 @@
 # occupation -- rather than re-deriving or hand-transcribing them, so
 # there's no risk of a copy error introducing a mismatch with SS6.4's
 # published values) alongside the new weight's own numbers already saved
-# by memo1_09_occupation_memo_table.R (memo1_demo_crosstab_geo_occ_2015.csv).
+# by memo1_10c_occupation_memo_table_draft.R (memo1_demo_crosstab_geo_occ_2015.csv).
 #
 # Industry: Nicholas separately asked for an industry row-group too.
 # Investigated before writing anything -- NOT available. The Revelio
@@ -22,7 +23,7 @@
 # (Data/intermediate/pos_parquet_pilot, confirmed via its live Arrow
 # schema) carries only user_id/country/state/msa/startdate/enddate/
 # seniority/onet_code/year -- no NAICS or industry field of any kind.
-# occupation_crosstab.R's SOC classification is occupation (what job you
+# memo1_04b_occupation_crosstab.R's SOC classification is occupation (what job you
 # do), not industry (what sector you work in) -- the two aren't
 # substitutable, and there's no crosswalk that recovers one from the
 # other without genuine information loss (most SOC codes span many
@@ -121,7 +122,7 @@ header_lines <- c(
           format(Sys.Date(), "%Y-%m-%d")),
   "weight's own numbers with nothing to compare them against. This reproduces SS6.4's own table structure --",
   "same four columns (BA Only / BA + HS on LI / [a reweighted column] / ACS PUMS), same race/sex/region/",
-  "occupation rows -- swapping in `w2_occ` (Code/memo1_09_reweight_column2_occupation.R: geography and",
+  "occupation rows -- swapping in `w2_occ` (Code/memo1_07_reweight_column2_occupation.R: geography and",
   "destination occupation raked jointly per calendar year via a 2-margin IPF) as the reweighted column,",
   "in place of SS6.4's geography-only one. BA Only, BA + HS on LI, and ACS PUMS values are read back",
   "unchanged from the exact CSVs SS6.4 itself was built from, not re-derived.",

@@ -1,9 +1,9 @@
-# memo1_07b_cohort_calendar_charts.R
+# memo1_09b_cohort_calendar_charts.R (was memo1_07b_cohort_calendar_charts.R)
 #
 # [NEW 2026-08-12] Generalizes memo1_migration_profile.R + memo1_metro_
 # tiers.R (the un-calibrated calendar-year lines: Column 1, Column 2
 # unweighted/reweighted, ACS benchmark) across the two birth-cohort cuts
-# built by Code/memo1_07a_cohort_inputs.R (born_1980s, born_1990s), per
+# built by Code/memo1_09a_cohort_inputs.R (born_1980s, born_1990s), per
 # Nicholas's request for standalone cohort cuts of the whole memo. Same
 # exact logic as those two production scripts -- copied, not sourced, per
 # this project's standalone-script convention -- just looped over cohort-
@@ -21,11 +21,11 @@
 # [EXTENDED 2026-08-13] The metro-tier ACS benchmark now combines both
 # PUMA vintage windows (2012-2021 via PUMA10 + the 2010-vintage crosswalk,
 # 2022-2023 via PUMA20 + the 2020-vintage crosswalk), matching
-# Code/memo1_07c_cohort_scheme_comparison.R's extension. The migration-
+# Code/memo1_09c_cohort_scheme_comparison.R's extension. The migration-
 # rate side needed no change -- it never depended on PUMA at all, so it
 # already covered 2022-2023 mechanically once the underlying ACS pull did.
 #
-# Run after Code/memo1_07a_cohort_inputs.R.
+# Run after Code/memo1_09a_cohort_inputs.R.
 #
 # Omits memo1_migration_profile.R's Section-3 by-t-vs-by-calendar-year
 # invariant check: that check verifies the regrouping FUNCTION is correct,

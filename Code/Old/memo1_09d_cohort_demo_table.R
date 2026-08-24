@@ -1,4 +1,4 @@
-# memo1_07d_cohort_demo_table.R
+# memo1_09d_cohort_demo_table.R (was memo1_07d_cohort_demo_table.R)
 #
 # [NEW 2026-08-13] Per Nicholas's request: a demographic (race / sex /
 # region) cross-tab comparing every weighting scheme shown in the cohort
@@ -29,7 +29,7 @@
 #    differs by race within the same state/age/sex stratum). But
 #    column2_reweighted_<cohort>.rds only stores the person-COLLAPSED
 #    w_full_joint (summed across the race melt during
-#    Code/memo1_07a_cohort_inputs.R) -- the race-cell-level detail needed to
+#    Code/memo1_09a_cohort_inputs.R) -- the race-cell-level detail needed to
 #    get this right doesn't survive to disk. This script re-runs the exact
 #    same melt + manual_ipf() (copied verbatim, not sourced, per this
 #    project's convention) to recover it, but uses the fresh run only for
@@ -48,7 +48,7 @@
 #    live against that specific vintage before trusting it (see that
 #    script's header) -- joined back on here via SERIALNO+SPORDER.
 #
-# Run after Code/memo1_07a_cohort_inputs.R, Code/memo1_cohort_scheme_
+# Run after Code/memo1_09a_cohort_inputs.R, Code/memo1_cohort_scheme_
 # comparison.R (needs its phase_ratios_<cohort>_<scheme>.rds exports), and
 # Code/memo1_02c_acs_pull_1yr_race2015.R.
 
@@ -90,39 +90,12 @@ tier_from_code_for <- function(scheme, code_vals, state_vals) {
   }
 }
 
-# ---- manual_ipf(): copied verbatim from Code/memo1_04_reweight_column2.R /
-# Code/memo1_07a_cohort_inputs.R, same reason as those files: reproducing the
-# exact deterministic algorithm on the exact same inputs is what makes the
-# race-share re-derivation above trustworthy.
-manual_ipf <- function(dt, w_col, margins, maxit = 10, epsilon = 1, cap_lo = 0.05, cap_hi = 20, verbose = FALSE) {
-  dt <- copy(dt)
-  dt[, .rowid := .I]
-  dt[, w_iter := get(w_col)]
-  old_w <- dt$w_iter
-  iter <- 0; converged <- FALSE
-  while (iter < maxit) {
-    for (m in margins) {
-      keys <- m$keys; pop <- m$pop
-      cell_sum <- dt[, .(sample_sum = sum(w_iter)), by = keys]
-      r <- merge(cell_sum, pop, by = keys, all.x = TRUE)
-      r[, ratio := fifelse(!is.na(Freq) & sample_sum > 0, Freq / sample_sum, 1)]
-      r[, ratio := pmin(pmax(ratio, cap_lo), cap_hi)]
-      dt <- merge(dt, r[, c(keys, "ratio"), with = FALSE], by = keys, all.x = TRUE)
-      dt[, ratio := fifelse(is.na(ratio), 1, ratio)]
-      dt[, w_iter := w_iter * ratio]
-      dt[, ratio := NULL]
-    }
-    setorder(dt, .rowid)
-    delta <- max(abs(dt$w_iter - old_w))
-    if (verbose) cat(sprintf("  [manual_ipf] iter=%d delta=%.4f\n", iter, delta))
-    if (is.finite(delta) && delta < epsilon) { converged <- TRUE; break }
-    old_w <- dt$w_iter
-    iter <- iter + 1
-  }
-  cat(sprintf("manual_ipf: %s after %d iteration(s)\n", if (converged) "converged" else "DID NOT CONVERGE", iter))
-  setorder(dt, .rowid)
-  dt$w_iter
-}
+# ---- manual_ipf(): [2026-08-23] centralized to Code/memo1_ipf.R. Same
+# rationale as before -- reproducing the exact deterministic algorithm on
+# the exact same inputs is what makes the race-share re-derivation below
+# trustworthy; sourcing the shared file guarantees "exact same algorithm"
+# by construction instead of relying on manual copy-paste fidelity.
+source(here::here("Code/memo1_ipf.R"))
 
 log_step("Loading ACS 2015 race/sex supplement")
 acs_race2015 <- readRDS(file.path(data_dir, "intermediate/pums_1yr_race2015.rds"))

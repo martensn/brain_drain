@@ -1,15 +1,15 @@
-# build_occupation_crosswalk.R
+# memo1_04a_occupation_crosswalk.R (was build_occupation_crosswalk.R)
 #
 # [NEW 2026-08-23] Builds both vintages of the ACS OCCP -> SOC major-group
 # crosswalk from the already-downloaded Census workbook
 # (Data/raw/bls/2018-occupation-code-list-and-crosswalk.xlsx), as a real,
 # committed, reproducible script -- the existing
-# census_occp_2010_to_soc_major_group.rds (used by occupation_crosstab.R)
+# census_occp_2010_to_soc_major_group.rds (used by memo1_04b_occupation_crosstab.R)
 # was built ad hoc in a prior interactive session with no script behind
 # it. This script regenerates that file identically (verified byte-for-byte
 # against the existing 538-row RDS before this script existed) and adds a
 # NEW census_occp_2018_to_soc_major_group.rds for the post-2017 OCCP
-# vintage, needed because Code/memo1_09_reweight_column2_occupation.R
+# vintage, needed because Code/memo1_07_reweight_column2_occupation.R
 # calibrates on multiple calendar years, not just 2015.
 #
 # Vintage cutover: VERIFIED LIVE (not assumed) via tidycensus's bundled

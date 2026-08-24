@@ -1,8 +1,8 @@
-# memo1_09_reweight_column2_occupation.R
+# memo1_07_reweight_column2_occupation.R (was memo1_09_reweight_column2_occupation.R)
 #
 # [NEW 2026-08-23] Adds occupation as a genuine per-calendar-year Stage 2
 # calibration margin, not just an out-of-sample diagnostic
-# (occupation_crosstab.R stays untouched, as a fixed-2015 check). Per
+# (memo1_04_occupation.R Section 2 stays untouched, as a fixed-2015 check). Per
 # Nicholas's explicit design choices:
 #   - Margin type: MARGINAL destination-occupation share by year (23 SOC
 #     major groups), not an origin->destination occupation TRANSITION --
@@ -14,7 +14,7 @@
 #     as every other file that needs it) unmodified -- run once PER
 #     CALENDAR YEAR over that year's Revelio person-year rows. This is a
 #     real, deliberate departure from the existing geography-only Stage 2
-#     scripts (memo1_08/memo1_06b/occupation_crosstab.R), which use a
+#     scripts (memo1_08/memo1_06b/memo1_04_occupation.R Section 2), which use a
 #     single-shot ratio and explicitly are NOT IPF -- that design is left
 #     untouched; this script is a new, additional weight, not a
 #     replacement.
@@ -38,7 +38,7 @@
 #
 # Requires: column2_reweighted.rds, pums_1yr_filt.rds,
 # pums_1yr_occp_allyears.rds (Code/memo1_02e), both occupation crosswalks
-# (Code/build_occupation_crosswalk.R), and the rank3_region PUMA/MIGPUMA
+# (Code/memo1_04_occupation.R Section 1), and the rank3_region PUMA/MIGPUMA
 # tier crosswalks (memo1_03a/03b), both PUMA vintages.
 
 library(data.table)
@@ -73,41 +73,12 @@ soc_prefix_to_major <- function(soc_short) unname(SOC_MAJOR_GROUPS[substr(soc_sh
 occ_vintage_for_year <- function(y) fifelse(y <= 2017, "2010", "2018")
 
 ## =========================================================================
-## manual_ipf() -- copied verbatim from Code/memo1_04_reweight_column2.R /
-## Code/memo1_08_full_sample_extras.R, same reason as those files.
+## manual_ipf() -- [2026-08-23] centralized to Code/memo1_ipf.R.
 ## =========================================================================
-manual_ipf <- function(dt, w_col, margins, maxit = 10, epsilon = 1, cap_lo = 0.05, cap_hi = 20, verbose = FALSE) {
-  dt <- copy(dt)
-  dt[, .rowid := .I]
-  dt[, w_iter := get(w_col)]
-  old_w <- dt$w_iter
-  iter <- 0; converged <- FALSE
-  while (iter < maxit) {
-    for (m in margins) {
-      keys <- m$keys; pop <- m$pop
-      cell_sum <- dt[, .(sample_sum = sum(w_iter)), by = keys]
-      r <- merge(cell_sum, pop, by = keys, all.x = TRUE)
-      r[, ratio := fifelse(!is.na(Freq) & sample_sum > 0, Freq / sample_sum, 1)]
-      r[, ratio := pmin(pmax(ratio, cap_lo), cap_hi)]
-      dt <- merge(dt, r[, c(keys, "ratio"), with = FALSE], by = keys, all.x = TRUE)
-      dt[, ratio := fifelse(is.na(ratio), 1, ratio)]
-      dt[, w_iter := w_iter * ratio]
-      dt[, ratio := NULL]
-    }
-    setorder(dt, .rowid)
-    delta <- max(abs(dt$w_iter - old_w))
-    if (verbose) cat(sprintf("  [manual_ipf] iter=%d delta=%.4f\n", iter, delta))
-    if (is.finite(delta) && delta < epsilon) { converged <- TRUE; break }
-    old_w <- dt$w_iter
-    iter <- iter + 1
-  }
-  cat(sprintf("manual_ipf: %s after %d iteration(s)\n", if (converged) "converged" else "DID NOT CONVERGE", iter))
-  setorder(dt, .rowid)
-  dt$w_iter
-}
+source(here::here("Code/memo1_ipf.R"))
 
 # ---- ACS-side geography flow data for ONE PUMA vintage window -- copied
-# from memo1_06b_scheme_comparison.R / memo1_08 (same already-verified logic).
+# from memo1_08_calibration_charts.R Section 4 / memo1_08 (same already-verified logic).
 build_acs_flow_data <- function(pums_1yr, years, puma_col, migpuma_col, puma_tier, migpuma_tier) {
   acs_window <- pums_1yr[survey_year %in% years & !is.na(get(puma_col))]
   acs_window[, state_puma := paste0(ST, get(puma_col))]
@@ -167,7 +138,7 @@ pums_1yr <- pums_1yr[survey_year %in% CALIB_YEARS]
 
 ## =========================================================================
 ## PART 1: ACS geography flow margin (rank3_region, both PUMA vintages) --
-## identical construction to memo1_08/occupation_crosstab.R.
+## identical construction to memo1_08/memo1_04_occupation.R Section 2.
 ## =========================================================================
 log_step("PART 1: ACS geography flow margin (rank3_region)")
 puma_tier_region_2010 <- readRDS(file.path(data_dir, "intermediate/puma_cbsa_tier_crosswalk_2010_rank3_region.rds")); setDT(puma_tier_region_2010)

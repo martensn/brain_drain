@@ -2,11 +2,11 @@
 ## acs_pull_1yr.R
 ##
 ## ACS 1-year PUMS pull across many calendar years, for the redesigned
-## calendar-year migration-rate chart (Code/memo1_05a_migration_profile.R) and
-## metro-tier-share chart (Code/memo1_05b_metro_tiers.R). A sibling to
+## calendar-year migration-rate chart (Code/memo1_08a_migration_profile.R) and
+## metro-tier-share chart (Code/memo1_08b_metro_tiers.R). A sibling to
 ## Code/memo1_02a_acs_pull_5yr.R, NOT a parameterization of it -- acs_pull.R's whole
 ## design (one static 5-year vintage, one checkpoint, feeds
-## Code/memo1_04_reweight_column2.R's raking cells) stays untouched. This script
+## Code/memo1_05_reweight_column2.R's raking cells) stays untouched. This script
 ## duplicates (does not source()) acs_pull.R's MIGSP-vs-ST mover-flag logic;
 ## same codebook concept, but 1-year files need real per-year handling (see
 ## below), so it isn't a literal copy-paste.
@@ -95,7 +95,7 @@
 ## philosophy as Code/memo1_01a_column1_construct.R's per-chunk checkpoints
 ## (which survived a mid-run reboot).
 ##
-## Run before Code/memo1_05a_migration_profile.R and Code/memo1_05b_metro_tiers.R.
+## Run before Code/memo1_08a_migration_profile.R and Code/memo1_08b_metro_tiers.R.
 ## Standalone script, no source() between files.
 ## =============================================================================
 
@@ -247,7 +247,7 @@ pums_1yr <- rbindlist(lapply(raw_files, readRDS), use.names = TRUE, fill = TRUE)
 # zero-padded across vintages (2012-2016 return single-digit FIPS states
 # as "1" not "01") -- pad to 2 digits via the same integer-round-trip
 # pattern used for PUMA10, so downstream string joins (state_puma in
-# Code/memo1_05b_metro_tiers.R) are safe regardless of which year's raw
+# Code/memo1_08b_metro_tiers.R) are safe regardless of which year's raw
 # formatting produced a given row. Harmless for already-padded years.
 pums_1yr[, ST := sprintf("%02d", as.integer(ST))]
 

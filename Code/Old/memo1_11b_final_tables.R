@@ -1,4 +1,4 @@
-# memo1_11_final_tables.R
+# memo1_11b_final_tables.R
 #
 # [NEW 2026-08-23] Builds the two FINAL table versions for
 # MEMO1_WEIGHTING.md, replacing the ad hoc single-column SS6.5 draft
@@ -117,7 +117,7 @@ build_4col_lines <- function() {
     "### 6.5 Final specification",
     "",
     sprintf("Table results only, rebuilt %s. The final specification's \"reweighted\" line is `w2_occ`", format(Sys.Date(), "%Y-%m-%d")),
-    "(Code/memo1_09_reweight_column2_occupation.R: geography and destination occupation raked jointly per",
+    "(Code/memo1_07_reweight_column2_occupation.R: geography and destination occupation raked jointly per",
     "calendar year via a 2-margin IPF). The intermediate geography-only weighting scheme used earlier in this",
     "project is dropped from this table entirely -- see SS6.6 for the full stage-by-stage comparison including it.",
     "",

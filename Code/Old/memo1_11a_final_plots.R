@@ -1,4 +1,4 @@
-# memo1_11_final_plots.R
+# memo1_11a_final_plots.R
 #
 # [NEW 2026-08-23] Builds the two FINAL deliverable versions of both
 # calibration-comparison figures, replacing the single ambiguous
@@ -185,4 +185,4 @@ build_migration_plot <- function(mode) {
 build_migration_plot("4line")
 build_migration_plot("6line")
 
-cat("memo1_11_final_plots.R done.\n")
+cat("memo1_11a_final_plots.R done.\n")

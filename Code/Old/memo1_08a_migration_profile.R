@@ -1,4 +1,4 @@
-# memo1_05a_migration_profile.R
+# memo1_08a_migration_profile.R (was memo1_05a_migration_profile.R)
 #
 # [REDESIGNED 2026-08-11 at Nicholas's request] x-axis changed from years-
 # since-graduation (lifecycle) to CALENDAR YEAR (secular trend) -- the
@@ -6,7 +6,7 @@
 # graduate's career" but "has migration probability itself changed over
 # calendar time." Two comparisons, same as before: (1) this script's
 # year-over-year interstate migration rate, now by calendar year, and
-# (2) metro-tier share by calendar year (Code/memo1_05b_metro_tiers.R).
+# (2) metro-tier share by calendar year (Code/memo1_08b_metro_tiers.R).
 #
 # Revelio: cbsa_state_0..50 is indexed by years-since-grad (t); a given t
 # slice's observations occurred in calendar_year = col_end + t (confirmed
@@ -26,7 +26,7 @@
 # trend measures of the same underlying population concept, not a lifecycle
 # profile matched to a synthetic cohort.
 #
-# Run after Code/memo1_04_reweight_column2.R (column2_reweighted.rds, w_full_joint),
+# Run after Code/memo1_05_reweight_column2.R (column2_reweighted.rds, w_full_joint),
 # Code/memo1_01c_covariates.R (column1_covariates.rds), and Code/memo1_02b_acs_pull_1yr.R
 # (pums_1yr_filt.rds). Standalone script, no source() between files.
 

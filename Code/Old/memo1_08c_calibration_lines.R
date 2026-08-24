@@ -1,4 +1,4 @@
-# memo1_06a_calibration_lines.R
+# memo1_08c_calibration_lines.R (was memo1_06a_calibration_lines.R)
 #
 # [NEW 2026-08-12] Produces real, savable calendar-year output for BOTH
 # Phase A (unconditional tier-share calibration) and Phase B (origin-

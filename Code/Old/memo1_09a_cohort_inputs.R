@@ -1,4 +1,4 @@
-# memo1_07a_cohort_inputs.R
+# memo1_09a_cohort_inputs.R (was memo1_07a_cohort_inputs.R)
 #
 # [NEW 2026-08-12] Builds birth-cohort-restricted versions of the base
 # inputs used throughout Memo 1, per Nicholas's request for two cuts of
@@ -55,43 +55,9 @@ COHORTS <- list(
   born_1990s = c(1990, 1999)
 )
 
-# ---- manual_ipf(): copied verbatim from Code/memo1_04_reweight_column2.R (not
-# sourced, per this project's standalone-script convention) -- same
-# fractional-race-melt philosophy, same 0.05x-20x per-iteration cap, same
-# .rowid row-order safeguard. See that file's header for the full
-# debugging trail (survey::rake()/postStratify()/calibrate() all tried and
-# abandoned first) -- not repeated here.
-manual_ipf <- function(dt, w_col, margins, maxit = 10, epsilon = 1, cap_lo = 0.05, cap_hi = 20, verbose = FALSE) {
-  dt <- copy(dt)
-  dt[, .rowid := .I]
-  dt[, w_iter := get(w_col)]
-  old_w <- dt$w_iter
-  iter <- 0; converged <- FALSE
-  while (iter < maxit) {
-    for (m in margins) {
-      keys <- m$keys; pop <- m$pop
-      cell_sum <- dt[, .(sample_sum = sum(w_iter)), by = keys]
-      r <- merge(cell_sum, pop, by = keys, all.x = TRUE)
-      r[, ratio := fifelse(!is.na(Freq) & sample_sum > 0, Freq / sample_sum, 1)]
-      r[, ratio := pmin(pmax(ratio, cap_lo), cap_hi)]
-      dt <- merge(dt, r[, c(keys, "ratio"), with = FALSE], by = keys, all.x = TRUE)
-      dt[, ratio := fifelse(is.na(ratio), 1, ratio)]
-      dt[, w_iter := w_iter * ratio]
-      dt[, ratio := NULL]
-    }
-    setorder(dt, .rowid)
-    delta <- max(abs(dt$w_iter - old_w))
-    if (verbose) cat(sprintf("  [manual_ipf] iter=%d delta=%.4f any_nonfinite=%s\n", iter, delta, any(!is.finite(dt$w_iter))))
-    if (is.finite(delta) && delta < epsilon) { converged <- TRUE; break }
-    old_w <- dt$w_iter
-    iter <- iter + 1
-  }
-  if (!converged) warning(sprintf("manual_ipf did not converge after %d iterations (delta=%.4f, epsilon=%d)", iter, delta, epsilon))
-  cat(sprintf("manual_ipf: %s after %d iteration(s) (delta=%.4f), any non-finite: %s\n",
-              if (converged) "converged" else "DID NOT CONVERGE", iter, delta, any(!is.finite(dt$w_iter))))
-  setorder(dt, .rowid)
-  dt$w_iter
-}
+# ---- manual_ipf(): [2026-08-23] centralized to Code/memo1_ipf.R, was an
+# independent copy here.
+source(here::here("Code/memo1_ipf.R"))
 
 ## =========================================================================
 ## Load everything once (shared across both cohorts)

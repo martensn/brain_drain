@@ -1,4 +1,4 @@
-# memo1_05b_metro_tiers.R
+# memo1_08b_metro_tiers.R (was memo1_05b_metro_tiers.R)
 #
 # [REDESIGNED 2026-08-11 at Nicholas's request] x-axis changed from years-
 # since-graduation (lifecycle) to CALENDAR YEAR (secular trend) -- has the
@@ -10,7 +10,7 @@
 # population snapshot -- unchanged, see Section 0).
 #
 # Revelio: same calendar_year = col_end + t re-bucketing as
-# Code/memo1_05a_migration_profile.R (see that script's header for the full
+# Code/memo1_08a_migration_profile.R (see that script's header for the full
 # rationale and the col_end-type gotcha). Revelio's line is NOT bounded to
 # any particular window -- its CBSA assignment comes from this repo's own
 # unified_cbsa.csv, a single fixed scheme, not PUMA-vintage-dependent.
@@ -30,7 +30,7 @@
 #
 # Run after: Code/memo1_02b_acs_pull_1yr.R (pums_1yr_filt.rds, PUMA10 populated for
 # 2012-2021), Code/memo1_03a_puma_cbsa_crosswalk.R (PUMA_VINTAGE=2010),
-# Code/memo1_01c_covariates.R (column1/2), Code/memo1_04_reweight_column2.R
+# Code/memo1_01c_covariates.R (column1/2), Code/memo1_05_reweight_column2.R
 # (column2_reweighted.rds).
 
 library(data.table)
@@ -81,7 +81,7 @@ code_to_tier <- function(codes) {
 ## SECTION 1: Revelio -- share by tier, by calendar year
 ## -----------------------------------------------------------------------
 ## Same t-slice-then-collapse-immediately pattern as
-## Code/memo1_05a_migration_profile.R's revelio_rate_by_calendar_year() -- never
+## Code/memo1_08a_migration_profile.R's revelio_rate_by_calendar_year() -- never
 ## materializes a full person x t long table.
 
 resolve_col_end <- function(dt, is_factor_like) {

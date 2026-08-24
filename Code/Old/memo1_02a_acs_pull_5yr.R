@@ -8,14 +8,14 @@
 ## original, JOLE-referee-response context it was written for) into a
 ## standalone script that has zero dependency on Column 1/2 or demographics,
 ## so it's cached once rather than re-hit on every iteration of
-## Code/memo1_04_reweight_column2.R's merge/raking logic.
+## Code/memo1_05_reweight_column2.R's merge/raking logic.
 ##
 ## This is a REAL, first-time execution as of 2026-08-10 -- no
 ## pums_cells.rds/pums_acs5_filt.rds exist on disk yet, so running this
 ## script means genuine live Census API calls (51 states x 80 replicate
 ## weights each via get_pums()), not a cache hit. Expect real runtime.
 ##
-## Run this before Code/memo1_04_reweight_column2.R. No source() between files, per
+## Run this before Code/memo1_05_reweight_column2.R. No source() between files, per
 ## this repo's convention -- re-run this script only if PUMS_YEAR changes.
 ## =============================================================================
 
@@ -257,7 +257,7 @@ pums_filt[, grad_degree := as.integer(as.integer(SCHL) >= 22)]
 
 # No ACS PUMS analog exists for transfer status (no question asks whether a
 # respondent transferred between undergraduate institutions) -- deliberately
-# not derived here. Code/memo1_04_reweight_column2.R's final characteristics table
+# not derived here. Code/memo1_05_reweight_column2.R's final characteristics table
 # should leave that cell blank for the ACS column and say so, consistent
 # with this memo's established pattern of documenting asymmetries (e.g.
 # Column 1's missing HS-side geography) rather than papering over them.
@@ -288,7 +288,7 @@ print(head(flag_thin[order(pop)], 10))
 
 ## -----------------------------------------------------------------------
 ## SECTION 5: benchmark covariate summary (new -- for a quick standalone
-## look; Code/memo1_04_reweight_column2.R's final characteristics table recomputes
+## look; Code/memo1_05_reweight_column2.R's final characteristics table recomputes
 ## these shares directly from pums_acs5_filt.rds rather than depending on
 ## this file, so this is a convenience artifact, not a load-bearing one)
 ## -----------------------------------------------------------------------

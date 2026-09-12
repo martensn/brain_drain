@@ -42,6 +42,13 @@ directory <- Sys.getenv("BRAIN_DRAIN_ROOT")
 data_dir  <- file.path(directory, "Data")
 options(tigris_use_cache = TRUE)
 source(here::here("Code/memo1_00_metro_tier_definitions.R"))
+# [NEW 2026-09-12] theme_web()/ggsave_web() -- dark-mode "website" companion
+# PNG for martensn.github.io. See Code/theme_web.R's own header. Doesn't
+# touch this map's deliberate cartographic ink (white state borders, pink
+# #d1476b region borders/labels, the tier_colors fill palette) -- only the
+# white background + dark (#1a1a1a) text this script's own theme() call
+# sets explicitly.
+source(here::here("Code/theme_web.R"))
 
 FONT <- "Segoe UI"
 NON_CONUS_FIPS <- c("02", "15", "60", "66", "69", "72", "78")  # AK, HI, AS, GU, MP, PR, VI
@@ -126,3 +133,5 @@ p <- ggplot(counties_sf) +
 out <- file.path(data_dir, "results/metro_tier_map.png")
 ggsave(out, p, width = 9, height = 5.8, units = "in", dpi = 600, bg = "white")
 cat(sprintf("Wrote %s\n", out))
+
+ggsave_web(out, p + theme_web(legend_rows = 1, void = TRUE), width = 9, height = 5.8)

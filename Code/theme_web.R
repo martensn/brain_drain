@@ -96,8 +96,22 @@ WEB_FONT <- "Arial"  # [FIXED 2026-09-12, was "Segoe UI" -- a plausible-looking
 #'   are filled solid with WEB_BG instead (use this only if the PNG needs
 #'   to look correct somewhere the background isn't guaranteed to be this
 #'   exact dark color, e.g. pasted into a different document).
-theme_web <- function(legend_rows = 2, font = WEB_FONT, transparent = TRUE) {
+#' @param void [FIXED 2026-09-12, real bug caught by actually looking at
+#'   the rendered output, not assumed fine] Set TRUE for a plot built on
+#'   theme_void() (metro_tier_map.R's map). theme_void() blanks
+#'   axis.text/axis.title/axis.line/axis.ticks entirely -- but ggplot2
+#'   theme composition means a LATER layer that sets one of those to a
+#'   real element_text()/element_line() (as this function did
+#'   unconditionally before this fix) OVERRIDES an earlier layer's
+#'   element_blank(), which silently resurrected a full lat/long
+#'   axis+gridline frame around the map that theme_void() had deliberately
+#'   removed. With void = TRUE, those four elements are set to
+#'   element_blank() here too instead, so a void-based plot stays void.
+theme_web <- function(legend_rows = 2, font = WEB_FONT, transparent = TRUE, void = FALSE) {
   bg_fill <- if (transparent) "transparent" else WEB_BG
+  axis_text_el  <- if (void) element_blank() else element_text(color = WEB_FG, family = font)
+  axis_line_el  <- if (void) element_blank() else element_line(color = WEB_AXIS)
+  axis_ticks_el <- if (void) element_blank() else element_line(color = WEB_AXIS)
 
   list(
     guides(color = guide_legend(nrow = legend_rows, byrow = TRUE)),
@@ -114,8 +128,8 @@ theme_web <- function(legend_rows = 2, font = WEB_FONT, transparent = TRUE) {
       text          = element_text(color = WEB_FG, family = font),
       plot.title    = element_text(color = WEB_FG, family = font, hjust = 0.5),
       plot.subtitle = element_text(color = WEB_FG, family = font),
-      axis.title    = element_text(color = WEB_FG, family = font),
-      axis.text     = element_text(color = WEB_FG, family = font),
+      axis.title    = axis_text_el,
+      axis.text     = axis_text_el,
       legend.text   = element_text(color = WEB_FG, family = font),
       legend.title  = element_text(color = WEB_FG, family = font),
       strip.text    = element_text(color = WEB_FG, family = font, face = "bold"),
@@ -124,10 +138,10 @@ theme_web <- function(legend_rows = 2, font = WEB_FONT, transparent = TRUE) {
       panel.grid.major.x = element_blank(),
       panel.grid.major.y = element_line(color = WEB_GRID, linewidth = 0.3),
 
-      axis.line   = element_line(color = WEB_AXIS),
-      axis.line.x = element_line(color = WEB_AXIS),
-      axis.line.y = element_line(color = WEB_AXIS),
-      axis.ticks  = element_line(color = WEB_AXIS),
+      axis.line   = axis_line_el,
+      axis.line.x = axis_line_el,
+      axis.line.y = axis_line_el,
+      axis.ticks  = axis_ticks_el,
 
       legend.position = "bottom"
     )

@@ -45,22 +45,46 @@ library(here)
 load_dot_env(here::here(".env"))
 directory <- Sys.getenv("BRAIN_DRAIN_ROOT")
 data_dir  <- file.path(directory, "Data")
+# [NEW 2026-09-12] theme_web()/WEB_FG -- dark-mode "website" companion PNG
+# for martensn.github.io. See Code/theme_web.R's own header. NOT
+# ggsave_web(), since this script uses agg_png()/grid.arrange(), not
+# ggsave() -- the web variant below mirrors that same save pattern by hand
+# instead.
+source(here::here("Code/theme_web.R"))
 
 FONT <- "Segoe UI"
 diverging_colors <- c('#762a83','#9970ab','#c2a5cf','#e7d4e8','#f7f7f7','#d9f0d3','#a6dba0','#5aae61','#1b7837')
 
-shared_theme <- theme(
-  panel.background = element_rect(fill = "transparent", color = NA),
-  plot.background  = element_rect(fill = "transparent", color = NA),
-  legend.background = element_rect(fill = "transparent", color = NA),
-  legend.key = element_rect(fill = "transparent", color = NA),
-  text = element_text(size = 10, family = FONT),
-  plot.title = element_text(hjust = 0.5, size = 11),
-  panel.grid.minor = element_blank(),
-  panel.grid.major.x = element_blank(),
-  panel.grid.major.y = element_line(color = "grey", linewidth = 0.3),
-  legend.position = "bottom"
-)
+make_shared_theme <- function(ink = NULL) {
+  base <- theme(
+    panel.background = element_rect(fill = "transparent", color = NA),
+    plot.background  = element_rect(fill = "transparent", color = NA),
+    legend.background = element_rect(fill = "transparent", color = NA),
+    legend.key = element_rect(fill = "transparent", color = NA),
+    text = element_text(size = 10, family = FONT),
+    plot.title = element_text(hjust = 0.5, size = 11),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "grey", linewidth = 0.3),
+    legend.position = "bottom"
+  )
+  if (is.null(ink)) return(base)
+  # Web variant: same structure as theme_web(), but built here (not
+  # sourced) since this script's own shared_theme has its own plot.title
+  # size (11, not theme_web()'s default) worth preserving.
+  base + theme(
+    text = element_text(size = 10, family = FONT, color = ink),
+    plot.title   = element_text(hjust = 0.5, size = 11, color = ink, family = FONT),
+    axis.title   = element_text(color = ink, family = FONT),
+    axis.text    = element_text(color = ink, family = FONT),
+    legend.text  = element_text(color = ink, family = FONT),
+    legend.title = element_text(color = ink, family = FONT),
+    panel.grid.major.y = element_line(color = WEB_GRID, linewidth = 0.3),
+    axis.line  = element_line(color = WEB_AXIS),
+    axis.ticks = element_line(color = WEB_AXIS)
+  )
+}
+shared_theme <- make_shared_theme()
 
 ## ---- Panel A: IRS SOI destination-tier margin test (2021 only) ----
 ## Numbers transcribed verbatim from HANDOFF.md's 2026-08-11/12 entry --
@@ -73,13 +97,21 @@ irs_test <- data.table(
 )
 status_colors <- c(baseline = "#9e9e9e", better = diverging_colors[9], worse = diverging_colors[1])
 
-pA <- ggplot(irs_test, aes(x = spec, y = gap, fill = status)) +
-  geom_col(width = 0.6) +
-  geom_text(aes(label = scales::percent(gap, accuracy = 0.1)), vjust = -0.5, family = FONT, size = 3.2) +
-  scale_fill_manual(values = status_colors, guide = "none") +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1), expand = expansion(mult = c(0, 0.15))) +
-  labs(x = NULL, y = "Metro-tier gap vs. ACS (2021)",
-       title = "IRS SOI destination-tier margin, single-year test")
+# `ink` colors the geom_text() bar-value labels -- default "black" (drawn
+# over the transparent panel background, which the LIGHT-mode PNG relies
+# on -- fine there since black sits over whatever page it's pasted into,
+# but invisible against the site's dark background) matches unchanged
+# light-mode behavior; the web build below passes WEB_FG instead.
+build_panel_a <- function(ink = "black") {
+  ggplot(irs_test, aes(x = spec, y = gap, fill = status)) +
+    geom_col(width = 0.6) +
+    geom_text(aes(label = scales::percent(gap, accuracy = 0.1)), color = ink, vjust = -0.5, family = FONT, size = 3.2) +
+    scale_fill_manual(values = status_colors, guide = "none") +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1), expand = expansion(mult = c(0, 0.15))) +
+    labs(x = NULL, y = "Metro-tier gap vs. ACS (2021)",
+         title = "IRS SOI destination-tier margin, single-year test")
+}
+pA <- build_panel_a()
 
 ## ---- Panel B: metro-tier scheme granularity (full sample, migration gap) ----
 scheme_gap <- fread(file.path(data_dir, "results/memo1_scheme_gap_summary.csv"))
@@ -108,3 +140,14 @@ agg_png(out_path, width = 8.5, height = 4.2, units = "in", res = 600, background
 grid.arrange(pA + shared_theme, pB + shared_theme, ncol = 2, widths = c(1, 1.15))
 dev.off()
 cat(sprintf("Wrote %s\n", out_path))
+
+## Dark-mode "website" companion PNG -- same agg_png()/grid.arrange()
+## pattern, panel A rebuilt with ink = WEB_FG (geom_text color isn't a
+## theme element), both panels themed via make_shared_theme(WEB_FG).
+out_path_web <- sub("\\.png$", "_web.png", out_path)
+pA_web <- build_panel_a(ink = WEB_FG)
+web_theme <- make_shared_theme(WEB_FG)
+agg_png(out_path_web, width = 8.5, height = 4.2, units = "in", res = 600, background = "transparent")
+grid.arrange(pA_web + web_theme, pB + web_theme, ncol = 2, widths = c(1, 1.15))
+dev.off()
+cat(sprintf("Wrote %s\n", out_path_web))

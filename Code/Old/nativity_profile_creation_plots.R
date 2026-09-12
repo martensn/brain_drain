@@ -26,6 +26,9 @@ library(here)
 load_dot_env(here::here(".env"))
 directory <- Sys.getenv("BRAIN_DRAIN_ROOT")
 data_dir  <- file.path(directory, "Data")
+# [NEW 2026-09-11] theme_web()/ggsave_web()/WEB_FG -- dark-mode "website"
+# companion PNG for martensn.github.io. See Code/theme_web.R's own header.
+source(here::here("Code/theme_web.R"))
 
 FONT <- "Segoe UI"
 inst_group_colors <- c("#F8766D", "#7CAE00", "#00BFC4", "#C77CFF")  # Code/scripts/09_plots.R's own 4-color qualitative palette
@@ -67,19 +70,25 @@ fit_labels <- function(dt, xvar, yvar) {
   }, by = cohort]
 }
 
-make_plot <- function(yvar, ylab, title) {
+make_plot <- function(yvar, ylab, title, ink = "black") {
+  # `ink` colors the regression line + equation-label text -- geom-level
+  # colors, not ggplot2 theme elements, so `+ theme_web()` alone can't fix
+  # them for the web version; both default to "black" (unchanged light-mode
+  # behavior) but the web build below passes WEB_FG instead, since a
+  # hardcoded black trend line/label would otherwise be invisible on the
+  # site's dark background.
   labs_dt <- fit_labels(copy(d), "nativity_share", yvar)
   ggplot(d, aes(x = nativity_share, y = .data[[yvar]])) +
     geom_point(aes(size = pop_n, color = region, shape = region), alpha = 0.55, show.legend = c(size = FALSE)) +
     geom_smooth(aes(weight = pop_n), method = "lm", formula = y ~ x, se = FALSE,
-                color = "black", linetype = "dashed", linewidth = 0.6) +
+                color = ink, linetype = "dashed", linewidth = 0.6) +
     facet_wrap(~cohort) +
     scale_shape_manual(values = region_shapes, name = NULL) +
     scale_color_manual(values = region_colors, name = NULL) +
     scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
     scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
     geom_text(data = labs_dt, aes(x = -Inf, y = Inf, label = label), inherit.aes = FALSE,
-              hjust = -0.05, vjust = 1.3, size = 2.9, family = FONT, lineheight = 0.9) +
+              color = ink, hjust = -0.05, vjust = 1.3, size = 2.9, family = FONT, lineheight = 0.9) +
     labs(x = "Share of the metro's college-educated FT workforce born in-state (ACS)", y = ylab, title = title) +
     shared_theme
 }
@@ -107,3 +116,11 @@ p2 <- make_plot("hs_disclosure_rate", "HS disclosure rate (Column 2 / Column 1)"
 out2 <- file.path(data_dir, "results/nativity_hs_disclosure_rate.png")
 ggsave(out2, p2, width = 9.5, height = 3.9, units = "in", dpi = 600, bg = "transparent")
 cat(sprintf("Wrote %s\n", out2))
+
+# Dark-mode "website" companion PNG for martensn.github.io -- rebuilt with
+# ink = WEB_FG (not `p2 + theme_web()`, since p2's regression line/equation
+# labels are geom-level colors theme() can't override).
+p2_web <- make_plot("hs_disclosure_rate", "HS disclosure rate (Column 2 / Column 1)",
+                     "Does HS disclosure vary with labor-market nativity?", ink = WEB_FG) +
+  theme_web(legend_rows = 1)
+ggsave_web(out2, p2_web, width = 9.5, height = 3.9)

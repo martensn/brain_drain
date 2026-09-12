@@ -16,6 +16,9 @@ library(here)
 load_dot_env(here::here(".env"))
 directory <- Sys.getenv("BRAIN_DRAIN_ROOT")
 data_dir  <- file.path(directory, "Data")
+# [NEW 2026-09-11] theme_web()/ggsave_web() -- dark-mode "website" companion
+# PNG for martensn.github.io. See Code/theme_web.R's own header.
+source(here::here("Code/theme_web.R"))
 
 FONT <- "Segoe UI"
 series_colors <- c("All college grads (Column 1)" = "#40004b", "HS disclosers (Column 2)" = "#1b7837")
@@ -51,3 +54,11 @@ p <- ggplot(d, aes(x = years_elapsed, color = series, fill = series)) +
 out <- file.path(data_dir, "results/omission_distribution_two_series.png")
 ggsave(out, p, width = 8, height = 5.2, units = "in", dpi = 600, bg = "transparent")
 cat(sprintf("Wrote %s\n", out))
+
+# Dark-mode "website" companion PNG for martensn.github.io. The y=x
+# reference line and its "Theoretical maximum" label use a fixed blue
+# (#2c7fb8, a geom-level color theme() can't touch) -- left as-is, since
+# it reads clearly against the site's dark background too, unlike the
+# nativity plot's hardcoded-black trend line/labels (see
+# nativity_profile_creation_plots.R's `ink` parameter for that fix).
+ggsave_web(out, p + theme_web(legend_rows = 1), width = 8, height = 5.2)

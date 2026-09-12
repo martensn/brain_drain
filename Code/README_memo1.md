@@ -149,3 +149,70 @@ uses plain language throughout ("tier-share calibration", "flow
 calibration") and does not use that terminology. Read Phase A as the
 tier-share-only calibration and Phase B as the origin-destination flow
 calibration if you see it in a script or in `HANDOFF.md`.
+
+## `Code/theme_web.R` — website-friendly figure exports
+
+[NEW 2026-09-11/12] Some of this project's figures are embedded on
+Nicholas's personal site, `martensn.github.io` (specifically
+`trade-in-training.qmd`, methodology page for a different, separate
+paper — this repo just supplies its figures). That site is dark-mode
+(`#282b33` background, `#fffdda` text — see that repo's `styles.css`),
+but every plot-producing script in this project assumes a light page
+background, in one of three slightly different ways (`theme_memo()`'s
+solid white background; `Old/nativity_profile_creation_plots.R`'s and
+`Old/omission_missingness_plot.R`'s "transparent" background that still
+leaves default black text; `Old/metro_tier_map.R`'s solid white
+background with explicit dark text). None render correctly on the dark
+site as-is.
+
+`Code/theme_web.R` (`theme_web()` + `ggsave_web()`) fixes this: tack
+`+ theme_web()` onto any already-built plot object (regardless of which
+of the three templates built it) and call `ggsave_web()` in place of
+`ggsave()` to write a second `_web.png` file alongside the existing
+light-mode one — nothing that already reads the light-mode PNG is
+touched. Full rationale (including a real ggplot2 theme-composition
+subtlety around element specificity) is in that file's own header;
+read it before touching this mechanism.
+
+**Already wired in** (as of 2026-09-12): `memo1_11_final_outputs.R`
+(both Section 2 figures), `Old/omission_missingness_plot.R`,
+`Old/nativity_profile_creation_plots.R`. The last one needed one
+additional fix beyond the theme swap — its regression line and
+equation-label text are hardcoded `color = "black"` at the geom level
+(not a theme element `theme_web()` can override), so `make_plot()`
+gained an `ink` parameter (default `"black"`, unchanged; the web build
+passes `WEB_FG` instead). **Not yet wired in**: `Old/metro_tier_map.R`
+(needs a live `tigris`/TIGER shapefile pull to actually run — a
+larger lift, deliberately deferred) and the `memo1_alt_specs_summary.png`
+figure (`Code/memo1_alternative_specs/memo1_11_alt_specs_plot.R` builds
+it, but wasn't touched this pass).
+
+**Current output location: `Data/results/*_web.png` locally, copied by
+hand to `Box/Claude-Settings/Plans/BRAIN_DRAIN/web_figures/`** — NOT yet
+pushed to the site's own repo (`martensn/martensn.github.io`). That
+repo is a Quarto project (source on `main`, rendered HTML on `gh-pages`,
+no CI/GitHub Actions) and `quarto` isn't installed on this machine, so
+actually publishing an update requires Nicholas to either run
+`quarto publish gh-pages` himself after copying the new PNGs into
+`files/trade-in-training/` and repointing `trade-in-training.qmd`'s
+image references, or ask for that to be done from a machine that has
+Quarto installed. The site's `trade-in-training.qmd` currently links two
+image filenames without a line-count suffix
+(`memo1_full_sample_metro_tier_share.png`,
+`memo1_simplified_migration_rate_by_cohort.png`) as prose
+cross-references — these are stale, pre-4-line/6-line-split artifacts
+this project's own scripts no longer produce (see the 2026-08-11 entry
+in `HANDOFF.md`); worth pointing those at the current `_6line_web.png`
+files when the site is next updated, not just adding the new ones.
+
+**To do this again for a future figure**: build the plot as usual, then
+add `source(here::here("Code/theme_web.R"))` near the top of the script
+(if not already present) and, right after the script's existing
+`ggsave()` call, add `ggsave_web(out_path, p + theme_web(legend_rows),
+width = ..., height = ...)` — reusing the same `out_path`/`width`/
+`height`/`p` the light-mode call already used. If the plot has any
+geom-level colors hardcoded to black or another light-mode-only color
+(check for `color = "black"` in `geom_*()`/`annotate()` calls — not
+`theme()` calls, which `theme_web()` already handles), parameterize
+those the way `nativity_profile_creation_plots.R`'s `ink` argument
+does, rather than assuming `+ theme_web()` alone will fix everything.

@@ -100,6 +100,13 @@ library(here)
 load_dot_env(here::here(".env"))
 directory <- Sys.getenv("BRAIN_DRAIN_ROOT")
 data_dir  <- file.path(directory, "Data")
+# [NEW 2026-09-11] theme_web()/ggsave_web() -- dark-mode "website" theme
+# for embedding these figures on martensn.github.io. See Code/theme_web.R's
+# own header for the full rationale; applied below via `p + theme_web(...)`
+# right after each figure's existing light-mode ggsave() call, so the
+# original PNG this script has always produced is untouched and a second
+# "_web.png" is written alongside it.
+source(here::here("Code/theme_web.R"))
 
 log_step <- function(msg) { cat(format(Sys.time(), "%H:%M:%S"), "-", msg, "\n"); flush(stdout()) }
 
@@ -392,6 +399,13 @@ build_tier_plot <- function(mode) {
   out_path <- file.path(data_dir, sprintf("results/memo1_full_sample_metro_tier_share_%s.png", mode))
   ggsave(filename = out_path, plot = p, width = 6.5, height = if (mode == "4line") 3.4 else 3.9, units = "in", dpi = 600, bg = "white")
   cat(sprintf("Wrote %s\n", out_path))
+
+  # Dark-mode "website" companion PNG for martensn.github.io -- see
+  # Code/theme_web.R. p already has theme_memo() applied above;
+  # theme_web() fully overrides its chrome (ggplot layers compose
+  # left-to-right), so no need to rebuild the plot.
+  ggsave_web(out_path, p + theme_web(legend_rows),
+             width = 6.5, height = if (mode == "4line") 3.4 else 3.9)
 }
 build_tier_plot("4line")
 build_tier_plot("6line")
@@ -453,6 +467,11 @@ build_migration_plot <- function(mode) {
   out_path <- file.path(data_dir, sprintf("results/memo1_simplified_migration_rate_by_cohort_%s.png", mode))
   ggsave(filename = out_path, plot = p, width = 6.5, height = if (mode == "4line") 3.75 else 4.4, units = "in", dpi = 600, bg = "white")
   cat(sprintf("Wrote %s\n", out_path))
+
+  # Dark-mode "website" companion PNG for martensn.github.io -- see
+  # Code/theme_web.R.
+  ggsave_web(out_path, p + theme_web(legend_rows),
+             width = 6.5, height = if (mode == "4line") 3.75 else 4.4)
 }
 build_migration_plot("4line")
 build_migration_plot("6line")

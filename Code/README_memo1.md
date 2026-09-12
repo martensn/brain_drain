@@ -174,38 +174,56 @@ touched. Full rationale (including a real ggplot2 theme-composition
 subtlety around element specificity) is in that file's own header;
 read it before touching this mechanism.
 
-**Already wired in** (as of 2026-09-12): `memo1_11_final_outputs.R`
-(both Section 2 figures), `Old/omission_missingness_plot.R`,
-`Old/nativity_profile_creation_plots.R`. The last one needed one
-additional fix beyond the theme swap — its regression line and
-equation-label text are hardcoded `color = "black"` at the geom level
-(not a theme element `theme_web()` can override), so `make_plot()`
-gained an `ink` parameter (default `"black"`, unchanged; the web build
-passes `WEB_FG` instead). **Not yet wired in**: `Old/metro_tier_map.R`
-(needs a live `tigris`/TIGER shapefile pull to actually run — a
-larger lift, deliberately deferred) and the `memo1_alt_specs_summary.png`
-figure (`Code/memo1_alternative_specs/memo1_11_alt_specs_plot.R` builds
-it, but wasn't touched this pass).
+**All five embedded figures are wired and live** (as of 2026-09-12):
+`memo1_11_final_outputs.R` (both Section 2 figures), `Old/omission_missingness_plot.R`,
+`Old/nativity_profile_creation_plots.R`, `Old/metro_tier_map.R`, and
+`Code/memo1_alternative_specs/memo1_11_alt_specs_plot.R`. Two needed a
+fix beyond the plain theme swap:
+- `nativity_profile_creation_plots.R` and `memo1_11_alt_specs_plot.R`
+  both draw hardcoded `color = "black"` geom-level ink (a regression
+  line + equation labels; bar-value labels, respectively) that
+  `theme_web()` can't touch (not a theme element). Both scripts'
+  plot-building functions gained an `ink` parameter (default `"black"`,
+  unchanged light-mode behavior; the web build passes `WEB_FG`).
+- `memo1_alt_specs_summary.png` uses `agg_png()`/`grid.arrange()`, not
+  `ggsave()` — its web build mirrors that save pattern by hand rather
+  than using `ggsave_web()`.
+- `metro_tier_map.R` is built on `theme_void()`. `theme_web()` originally
+  set `axis.text`/`axis.title`/`axis.line`/`axis.ticks` unconditionally,
+  which — caught only by actually rendering the map, not assumed correct
+  from the code — silently RE-ENABLED a full lat/long axis+gridline frame
+  `theme_void()` had deliberately blanked (a later ggplot2 theme layer's
+  real element beats an earlier layer's `element_blank()`). Fixed by
+  adding a `void = TRUE` parameter to `theme_web()` that blanks those
+  same four elements instead; `metro_tier_map.R` passes it.
 
-**Current output location: `Data/results/*_web.png` locally, copied by
-hand to `Box/Claude-Settings/Plans/BRAIN_DRAIN/images/`** (the folder that
-already held this project's light-mode PNGs — don't create a separate
-one) — NOT yet
-pushed to the site's own repo (`martensn/martensn.github.io`). That
-repo is a Quarto project (source on `main`, rendered HTML on `gh-pages`,
-no CI/GitHub Actions) and `quarto` isn't installed on this machine, so
-actually publishing an update requires Nicholas to either run
-`quarto publish gh-pages` himself after copying the new PNGs into
-`files/trade-in-training/` and repointing `trade-in-training.qmd`'s
-image references, or ask for that to be done from a machine that has
-Quarto installed. The site's `trade-in-training.qmd` currently links two
-image filenames without a line-count suffix
-(`memo1_full_sample_metro_tier_share.png`,
-`memo1_simplified_migration_rate_by_cohort.png`) as prose
-cross-references — these are stale, pre-4-line/6-line-split artifacts
-this project's own scripts no longer produce (see the 2026-08-11 entry
-in `HANDOFF.md`); worth pointing those at the current `_6line_web.png`
-files when the site is next updated, not just adding the new ones.
+**Output**: `Data/results/*_web.png` locally, copied to
+`Box/Claude-Settings/Plans/BRAIN_DRAIN/images/` (the folder that already
+held this project's light-mode PNGs), AND pushed to the site's own repo
+(`martensn/martensn.github.io`) — both the `main` branch (`.qmd` source
++ `files/trade-in-training/`) and the `gh-pages` branch (the actual
+live, rendered HTML + its own copy of the images), hand-edited in
+parallel since `quarto` isn't installed on this machine to re-render
+from source. This was safe here ONLY because the edit was a pure
+filename swap in already-rendered markup plus new image files — no
+prose/layout change, so no re-render was actually needed. A future
+content or layout change to the site still needs an actual `quarto
+render`/`quarto publish gh-pages` from a machine that has Quarto
+installed; don't reach for this hand-edit trick for anything beyond a
+literal file-reference substitution.
+
+Two stale prose cross-reference links in `trade-in-training.qmd` (pointing
+at `memo1_full_sample_metro_tier_share.png` /
+`memo1_simplified_migration_rate_by_cohort.png` — pre-4-line/6-line-split
+filenames this project's scripts no longer produce, see the 2026-08-11
+entry in `HANDOFF.md`) were also fixed, redirected to the current
+`_6line.png` light-mode files. Deliberately kept LIGHT, not `_web`, for
+those two plus `omission_distribution_two_series.png`'s own prose
+cross-reference and `metro_tier_map.png`'s only reference (a link, never
+embedded) — these are "click to view the raw image" links, and a
+transparent web-styled PNG opened standalone renders on a plain white
+background in most browsers, making its light cream text nearly
+invisible. Only the actual page-embedded `<img>` tags use `_web.png`.
 
 **To do this again for a future figure**: build the plot as usual, then
 add `source(here::here("Code/theme_web.R"))` near the top of the script

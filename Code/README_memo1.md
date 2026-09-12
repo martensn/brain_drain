@@ -188,7 +188,9 @@ figure (`Code/memo1_alternative_specs/memo1_11_alt_specs_plot.R` builds
 it, but wasn't touched this pass).
 
 **Current output location: `Data/results/*_web.png` locally, copied by
-hand to `Box/Claude-Settings/Plans/BRAIN_DRAIN/web_figures/`** — NOT yet
+hand to `Box/Claude-Settings/Plans/BRAIN_DRAIN/images/`** (the folder that
+already held this project's light-mode PNGs — don't create a separate
+one) — NOT yet
 pushed to the site's own repo (`martensn/martensn.github.io`). That
 repo is a Quarto project (source on `main`, rendered HTML on `gh-pages`,
 no CI/GitHub Actions) and `quarto` isn't installed on this machine, so
